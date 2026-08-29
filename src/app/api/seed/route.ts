@@ -24,18 +24,18 @@ export async function POST() {
     const agentId = new ObjectId();
     const clientId = new ObjectId();
 
-    // USERS
+    // USERS (matching Prisma User model)
     await db.collection("users").insertMany([
-      { _id: adminId, email: "admin@igura.rw", phone: "+250788000000", passwordHash: hashPw("Admin123!"), role: "ADMIN", status: "ACTIVE", createdAt: now, updatedAt: now },
-      { _id: agentId, email: "agent@igura.rw", phone: "+250788111111", passwordHash: hashPw("Agent123!"), role: "COMMISSIONAIRE", status: "ACTIVE", createdAt: now, updatedAt: now },
-      { _id: clientId, email: "client@igura.rw", phone: "+250788222222", passwordHash: hashPw("Client123!"), role: "CLIENT", status: "ACTIVE", createdAt: now, updatedAt: now },
+      { _id: adminId, email: "admin@igura.rw", phone: "+250788000000", passwordHash: await hashPw("Admin123!"), firstName: "Admin", lastName: "Igura", role: "ADMIN", emailVerified: true, phoneVerified: true, isActive: true, createdAt: now, updatedAt: now },
+      { _id: agentId, email: "agent@igura.rw", phone: "+250788111111", passwordHash: await hashPw("Agent123!"), firstName: "Jean", lastName: "Hakizimana", role: "COMMISSIONAIRE", emailVerified: true, phoneVerified: true, isActive: true, createdAt: now, updatedAt: now },
+      { _id: clientId, email: "client@igura.rw", phone: "+250788222222", passwordHash: await hashPw("Client123!"), firstName: "Marie", lastName: "Uwimana", role: "CLIENT", emailVerified: true, phoneVerified: true, isActive: true, createdAt: now, updatedAt: now },
     ]);
 
-    // PROFILES
+    // PROFILES (matching Prisma Profile model)
     await db.collection("profiles").insertMany([
-      { _id: new ObjectId(), userId: adminId, firstName: "Admin", lastName: "Igura", bio: "System Administrator", avatarUrl: null, createdAt: now, updatedAt: now },
-      { _id: new ObjectId(), userId: agentId, firstName: "Jean", lastName: "Hakizimana", bio: "Licensed real estate commissionaire", avatarUrl: null, createdAt: now, updatedAt: now },
-      { _id: new ObjectId(), userId: clientId, firstName: "Marie", lastName: "Uwimana", bio: "Looking for a house", avatarUrl: null, createdAt: now, updatedAt: now },
+      { _id: new ObjectId(), userId: adminId, avatarUrl: null, bio: "System Administrator", address: null, district: null, createdAt: now, updatedAt: now },
+      { _id: new ObjectId(), userId: agentId, avatarUrl: null, bio: "Licensed real estate commissionaire", address: "Kigali, Rwanda", district: "Kigali City", createdAt: now, updatedAt: now },
+      { _id: new ObjectId(), userId: clientId, avatarUrl: null, bio: "Looking for a house", address: null, district: "Kigali City", createdAt: now, updatedAt: now },
     ]);
 
     // MARKETPLACES
