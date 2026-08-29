@@ -19,7 +19,11 @@ export async function GET(request: NextRequest) {
       const allMarketplaces = await prisma.marketplace.findMany({ select: { id: true, name: true } });
       const search = filters.marketplace.toLowerCase().replace(/_/g, " ");
       const match = allMarketplaces.find(
-        (m) => m.id === filters.marketplace || m.name.toLowerCase() === search
+        (m) =>
+          m.id === filters.marketplace ||
+          m.name.toLowerCase() === search ||
+          m.name.toLowerCase().includes(search) ||
+          search.includes(m.name.toLowerCase())
       );
       if (match) {
         where.marketplaceId = match.id;
