@@ -35,13 +35,13 @@ export function PropertyCard({ property, marketplace }: PropertyCardProps) {
   return (
     <Link href={href} className="group">
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden transition-shadow hover:shadow-md">
-        <div className="relative aspect-[4/3] bg-slate-100 overflow-hidden">
+        <div className="relative aspect-[4/3] bg-slate-100 overflow-hidden" style={{ position: "relative", height: 0, paddingBottom: "56.25%" }}>
           {property.images && property.images.length > 0 ? (
             <Image
               src={property.images[0].url}
               alt={property.images[0].altText || property.title}
               fill
-              className="object-cover transition-transform group-hover:scale-105"
+              className="object-cover absolute top-0 left-0 w-full h-full"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
           ) : (
