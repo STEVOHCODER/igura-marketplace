@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!user.isActive) {
+    if (user.status !== "ACTIVE") {
       return NextResponse.json(
         { error: "Account has been deactivated" },
         { status: 403 }

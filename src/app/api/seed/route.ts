@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { MongoClient, ObjectId } from "mongodb";
-import { createHash } from "crypto";
+import bcrypt from "bcryptjs";
 
 const MONGO_URI = process.env.DATABASE_URL!;
 
@@ -18,7 +18,7 @@ export async function POST() {
     }
 
     const now = new Date();
-    const hashPw = (pw: string) => createHash("sha256").update(pw).digest("hex");
+    const hashPw = async (pw: string) => bcrypt.hashSync(pw, 12);
 
     const adminId = new ObjectId();
     const agentId = new ObjectId();
