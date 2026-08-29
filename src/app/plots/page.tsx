@@ -38,7 +38,7 @@ export default function PlotSearchPage() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      params.set("marketplace", "plot_sale");
+      params.set("marketplace", "Plot Selling VIP");
       params.set("page", page.toString());
       params.set("limit", "12");
       if (filters.q) params.set("q", filters.q);

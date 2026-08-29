@@ -27,7 +27,8 @@ interface PropertyCardProps {
 }
 
 export function PropertyCard({ property, marketplace }: PropertyCardProps) {
-  const href = marketplace === "plot_sale"
+  const isPlot = marketplace === "plot_sale" || marketplace === "Plot Selling VIP" || property.marketplace?.name === "Plot Selling VIP";
+  const href = isPlot
     ? `/plots/${property.slug}`
     : `/rent/houses/${property.slug}`;
 
