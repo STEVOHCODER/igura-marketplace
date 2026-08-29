@@ -16,7 +16,27 @@ export async function GET(request: NextRequest) {
     };
 
     if (filters.marketplace) {
-      where.marketplace = { name: filters.marketplace };
+      const marketplace = await prisma.marketplace.findFirst({
+        where: {
+          OR: [
+            { id: filters.marketplace },
+            { name: filters.marketplace },
+            { name: filters.marketplace.replace(/_/g, " ") },
+          ],
+        },
+      });
+      if (!marketplace) {
+        const all = await prisma.marketplace.findMany({ select: { id: true, name: true } });
+        const slugified = filters.marketplace.toLowerCase().replace(/_/g, " ");
+        const match = all.find((m) => m.name.toLowerCase().replace(/_/g, " ") === slugified);
+        if (match) {
+          where.marketplaceId = match.id;
+        } else {
+          return NextResponse.json({ properties: [], total: 0, page: 1, totalPages: 0 });
+        }
+      } else {
+        where.marketplaceId = marketplace.id;
+      }
     }
 
     if (filters.district) {
@@ -36,7 +56,13 @@ export async function GET(request: NextRequest) {
     }
 
     if (filters.propertyType) {
-      where.propertyType = { slug: filters.propertyType };
+      where.propertyType = {
+        OR: [
+          { slug: filters.propertyType },
+          { id: filters.propertyType },
+          { name: filters.propertyType.replace(/_/g, " ") },
+        ],
+      };
     }
 
     if (filters.minPrice || filters.maxPrice) {
