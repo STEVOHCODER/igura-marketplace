@@ -16,26 +16,15 @@ export async function GET(request: NextRequest) {
     };
 
     if (filters.marketplace) {
-      const marketplace = await prisma.marketplace.findFirst({
-        where: {
-          OR: [
-            { id: filters.marketplace },
-            { name: filters.marketplace },
-            { name: filters.marketplace.replace(/_/g, " ") },
-          ],
-        },
-      });
-      if (!marketplace) {
-        const all = await prisma.marketplace.findMany({ select: { id: true, name: true } });
-        const slugified = filters.marketplace.toLowerCase().replace(/_/g, " ");
-        const match = all.find((m) => m.name.toLowerCase().replace(/_/g, " ") === slugified);
-        if (match) {
-          where.marketplaceId = match.id;
-        } else {
-          return NextResponse.json({ properties: [], total: 0, page: 1, totalPages: 0 });
-        }
+      const allMarketplaces = await prisma.marketplace.findMany({ select: { id: true, name: true } });
+      const search = filters.marketplace.toLowerCase().replace(/_/g, " ");
+      const match = allMarketplaces.find(
+        (m) => m.id === filters.marketplace || m.name.toLowerCase() === search
+      );
+      if (match) {
+        where.marketplaceId = match.id;
       } else {
-        where.marketplaceId = marketplace.id;
+        return NextResponse.json({ properties: [], total: 0, page: 1, totalPages: 0 });
       }
     }
 
@@ -56,13 +45,14 @@ export async function GET(request: NextRequest) {
     }
 
     if (filters.propertyType) {
-      where.propertyType = {
-        OR: [
-          { slug: filters.propertyType },
-          { id: filters.propertyType },
-          { name: filters.propertyType.replace(/_/g, " ") },
-        ],
-      };
+      const allTypes = await prisma.propertyType.findMany({ select: { id: true, slug: true, name: true } });
+      const typeSearch = filters.propertyType.toLowerCase().replace(/_/g, " ");
+      const typeMatch = allTypes.find(
+        (t) => t.id === filters.propertyType || t.slug === filters.propertyType || t.name.toLowerCase() === typeSearch
+      );
+      if (typeMatch) {
+        where.propertyTypeId = typeMatch.id;
+      }
     }
 
     if (filters.minPrice || filters.maxPrice) {
