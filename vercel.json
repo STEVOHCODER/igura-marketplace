@@ -1,0 +1,18 @@
+{
+  "buildCommand": "npx prisma generate && npx next build",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "installCommand": "npm install",
+  "env": {
+    "DATABASE_URL": "@database-url",
+    "JWT_SECRET": "@jwt-secret",
+    "NEXT_PUBLIC_APP_URL": "@app-url",
+    "NEXT_PUBLIC_SUPABASE_URL": "@supabase-url",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@supabase-anon-key",
+    "SUPABASE_SERVICE_ROLE_KEY": "@supabase-service-role-key",
+    "FLUTTERWAVE_SECRET_KEY": "@flutterwave-secret-key",
+    "FLUTTERWAVE_PUBLIC_KEY": "@flutterwave-public-key",
+    "FLUTTERWAVE_ENCRYPTION_KEY": "@flutterwave-encryption-key",
+    "FLUTTERWAVE_WEBHOOK_SECRET": "@flutterwave-webhook-secret"
+  }
+}
