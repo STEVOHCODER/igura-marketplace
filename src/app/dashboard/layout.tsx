@@ -33,11 +33,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Mobile sidebar */}
+      {/* Mobile sidebar - glass style */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="fixed inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
-          <div className="fixed inset-y-0 left-0 w-64 bg-white border-r border-slate-200 p-4">
+          <div className="fixed inset-y-0 left-0 w-64 bg-white/90 border-r border-slate-200 p-4 backdrop-blur-sm">
             <div className="flex items-center justify-between mb-6">
               <Link href="/" className="flex items-center gap-2">
                 <div className="h-8 w-8 rounded-lg bg-emerald-600 flex items-center justify-center">
@@ -72,8 +72,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       )}
 
       <div className="flex">
-        {/* Desktop sidebar */}
-        <div className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-white border-r border-slate-200">
+        {/* Desktop sidebar - glass style */}
+        <div className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-white/90 border-r border-slate-200 backdrop-blur-sm">
           <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-200">
             <div className="h-8 w-8 rounded-lg bg-emerald-600 flex items-center justify-center">
               <span className="text-white font-bold text-sm">I</span>
@@ -86,6 +86,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={() => setSidebarOpen(false)}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                   pathname === item.href ? "bg-emerald-50 text-emerald-700" : "text-slate-600 hover:bg-slate-50"
@@ -112,7 +113,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Main content */}
         <div className="lg:ml-64 flex-1">
-          <div className="lg:hidden flex items-center gap-4 px-4 py-3 bg-white border-b border-slate-200">
+          <div className="lg:hidden flex items-center gap-4 px-4 py-3 bg-white/90 border-b border-slate-200 backdrop-blur-sm">
             <button onClick={() => setSidebarOpen(true)} className="text-slate-600"><Menu className="h-5 w-5" /></button>
             <Link href="/" className="flex items-center gap-2">
               <div className="h-7 w-7 rounded-lg bg-emerald-600 flex items-center justify-center">
