@@ -18,13 +18,16 @@ export async function GET(request: NextRequest) {
     if (filters.marketplace) {
       const allMarketplaces = await prisma.marketplace.findMany({ select: { id: true, name: true } });
       const search = filters.marketplace.toLowerCase().replace(/_/g, " ");
-      const match = allMarketplaces.find(
-        (m) =>
-          m.id === filters.marketplace ||
-          m.name.toLowerCase() === search ||
-          m.name.toLowerCase().includes(search) ||
-          search.includes(m.name.toLowerCase())
-      );
+      let match: { id: string; name: string } | undefined;
+
+      for (const m of allMarketplaces) {
+        const mName = m.name.toLowerCase();
+        if (m.id === filters.marketplace || mName === search || mName.startsWith(search) || search.startsWith(mName) || mName.includes(search) || search.includes(mName)) {
+          match = m;
+          break;
+        }
+      }
+
       if (match) {
         where.marketplaceId = match.id;
       } else {
