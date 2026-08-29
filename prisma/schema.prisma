@@ -1,0 +1,281 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["mongodb"]
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @map("_id") @id @default(auto()) @db.ObjectId
+  email         String   @unique
+  phone         String?  @unique
+  passwordHash  String
+  firstName     String
+  lastName      String
+  role          String   @default("USER") // USER, ADMIN, SUPER_ADMIN
+  emailVerified Boolean  @default(false)
+  phoneVerified Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  profile           Profile?
+  memberships       Membership[]
+  payments          Payment[]
+  ownedProperties   Property[]     @relation("PropertyOwner")
+  reports           Report[]       @relation("ReportReporter")
+  adminActions      AdminAction[]
+  notifications     Notification[]
+}
+
+model Profile {
+  id        String   @map("_id") @id @default(auto()) @db.ObjectId
+  userId    String   @unique @db.ObjectId
+  avatarUrl String?
+  bio       String?
+  address   String?
+  district  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Marketplace {
+  id          String   @map("_id") @id @default(auto()) @db.ObjectId
+  name        String   @unique
+  displayName String
+  description String?
+  status      String   @default("ACTIVE") // ACTIVE, INACTIVE
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  plans         Plan[]
+  properties    Property[]
+  propertyTypes PropertyType[]
+}
+
+model Plan {
+  id                  String   @map("_id") @id @default(auto()) @db.ObjectId
+  marketplaceId       String   @db.ObjectId
+  name                String   @unique
+  displayName         String
+  role                String   // COMMISSIONAIRE, CLIENT
+  price               Int
+  currency            String   @default("RWF")
+  maxActiveListings   Int      @default(10)
+  maxImagesPerListing Int      @default(3)
+  features            Json?
+  status              String   @default("ACTIVE") // ACTIVE, INACTIVE
+  createdAt           DateTime @default(now())
+
+  marketplace   Marketplace  @relation(fields: [marketplaceId], references: [id], onDelete: Cascade)
+  memberships   Membership[]
+  payments      Payment[]
+}
+
+model Membership {
+  id          String    @map("_id") @id @default(auto()) @db.ObjectId
+  userId      String    @db.ObjectId
+  planId      String    @db.ObjectId
+  status      String    @default("PENDING") // PENDING, ACTIVE, EXPIRED, CANCELLED
+  activatedAt DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan    Plan    @relation(fields: [planId], references: [id], onDelete: Cascade)
+  payments Payment[]
+
+  @@unique([userId, planId])
+  @@index([userId])
+  @@index([planId])
+  @@index([status])
+}
+
+model Payment {
+  id                    String    @map("_id") @id @default(auto()) @db.ObjectId
+  userId                String    @db.ObjectId
+  membershipId          String?   @db.ObjectId
+  planId                String    @db.ObjectId
+  amount                Int
+  currency              String    @default("RWF")
+  provider              String
+  providerTransactionId String?   @unique
+  reference             String?
+  status                String    @default("PENDING") // PENDING, SUCCESSFUL, FAILED, CANCELLED
+  method                String    // MOBILE_MONEY, BANK_CARD, BANK_TRANSFER
+  metadata              Json?
+  paidAt                DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  membership Membership? @relation(fields: [membershipId], references: [id])
+  plan       Plan        @relation(fields: [planId], references: [id])
+  events     PaymentEvent[]
+}
+
+model PaymentEvent {
+  id        String   @map("_id") @id @default(auto()) @db.ObjectId
+  paymentId String   @db.ObjectId
+  eventType String
+  payload   Json?
+  createdAt DateTime @default(now())
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+}
+
+model Property {
+  id                  String    @map("_id") @id @default(auto()) @db.ObjectId
+  ownerId             String    @db.ObjectId
+  marketplaceId       String    @db.ObjectId
+  slug                String    @unique
+  title               String
+  description         String?
+  propertyTypeId      String?   @db.ObjectId
+  price               Int
+  negotiable          Boolean   @default(true)
+  status              String    @default("DRAFT") // DRAFT, ACTIVE, UPCOMING, UNAVAILABLE, DELETED
+  availabilityStatus  String    @default("AVAILABLE") // AVAILABLE, UPCOMING, UNAVAILABLE
+  availabilityDate    DateTime?
+  latitude            Float?
+  longitude           Float?
+  coordinatesRevealed Boolean   @default(false)
+  locationCountry     String?   @default("Rwanda")
+  locationDistrict    String?
+  locationSector      String?
+  locationCell        String?
+  locationVillage     String?
+  bedrooms            Int?
+  bathrooms           Int?
+  areaValue           Float?
+  areaUnit            String?   // SQM, SQFT, ACRE, HECTARE
+  contactPhone        String?
+  contactName         String?
+  viewCount           Int       @default(0)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  owner        User          @relation("PropertyOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  marketplace  Marketplace   @relation(fields: [marketplaceId], references: [id])
+  propertyType PropertyType? @relation(fields: [propertyTypeId], references: [id])
+  images       PropertyImage[]
+  keywords     PropertyKeyword[]
+  features     PropertyFeature[]
+  reports      Report[]
+}
+
+model PropertyType {
+  id            String   @map("_id") @id @default(auto()) @db.ObjectId
+  marketplaceId String   @db.ObjectId
+  name          String
+  slug          String
+  displayName   String
+  sortOrder     Int      @default(0)
+  status        String   @default("ACTIVE")
+  createdAt     DateTime @default(now())
+
+  marketplace Marketplace  @relation(fields: [marketplaceId], references: [id], onDelete: Cascade)
+  properties  Property[]
+
+  @@unique([marketplaceId, name])
+  @@unique([marketplaceId, slug])
+}
+
+model PropertyImage {
+  id          String   @map("_id") @id @default(auto()) @db.ObjectId
+  propertyId  String   @db.ObjectId
+  url         String
+  storagePath String?
+  sortOrder   Int      @default(0)
+  altText     String?
+  createdAt   DateTime @default(now())
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+}
+
+model PropertyKeyword {
+  id         String @map("_id") @id @default(auto()) @db.ObjectId
+  propertyId String @db.ObjectId
+  keyword    String
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([propertyId, keyword])
+}
+
+model PropertyFeature {
+  id         String @map("_id") @id @default(auto()) @db.ObjectId
+  propertyId String @db.ObjectId
+  feature    String
+  value      String?
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([propertyId, feature])
+}
+
+model Report {
+  id          String   @map("_id") @id @default(auto()) @db.ObjectId
+  reporterId  String   @db.ObjectId
+  propertyId  String   @db.ObjectId
+  reason      String
+  description String?
+  status      String   @default("PENDING")
+  adminId     String?  @db.ObjectId
+  adminNote   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  reporter User     @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+}
+
+model AdminAction {
+  id         String   @map("_id") @id @default(auto()) @db.ObjectId
+  adminId    String   @db.ObjectId
+  actionType String
+  targetType String
+  targetId   String
+  details    Json?
+  createdAt  DateTime @default(now())
+
+  admin User @relation(fields: [adminId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @map("_id") @id @default(auto()) @db.ObjectId
+  userId    String   @db.ObjectId
+  type      String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model LocationHierarchy {
+  id       String  @map("_id") @id
+  country  String
+  district String?
+  sector   String?
+  cell     String?
+  village  String?
+  level    String
+  parentId String?
+
+  @@index([country])
+  @@index([district])
+  @@index([level])
+  @@index([parentId])
+}
