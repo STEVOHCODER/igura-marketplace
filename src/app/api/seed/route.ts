@@ -62,7 +62,7 @@ export async function POST() {
     await db.collection("memberships").insertOne({ _id: new ObjectId(), userId: agentId, planId: proPlanId, marketplaceId: rentalId, status: "ACTIVE", startDate: now, endDate: new Date(now.getTime() + 30 * 86400000), createdAt: now, updatedAt: now });
 
     // LOCATIONS
-    await db.collection("location_hierarchies").insertMany([
+    const locations = [
       { _id: "rwanda_country", country: "Rwanda", district: null, sector: null, cell: null, village: null, level: "COUNTRY", parentId: null },
       { _id: "kigali_city", country: "Rwanda", district: "Kigali City", sector: null, cell: null, village: null, level: "DISTRICT", parentId: "rwanda_country" },
       { _id: "gasabo", country: "Rwanda", district: "Kigali City", sector: "Gasabo", cell: null, village: null, level: "SECTOR", parentId: "kigali_city" },
@@ -83,7 +83,8 @@ export async function POST() {
       { _id: "nyagatare", country: "Rwanda", district: "Nyagatare", sector: null, cell: null, village: null, level: "DISTRICT", parentId: "rwanda_country" },
       { _id: "kayonza", country: "Rwanda", district: "Kayonza", sector: null, cell: null, village: null, level: "DISTRICT", parentId: "rwanda_country" },
       { _id: "bugesera", country: "Rwanda", district: "Bugesera", sector: null, cell: null, village: null, level: "DISTRICT", parentId: "rwanda_country" },
-    ]);
+    ] as any[];
+    await db.collection("location_hierarchies").insertMany(locations);
 
     // PROPERTY TYPES
     const houseTypes = ["Villa", "Apartment", "Studio", "Townhouse", "Duplex", "Bungalow", "Room"];

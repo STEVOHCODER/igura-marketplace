@@ -10,10 +10,24 @@ export const metadata: Metadata = {
   description:
     "Find houses for rent and plots for sale in Rwanda. Trusted real estate marketplace with verified listings.",
   keywords: ["real estate", "Rwanda", "house rental", "plot sale", "Kigali", "property"],
+  icons: {
+    icon: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
   openGraph: {
     type: "website",
     locale: "en_RW",
     siteName: "Igura",
+    title: "Igura - Real Estate Marketplace Rwanda",
+    description: "Find houses for rent and plots for sale in Rwanda.",
+    images: [
+      {
+        url: "/logo.svg",
+        width: 200,
+        height: 48,
+        alt: "Igura Logo",
+      },
+    ],
   },
 };
 
