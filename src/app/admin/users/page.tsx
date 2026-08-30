@@ -1,17 +1,20 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Search, UserCheck, UserX, Key, Shield } from "lucide-react";
+import { Search, UserCheck, UserX, Shield, MoreVertical, ChevronDown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
+import { formatDate } from "@/lib/utils";
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
   const [granting, setGranting] = useState<string | null>(null);
+  const [editingRole, setEditingRole] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -32,11 +35,31 @@ export default function AdminUsersPage() {
         body: JSON.stringify({ isActive: !isActive }),
       });
       if (res.ok) {
-        toast("User status updated", "success");
+        toast(isActive ? "User suspended" : "User activated", "success");
         setUsers(prev => prev.map(u => u.id === userId ? { ...u, isActive: !isActive } : u));
       }
     } catch {
       toast("Failed to update user", "error");
+    }
+  };
+
+  const changeRole = async (userId: string, newRole: string) => {
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: newRole }),
+      });
+      if (res.ok) {
+        toast(`Role changed to ${newRole}`, "success");
+        setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
+        setEditingRole(null);
+      } else {
+        const data = await res.json();
+        toast(data.error || "Failed to change role", "error");
+      }
+    } catch {
+      toast("Failed to change role", "error");
     }
   };
 
@@ -51,7 +74,6 @@ export default function AdminUsersPage() {
       const data = await res.json();
       if (res.ok) {
         toast("Access granted successfully", "success");
-        // Refresh users to show new membership
         const refreshed = await fetch("/api/admin/users").then(r => r.json());
         setUsers(refreshed?.users || []);
       } else {
@@ -81,16 +103,46 @@ export default function AdminUsersPage() {
     }
   };
 
-  const filtered = users.filter(u =>
-    u.email.toLowerCase().includes(search.toLowerCase()) ||
-    u.firstName.toLowerCase().includes(search.toLowerCase()) ||
-    u.lastName.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = users.filter(u => {
+    const matchSearch = u.email.toLowerCase().includes(search.toLowerCase()) ||
+      u.firstName.toLowerCase().includes(search.toLowerCase()) ||
+      u.lastName.toLowerCase().includes(search.toLowerCase());
+    const matchRole = roleFilter === "all" || u.role === roleFilter;
+    return matchSearch && matchRole;
+  });
+
+  const roleCounts = {
+    all: users.length,
+    ADMIN: users.filter(u => u.role === "ADMIN" || u.role === "SUPER_ADMIN").length,
+    COMMISSIONAIRE: users.filter(u => u.role === "COMMISSIONAIRE").length,
+    CLIENT: users.filter(u => u.role === "CLIENT").length,
+    USER: users.filter(u => u.role === "USER").length,
+  };
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold text-slate-900 mb-2">Manage Users</h1>
-      <p className="text-slate-500 mb-6">{users.length} total users</p>
+    <div className="max-w-7xl mx-auto">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-slate-900">Manage Users</h1>
+        <p className="text-slate-500 text-sm mt-1">{users.length} total users · {roleCounts.ADMIN} admins · {roleCounts.COMMISSIONAIRE} commissionaires · {roleCounts.CLIENT} clients</p>
+      </div>
+
+      {/* Role Filter Tabs */}
+      <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+        {(["all", "ADMIN", "COMMISSIONAIRE", "CLIENT", "USER"] as const).map((f) => (
+          <button
+            key={f}
+            onClick={() => setRoleFilter(f)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+              roleFilter === f
+                ? "bg-emerald-600 text-white"
+                : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+            }`}
+          >
+            {f === "all" ? "All Roles" : f.charAt(0) + f.slice(1).toLowerCase()}
+            <span className="ml-1.5 text-xs opacity-70">({roleCounts[f]})</span>
+          </button>
+        ))}
+      </div>
 
       <div className="mb-6">
         <div className="relative max-w-md">
@@ -109,40 +161,95 @@ export default function AdminUsersPage() {
                   <th className="text-left px-4 py-3 font-medium text-slate-600">Email</th>
                   <th className="text-left px-4 py-3 font-medium text-slate-600">Role</th>
                   <th className="text-left px-4 py-3 font-medium text-slate-600">Status</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">Memberships</th>
                   <th className="text-left px-4 py-3 font-medium text-slate-600">Joined</th>
                   <th className="text-right px-4 py-3 font-medium text-slate-600">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-500">Loading...</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-500">Loading...</td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-500">No users found</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-500">No users found</td></tr>
                 ) : filtered.map((u) => (
                   <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50">
                     <td className="px-4 py-3">
-                      <div className="font-medium text-slate-900">{u.firstName} {u.lastName}</div>
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs font-semibold text-emerald-700">
+                            {u.firstName?.[0]}{u.lastName?.[0]}
+                          </span>
+                        </div>
+                        <div>
+                          <div className="font-medium text-slate-900">{u.firstName} {u.lastName}</div>
+                          <div className="text-xs text-slate-400">{u.phone || "No phone"}</div>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-slate-500">{u.email}</td>
                     <td className="px-4 py-3">
-                      <Badge variant={u.role === "ADMIN" ? "danger" : u.role === "COMMISSIONAIRE" ? "success" : u.role === "CLIENT" ? "warning" : "default"}>
-                        {u.role}
-                      </Badge>
+                      {editingRole === u.id ? (
+                        <div className="flex items-center gap-1">
+                          <select
+                            defaultValue={u.role}
+                            onChange={(e) => changeRole(u.id, e.target.value)}
+                            className="text-xs border border-slate-300 rounded px-2 py-1 bg-white"
+                          >
+                            <option value="USER">USER</option>
+                            <option value="CLIENT">CLIENT</option>
+                            <option value="COMMISSIONAIRE">COMMISSIONAIRE</option>
+                            <option value="ADMIN">ADMIN</option>
+                            <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+                          </select>
+                          <button onClick={() => setEditingRole(null)} className="text-xs text-slate-400 hover:text-slate-600">✕</button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setEditingRole(u.id)}
+                          className="hover:bg-slate-100 rounded px-1 py-0.5 transition-colors"
+                        >
+                          <Badge variant={u.role === "ADMIN" || u.role === "SUPER_ADMIN" ? "danger" : u.role === "COMMISSIONAIRE" ? "success" : u.role === "CLIENT" ? "warning" : "default"}>
+                            {u.role}
+                          </Badge>
+                        </button>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <Badge variant={u.isActive ? "success" : "danger"}>{u.isActive ? "Active" : "Suspended"}</Badge>
                     </td>
-                    <td className="px-4 py-3 text-slate-500">{new Date(u.createdAt).toLocaleDateString()}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-1">
+                        {u.memberships?.map((m: any) => (
+                          <Badge key={m.id} variant={m.status === "ACTIVE" ? "success" : m.status === "PENDING" ? "warning" : "default"} className="text-[10px]">
+                            {m.plan?.marketplace?.displayName?.split(" ")[0]} {m.status}
+                          </Badge>
+                        ))}
+                        {(!u.memberships || u.memberships.length === 0) && (
+                          <span className="text-xs text-slate-400">None</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-slate-500 text-xs">{formatDate(u.createdAt)}</td>
                     <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button variant="outline" size="sm" onClick={() => toggleUserStatus(u.id, u.isActive)}>
-                          {u.isActive ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => toggleUserStatus(u.id, u.isActive)}
+                          title={u.isActive ? "Suspend user" : "Activate user"}
+                        >
+                          {u.isActive ? <UserX className="h-3.5 w-3.5" /> : <UserCheck className="h-3.5 w-3.5" />}
                         </Button>
-                        <Button variant="outline" size="sm" onClick={() => {
-                          const planId = prompt(`Grant access to which plan?\n\nAvailable plans:\n${plans.map(p => `${p.id}: ${p.displayName} (${p.marketplace?.displayName}) - ${p.role}`).join("\n")}`);
-                          if (planId) grantAccess(u.id, planId);
-                        }}>
-                          <Key className="h-4 w-4" />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const planId = prompt(`Grant access — available plans:\n${plans.map(p => `${p.id}: ${p.displayName} (${p.role}) - ${p.marketplace?.displayName}`).join("\n")}`);
+                            if (planId) grantAccess(u.id, planId);
+                          }}
+                          title="Grant membership"
+                        >
+                          <Shield className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     </td>

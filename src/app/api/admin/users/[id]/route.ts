@@ -11,26 +11,56 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const { id } = await params;
     const body = await request.json();
+    const { role, isActive } = body;
 
-    const user = await prisma.user.update({
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Prevent admin from demoting themselves
+    if (id === session.userId && role && role !== user.role) {
+      return NextResponse.json({ error: "Cannot change your own role" }, { status: 400 });
+    }
+
+    const updateData: any = {};
+    if (role !== undefined) {
+      const validRoles = ["USER", "ADMIN", "SUPER_ADMIN", "CLIENT", "COMMISSIONAIRE"];
+      if (!validRoles.includes(role)) {
+        return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+      }
+      updateData.role = role;
+    }
+    if (isActive !== undefined) {
+      updateData.isActive = isActive;
+    }
+
+    const updated = await prisma.user.update({
       where: { id },
-      data: { isActive: body.isActive },
-      select: { id: true, email: true, firstName: true, lastName: true, isActive: true },
+      data: updateData,
     });
 
-    // Log admin action
+    // Log the admin action
     await prisma.adminAction.create({
       data: {
         adminId: session.userId,
-        actionType: body.isActive ? "ACTIVATE_USER" : "SUSPEND_USER",
-        targetType: "user",
+        actionType: role ? "USER_ROLE_CHANGED" : isActive ? "USER_ACTIVATED" : "USER_SUSPENDED",
+        targetType: "USER",
         targetId: id,
-        details: { email: user.email },
+        details: {
+          previousRole: user.role,
+          newRole: role || user.role,
+          previousActive: user.isActive,
+          newActive: isActive !== undefined ? isActive : user.isActive,
+          targetEmail: user.email,
+        },
       },
     });
 
-    return NextResponse.json({ user });
-  } catch {
+    const { passwordHash, ...userWithoutPassword } = updated;
+    return NextResponse.json({ user: userWithoutPassword });
+  } catch (error) {
+    console.error("Update user error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
