@@ -11,15 +11,17 @@ export async function GET(request: NextRequest) {
 
     const filters = searchSchema.parse(query);
 
-    // Check access: unauthenticated users see limited results, clients need active membership
+    // Check access: unauthenticated users and clients without membership are blocked
     const session = await getSession();
     let hasAccess = true;
+    let needsAuth = false;
+    let needsMembership = false;
 
     if (filters.marketplace) {
       if (!session) {
-        // Unauthenticated: allow but limit to 6 results
-        hasAccess = true;
-        filters.limit = Math.min(filters.limit, 6);
+        // Unauthenticated: block completely
+        hasAccess = false;
+        needsAuth = true;
       } else {
         // Check user role and membership
         const user = await prisma.user.findUnique({ where: { id: session.userId } });
@@ -43,12 +45,24 @@ export async function GET(request: NextRequest) {
             },
           });
           if (!membership) {
-            // No active membership for this marketplace - limit results
             hasAccess = false;
-            filters.limit = Math.min(filters.limit, 3);
+            needsMembership = true;
           }
         }
       }
+    }
+
+    // If no access, return empty results with paywall flags
+    if (!hasAccess) {
+      return NextResponse.json({
+        properties: [],
+        total: 0,
+        page: filters.page,
+        totalPages: 0,
+        hasAccess: false,
+        needsAuth,
+        needsMembership,
+      });
     }
 
     const where: any = {
@@ -165,8 +179,9 @@ export async function GET(request: NextRequest) {
       total,
       page: filters.page,
       totalPages: Math.ceil(total / filters.limit),
-      hasAccess,
-      needsAuth: !session && !!filters.marketplace,
+      hasAccess: true,
+      needsAuth: false,
+      needsMembership: false,
     });
   } catch (error) {
     if (error instanceof Error && error.name === "ZodError") {

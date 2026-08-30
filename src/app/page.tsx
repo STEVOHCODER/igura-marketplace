@@ -48,7 +48,7 @@ export default function HomePage() {
                 </Link>
               </div>
               <div className="mt-8 flex flex-wrap items-center gap-4 sm:gap-6 text-sm text-slate-400">
-                <div className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-400" /><span>Free to browse</span></div>
+                <div className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-400" /><span>Membership-based access</span></div>
                 <div className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-400" /><span>Verified owners</span></div>
                 <div className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-400" /><span>Secure payments</span></div>
               </div>
@@ -114,7 +114,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
             {[
               { step: "01", icon: Users, title: "Create Account", desc: "Sign up in seconds and choose your role as client or commissionaire." },
-              { step: "02", icon: Search, title: "Search & Discover", desc: "Browse thousands of verified listings with powerful filters." },
+              { step: "02", icon: Search, title: "Subscribe & Search", desc: "Choose a membership plan, then browse verified listings with powerful filters." },
               { step: "03", icon: Home, title: "Connect & Move", desc: "Contact property owners directly and secure your perfect place." },
             ].map((item, i) => (
               <div key={item.step} className="relative group">
@@ -214,8 +214,8 @@ export default function HomePage() {
             <Link href="/register" className="inline-flex items-center justify-center gap-2 bg-white text-emerald-700 px-8 py-4 rounded-xl text-base font-semibold hover:bg-emerald-50 transition-all shadow-lg hover:-translate-y-0.5">
               Create Free Account <ArrowRight className="h-5 w-5" />
             </Link>
-            <Link href="/rent/houses" className="inline-flex items-center justify-center gap-2 bg-emerald-500/30 text-white px-8 py-4 rounded-xl text-base font-semibold hover:bg-emerald-500/40 transition-all border border-emerald-400/30">
-              Browse Listings
+            <Link href="/register" className="inline-flex items-center justify-center gap-2 bg-emerald-500/30 text-white px-8 py-4 rounded-xl text-base font-semibold hover:bg-emerald-500/40 transition-all border border-emerald-400/30">
+              Learn More
             </Link>
           </div>
         </div>

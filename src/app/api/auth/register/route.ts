@@ -62,9 +62,15 @@ export async function POST(request: NextRequest) {
     const { passwordHash: _, ...userWithoutPassword } = user;
 
     return NextResponse.json({ user: userWithoutPassword, token }, { status: 201 });
-  } catch (error) {
-    if (error instanceof Error && error.name === "ZodError") {
-      return NextResponse.json({ error: "Validation failed", details: error.message }, { status: 400 });
+  } catch (error: any) {
+    if (error?.issues || error?.name === "ZodError" || error?.name === "ZodIssue") {
+      const fieldErrors: Record<string, string> = {};
+      const issues = error.issues || [];
+      for (const issue of issues) {
+        const path = issue.path.join(".");
+        if (path) fieldErrors[path] = issue.message;
+      }
+      return NextResponse.json({ error: "Validation failed", errors: fieldErrors, details: error.message }, { status: 400 });
     }
     console.error("Register error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
