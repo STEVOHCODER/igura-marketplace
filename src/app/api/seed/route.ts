@@ -32,13 +32,18 @@ export async function POST() {
     const rental = await prisma.marketplace.create({ data: { name: "House Rental", displayName: "House Rental", description: "Find houses and apartments for rent", status: "ACTIVE" } });
     const plot = await prisma.marketplace.create({ data: { name: "Plot Selling VIP", displayName: "Plot Selling VIP", description: "Premium plots and land for sale", status: "ACTIVE" } });
 
-    const freePlan = await prisma.plan.create({ data: { name: "Free", displayName: "Free", marketplaceId: rental.id, role: "COMMISSIONAIRE", price: 0, maxActiveListings: 2, maxImagesPerListing: 3, features: ["2 active listings", "Basic support"], status: "ACTIVE" } });
-    const basicPlan = await prisma.plan.create({ data: { name: "Basic", displayName: "Basic", marketplaceId: rental.id, role: "COMMISSIONAIRE", price: 5000, maxActiveListings: 5, maxImagesPerListing: 3, features: ["5 listings", "Priority support"], status: "ACTIVE" } });
-    const proPlan = await prisma.plan.create({ data: { name: "Professional", displayName: "Professional", marketplaceId: rental.id, role: "COMMISSIONAIRE", price: 15000, maxActiveListings: 10, maxImagesPerListing: 3, features: ["10 listings", "Analytics"], status: "ACTIVE" } });
-    const vipPlan = await prisma.plan.create({ data: { name: "VIP", displayName: "VIP", marketplaceId: plot.id, role: "COMMISSIONAIRE", price: 50000, maxActiveListings: 50, maxImagesPerListing: 3, features: ["50 listings", "Premium placement"], status: "ACTIVE" } });
+    // House Rental plans - Commissionaire
+    const rentalCommissionairePlan = await prisma.plan.create({ data: { name: "House Commissionaire", displayName: "House Commissionaire", marketplaceId: rental.id, role: "COMMISSIONAIRE", price: 5000, maxActiveListings: 10, maxImagesPerListing: 3, features: ["10 active listings", "3 images per listing", "Manage properties", "Contact leads"], status: "ACTIVE" } });
+    // House Rental plans - Client
+    const rentalClientPlan = await prisma.plan.create({ data: { name: "House Client", displayName: "House Client", marketplaceId: rental.id, role: "CLIENT", price: 2000, maxActiveListings: 0, maxImagesPerListing: 0, features: ["Search all houses", "View full listings", "Contact owners directly", "Save favorites"], status: "ACTIVE" } });
+
+    // Plot Selling plans - Commissionaire
+    const plotCommissionairePlan = await prisma.plan.create({ data: { name: "Plot Commissionaire", displayName: "Plot Commissionaire", marketplaceId: plot.id, role: "COMMISSIONAIRE", price: 20000, maxActiveListings: 10, maxImagesPerListing: 3, features: ["10 active listings", "3 images per listing", "Manage plots", "Premium placement"], status: "ACTIVE" } });
+    // Plot Selling plans - Client
+    const plotClientPlan = await prisma.plan.create({ data: { name: "Plot Client", displayName: "Plot Client", marketplaceId: plot.id, role: "CLIENT", price: 15000, maxActiveListings: 0, maxImagesPerListing: 0, features: ["Search all plots", "View full listings", "Contact owners directly", "Save favorites"], status: "ACTIVE" } });
 
     const now = new Date();
-    await prisma.membership.create({ data: { userId: agent.id, planId: proPlan.id, status: "ACTIVE", activatedAt: now, expiresAt: new Date(now.getTime() + 30 * 86400000) } });
+    await prisma.membership.create({ data: { userId: agent.id, planId: rentalCommissionairePlan.id, status: "ACTIVE", activatedAt: now, expiresAt: new Date(now.getTime() + 30 * 86400000) } });
 
     const locs = [
       { id: "rwanda_country", country: "Rwanda", level: "COUNTRY" },

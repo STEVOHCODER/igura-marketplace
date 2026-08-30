@@ -122,20 +122,38 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <Link href="/dashboard/listings" className="block p-6 bg-white rounded-xl border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all">
-          <Home className="h-8 w-8 text-emerald-600 mb-3" />
-          <h3 className="font-semibold text-slate-900">Manage Listings</h3>
-          <p className="text-sm text-slate-500 mt-1">View, edit, and manage your property listings.</p>
-        </Link>
+        {user?.role === "COMMISSIONAIRE" && (
+          <>
+            <Link href="/dashboard/listings" className="block p-6 bg-white rounded-xl border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all">
+              <Home className="h-8 w-8 text-emerald-600 mb-3" />
+              <h3 className="font-semibold text-slate-900">Manage Listings</h3>
+              <p className="text-sm text-slate-500 mt-1">View, edit, and manage your property listings.</p>
+            </Link>
+            <Link href="/dashboard/listings/new" className="block p-6 bg-white rounded-xl border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all">
+              <Plus className="h-8 w-8 text-emerald-600 mb-3" />
+              <h3 className="font-semibold text-slate-900">New Listing</h3>
+              <p className="text-sm text-slate-500 mt-1">Create a new property listing.</p>
+            </Link>
+          </>
+        )}
+        {user?.role === "CLIENT" && (
+          <>
+            <Link href="/rent/houses" className="block p-6 bg-white rounded-xl border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all">
+              <Home className="h-8 w-8 text-emerald-600 mb-3" />
+              <h3 className="font-semibold text-slate-900">Search Houses</h3>
+              <p className="text-sm text-slate-500 mt-1">Browse houses and apartments for rent.</p>
+            </Link>
+            <Link href="/plots" className="block p-6 bg-white rounded-xl border border-slate-200 hover:border-amber-300 hover:shadow-md transition-all">
+              <MapPin className="h-8 w-8 text-amber-600 mb-3" />
+              <h3 className="font-semibold text-slate-900">Search Plots</h3>
+              <p className="text-sm text-slate-500 mt-1">Browse plots and land for sale.</p>
+            </Link>
+          </>
+        )}
         <Link href="/dashboard/memberships" className="block p-6 bg-white rounded-xl border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all">
           <CreditCard className="h-8 w-8 text-emerald-600 mb-3" />
           <h3 className="font-semibold text-slate-900">Memberships</h3>
           <p className="text-sm text-slate-500 mt-1">View your marketplace memberships and upgrade.</p>
-        </Link>
-        <Link href="/dashboard/listings/new" className="block p-6 bg-white rounded-xl border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all">
-          <Plus className="h-8 w-8 text-emerald-600 mb-3" />
-          <h3 className="font-semibold text-slate-900">New Listing</h3>
-          <p className="text-sm text-slate-500 mt-1">Create a new property listing.</p>
         </Link>
       </div>
     </div>

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Search, UserCheck, UserX } from "lucide-react";
+import { Search, UserCheck, UserX, Key, Shield } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,15 +8,20 @@ import { useToast } from "@/components/ui/toast";
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<any[]>([]);
+  const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [granting, setGranting] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    fetch("/api/admin/users")
-      .then(r => r.json())
-      .then(d => setUsers(d?.users || []))
-      .finally(() => setLoading(false));
+    Promise.all([
+      fetch("/api/admin/users").then(r => r.json()),
+      fetch("/api/plans").then(r => r.json()),
+    ]).then(([usersData, plansData]) => {
+      setUsers(usersData?.users || []);
+      setPlans(plansData?.plans || []);
+    }).finally(() => setLoading(false));
   }, []);
 
   const toggleUserStatus = async (userId: string, isActive: boolean) => {
@@ -32,6 +37,47 @@ export default function AdminUsersPage() {
       }
     } catch {
       toast("Failed to update user", "error");
+    }
+  };
+
+  const grantAccess = async (userId: string, planId: string) => {
+    setGranting(userId + planId);
+    try {
+      const res = await fetch("/api/admin/grant-access", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, planId, action: "activate" }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast("Access granted successfully", "success");
+        // Refresh users to show new membership
+        const refreshed = await fetch("/api/admin/users").then(r => r.json());
+        setUsers(refreshed?.users || []);
+      } else {
+        toast(data.error || "Failed to grant access", "error");
+      }
+    } catch {
+      toast("Failed to grant access", "error");
+    } finally {
+      setGranting(null);
+    }
+  };
+
+  const revokeAccess = async (userId: string, planId: string) => {
+    try {
+      const res = await fetch("/api/admin/grant-access", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, planId, action: "revoke" }),
+      });
+      if (res.ok) {
+        toast("Access revoked", "success");
+        const refreshed = await fetch("/api/admin/users").then(r => r.json());
+        setUsers(refreshed?.users || []);
+      }
+    } catch {
+      toast("Failed to revoke access", "error");
     }
   };
 
@@ -79,16 +125,26 @@ export default function AdminUsersPage() {
                     </td>
                     <td className="px-4 py-3 text-slate-500">{u.email}</td>
                     <td className="px-4 py-3">
-                      <Badge variant={u.role === "ADMIN" ? "danger" : u.role === "SUPER_ADMIN" ? "danger" : "default"}>{u.role}</Badge>
+                      <Badge variant={u.role === "ADMIN" ? "danger" : u.role === "COMMISSIONAIRE" ? "success" : u.role === "CLIENT" ? "warning" : "default"}>
+                        {u.role}
+                      </Badge>
                     </td>
                     <td className="px-4 py-3">
                       <Badge variant={u.isActive ? "success" : "danger"}>{u.isActive ? "Active" : "Suspended"}</Badge>
                     </td>
                     <td className="px-4 py-3 text-slate-500">{new Date(u.createdAt).toLocaleDateString()}</td>
                     <td className="px-4 py-3 text-right">
-                      <Button variant="outline" size="sm" onClick={() => toggleUserStatus(u.id, u.isActive)}>
-                        {u.isActive ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
-                      </Button>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button variant="outline" size="sm" onClick={() => toggleUserStatus(u.id, u.isActive)}>
+                          {u.isActive ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => {
+                          const planId = prompt(`Grant access to which plan?\n\nAvailable plans:\n${plans.map(p => `${p.id}: ${p.displayName} (${p.marketplace?.displayName}) - ${p.role}`).join("\n")}`);
+                          if (planId) grantAccess(u.id, planId);
+                        }}>
+                          <Key className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}

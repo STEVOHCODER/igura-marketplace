@@ -17,14 +17,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       .catch(() => window.location.href = "/login");
   }, []);
 
-  const navigation = [
+  const commissionaireNav = [
     { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
     { name: "My Listings", href: "/dashboard/listings", icon: Home },
     { name: "New Listing", href: "/dashboard/listings/new", icon: Plus },
     { name: "Memberships", href: "/dashboard/memberships", icon: CreditCard },
-    { name: "Payments", href: "/dashboard/payments", icon: CreditCard },
-    { name: "Settings", href: "/dashboard/settings", icon: Settings },
   ];
+
+  const clientNav = [
+    { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Search Houses", href: "/rent/houses", icon: Home },
+    { name: "Search Plots", href: "/plots", icon: MapPin },
+    { name: "Memberships", href: "/dashboard/memberships", icon: CreditCard },
+  ];
+
+  const navigation = user?.role === "COMMISSIONAIRE" ? commissionaireNav : clientNav;
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });

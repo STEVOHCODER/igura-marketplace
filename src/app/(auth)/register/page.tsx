@@ -2,16 +2,21 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { UserPlus, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { UserPlus, Eye, EyeOff, ArrowRight, Home, MapPin, Briefcase, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
 
+type Step = "role" | "account";
+
 export default function RegisterPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [step, setStep] = useState<Step>("role");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [role, setRole] = useState<"COMMISSIONAIRE" | "CLIENT" | null>(null);
+  const [marketplace, setMarketplace] = useState<"House Rental" | "Plot Selling VIP" | null>(null);
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -22,9 +27,19 @@ export default function RegisterPage() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const handleRoleSelect = (r: "COMMISSIONAIRE" | "CLIENT") => {
+    setRole(r);
+    setStep("account");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
+
+    if (!role || !marketplace) {
+      setErrors({ general: "Please select role and marketplace" });
+      return;
+    }
 
     if (form.password !== form.confirmPassword) {
       setErrors({ confirmPassword: "Passwords do not match" });
@@ -43,6 +58,8 @@ export default function RegisterPage() {
           email: form.email,
           phone: form.phone,
           password: form.password,
+          role,
+          marketplace,
         }),
       });
 
@@ -54,14 +71,24 @@ export default function RegisterPage() {
         return;
       }
 
-      toast("Account created! Welcome to Igura.", "success");
-      router.push("/dashboard");
+      toast("Account created! Please purchase your membership to continue.", "success");
+      router.push("/dashboard/memberships");
     } catch {
       toast("Something went wrong", "error");
     } finally {
       setLoading(false);
     }
   };
+
+  const commissionairePlans = [
+    { marketplace: "House Rental" as const, price: 5000, features: ["10 active listings", "3 images per listing", "Manage properties", "Contact leads"] },
+    { marketplace: "Plot Selling VIP" as const, price: 20000, features: ["10 active listings", "3 images per listing", "Manage plots", "Premium placement"] },
+  ];
+
+  const clientPlans = [
+    { marketplace: "House Rental" as const, price: 2000, features: ["Search all houses", "View full listings", "Contact owners directly", "Save favorites"] },
+    { marketplace: "Plot Selling VIP" as const, price: 15000, features: ["Search all plots", "View full listings", "Contact owners directly", "Save favorites"] },
+  ];
 
   return (
     <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/30 border border-slate-100 p-8">
@@ -84,83 +111,173 @@ export default function RegisterPage() {
         <p className="text-sm text-slate-500 mt-1.5">Join Rwanda&apos;s real estate marketplace</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <Input
-            id="firstName"
-            label="First Name"
-            placeholder="John"
-            value={form.firstName}
-            onChange={(e) => setForm({ ...form, firstName: e.target.value })}
-            error={errors.firstName}
-            required
-          />
-          <Input
-            id="lastName"
-            label="Last Name"
-            placeholder="Doe"
-            value={form.lastName}
-            onChange={(e) => setForm({ ...form, lastName: e.target.value })}
-            error={errors.lastName}
-            required
-          />
-        </div>
-        <Input
-          id="email"
-          label="Email address"
-          type="email"
-          placeholder="you@example.com"
-          value={form.email}
-          onChange={(e) => setForm({ ...form, email: e.target.value })}
-          error={errors.email}
-          required
-        />
-        <Input
-          id="phone"
-          label="Phone Number"
-          type="tel"
-          placeholder="07XXXXXXXX"
-          value={form.phone}
-          onChange={(e) => setForm({ ...form, phone: e.target.value })}
-          error={errors.phone}
-          required
-        />
-        <div className="relative">
-          <Input
-            id="password"
-            label="Password"
-            type={showPassword ? "text" : "password"}
-            placeholder="Min 8 characters"
-            value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
-            error={errors.password}
-            required
-          />
+      {step === "role" && (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600 text-center mb-6">How do you want to use Igura?</p>
+
           <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-9 text-slate-400 hover:text-slate-600 transition-colors"
+            onClick={() => handleRoleSelect("COMMISSIONAIRE")}
+            className="w-full p-5 rounded-xl border-2 border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left group"
           >
-            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-xl bg-emerald-100 flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
+                <Briefcase className="h-6 w-6 text-emerald-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-900">Commissionaire</h3>
+                <p className="text-sm text-slate-500">List and sell properties. Create up to 10 listings.</p>
+              </div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => handleRoleSelect("CLIENT")}
+            className="w-full p-5 rounded-xl border-2 border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-xl bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                <Search className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-900">Client</h3>
+                <p className="text-sm text-slate-500">Search and find properties. Browse listings.</p>
+              </div>
+            </div>
           </button>
         </div>
-        <Input
-          id="confirmPassword"
-          label="Confirm Password"
-          type="password"
-          placeholder="Re-enter password"
-          value={form.confirmPassword}
-          onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
-          error={errors.confirmPassword}
-          required
-        />
+      )}
 
-        <Button type="submit" loading={loading} className="w-full" size="lg">
-          <UserPlus className="h-4 w-4 mr-1.5" />
-          Create Account
-          <ArrowRight className="h-4 w-4 ml-1.5" />
-        </Button>
-      </form>
+      {step === "account" && (
+        <>
+          {/* Back button */}
+          <button onClick={() => setStep("role")} className="text-sm text-slate-500 hover:text-slate-700 mb-4 flex items-center gap-1">
+            &larr; Change role
+          </button>
+
+          {/* Role badge */}
+          <div className="mb-4 p-3 rounded-lg bg-slate-50 border border-slate-200">
+            <p className="text-xs text-slate-500">Signing up as</p>
+            <p className="font-semibold text-slate-900">{role === "COMMISSIONAIRE" ? "Commissionaire" : "Client"}</p>
+          </div>
+
+          {/* Marketplace selection */}
+          <div className="mb-6">
+            <p className="text-sm font-medium text-slate-700 mb-3">Choose your marketplace:</p>
+            <div className="grid grid-cols-2 gap-3">
+              {(role === "COMMISSIONAIRE" ? commissionairePlans : clientPlans).map((plan) => (
+                <button
+                  key={plan.marketplace}
+                  onClick={() => setMarketplace(plan.marketplace)}
+                  className={`p-3 rounded-xl border-2 transition-all text-left ${
+                    marketplace === plan.marketplace
+                      ? "border-emerald-500 bg-emerald-50"
+                      : "border-slate-200 hover:border-slate-300"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    {plan.marketplace === "House Rental" ? (
+                      <Home className="h-4 w-4 text-emerald-600" />
+                    ) : (
+                      <MapPin className="h-4 w-4 text-amber-600" />
+                    )}
+                    <span className="text-sm font-medium text-slate-900">
+                      {plan.marketplace === "House Rental" ? "House Rental" : "Plot Selling"}
+                    </span>
+                  </div>
+                  <p className="text-lg font-bold text-slate-900">{plan.price.toLocaleString()} RWF</p>
+                  <ul className="mt-2 space-y-1">
+                    {plan.features.slice(0, 2).map((f, i) => (
+                      <li key={i} className="text-xs text-slate-500">- {f}</li>
+                    ))}
+                  </ul>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {marketplace && (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {errors.general && <p className="text-sm text-red-600">{errors.general}</p>}
+
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  id="firstName"
+                  label="First Name"
+                  placeholder="John"
+                  value={form.firstName}
+                  onChange={(e) => setForm({ ...form, firstName: e.target.value })}
+                  error={errors.firstName}
+                  required
+                />
+                <Input
+                  id="lastName"
+                  label="Last Name"
+                  placeholder="Doe"
+                  value={form.lastName}
+                  onChange={(e) => setForm({ ...form, lastName: e.target.value })}
+                  error={errors.lastName}
+                  required
+                />
+              </div>
+              <Input
+                id="email"
+                label="Email address"
+                type="email"
+                placeholder="you@example.com"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                error={errors.email}
+                required
+              />
+              <Input
+                id="phone"
+                label="Phone Number"
+                type="tel"
+                placeholder="07XXXXXXXX"
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                error={errors.phone}
+                required
+              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  label="Password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Min 8 characters"
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  error={errors.password}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-9 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              <Input
+                id="confirmPassword"
+                label="Confirm Password"
+                type="password"
+                placeholder="Re-enter password"
+                value={form.confirmPassword}
+                onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+                error={errors.confirmPassword}
+                required
+              />
+
+              <Button type="submit" loading={loading} className="w-full" size="lg">
+                <UserPlus className="h-4 w-4 mr-1.5" />
+                Create Account & Pay
+                <ArrowRight className="h-4 w-4 ml-1.5" />
+              </Button>
+            </form>
+          )}
+        </>
+      )}
 
       <div className="mt-6 pt-6 border-t border-slate-100 text-center">
         <p className="text-sm text-slate-500">

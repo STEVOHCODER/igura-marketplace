@@ -28,8 +28,28 @@ export async function POST(request: NextRequest) {
         passwordHash,
         firstName: data.firstName,
         lastName: data.lastName,
+        role: data.role,
       },
     });
+
+    // Auto-create a pending membership for the chosen marketplace + role
+    const plan = await prisma.plan.findFirst({
+      where: {
+        marketplace: { name: data.marketplace },
+        role: data.role,
+        status: "ACTIVE",
+      },
+    });
+
+    if (plan) {
+      await prisma.membership.create({
+        data: {
+          userId: user.id,
+          planId: plan.id,
+          status: "PENDING",
+        },
+      });
+    }
 
     const token = await createToken({
       userId: user.id,

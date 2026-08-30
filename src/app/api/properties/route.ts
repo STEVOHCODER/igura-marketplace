@@ -11,6 +11,46 @@ export async function GET(request: NextRequest) {
 
     const filters = searchSchema.parse(query);
 
+    // Check access: unauthenticated users see limited results, clients need active membership
+    const session = await getSession();
+    let hasAccess = true;
+
+    if (filters.marketplace) {
+      if (!session) {
+        // Unauthenticated: allow but limit to 6 results
+        hasAccess = true;
+        filters.limit = Math.min(filters.limit, 6);
+      } else {
+        // Check user role and membership
+        const user = await prisma.user.findUnique({ where: { id: session.userId } });
+        if (user?.role === "ADMIN" || user?.role === "SUPER_ADMIN") {
+          hasAccess = true;
+        } else if (user?.role === "COMMISSIONAIRE") {
+          hasAccess = true;
+        } else {
+          // CLIENT: check if they have active membership for this marketplace
+          const marketplaceName = filters.marketplace.toLowerCase().replace(/_/g, " ");
+          const membership = await prisma.membership.findFirst({
+            where: {
+              userId: session.userId,
+              status: "ACTIVE",
+              plan: {
+                marketplace: {
+                  name: { contains: marketplaceName, mode: "insensitive" },
+                },
+                role: "CLIENT",
+              },
+            },
+          });
+          if (!membership) {
+            // No active membership for this marketplace - limit results
+            hasAccess = false;
+            filters.limit = Math.min(filters.limit, 3);
+          }
+        }
+      }
+    }
+
     const where: any = {
       status: "ACTIVE",
     };
@@ -125,6 +165,8 @@ export async function GET(request: NextRequest) {
       total,
       page: filters.page,
       totalPages: Math.ceil(total / filters.limit),
+      hasAccess,
+      needsAuth: !session && !!filters.marketplace,
     });
   } catch (error) {
     if (error instanceof Error && error.name === "ZodError") {
