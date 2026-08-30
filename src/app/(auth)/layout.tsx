@@ -1,5 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Home, MapPin, Shield } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: {
+    template: "%s | Igura",
+    default: "Login - Igura",
+  },
+};
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (

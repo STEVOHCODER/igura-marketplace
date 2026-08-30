@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { MapPin, Maximize, Phone, User, Eye, ArrowLeft, Heart, Share2 } from "lucide-react";
 import Link from "next/link";
 import { PublicLayout } from "@/components/layout/public-layout";
@@ -8,6 +9,26 @@ import { prisma } from "@/lib/prisma";
 
 interface Props {
   params: Promise<{ slug: string }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const property = await prisma.property.findUnique({
+    where: { slug },
+    select: { title: true, description: true, price: true, locationDistrict: true, locationSector: true, images: { select: { url: true }, take: 1 } },
+  });
+  if (!property) return { title: "Plot Not Found" };
+  const img = property.images[0]?.url;
+  return {
+    title: `${property.title} - Igura`,
+    description: property.description?.slice(0, 160) || `Buy ${property.title} in ${property.locationSector || ""}, ${property.locationDistrict || "Kigali"} for ${formatPrice(property.price)}`,
+    openGraph: {
+      title: `${property.title} | Igura`,
+      description: property.description?.slice(0, 200) || `Buy ${property.title} for ${formatPrice(property.price)}`,
+      images: img ? [{ url: img, width: 800, height: 600 }] : [],
+      type: "website",
+    },
+  };
 }
 
 export default async function PlotDetailPage({ params }: Props) {
