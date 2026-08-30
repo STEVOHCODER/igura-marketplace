@@ -30,11 +30,17 @@ export default function MembershipsPage() {
 
   useEffect(() => {
     if (!user) return;
-    // Fetch plans - admin sees all, users see plans for their marketplace
+    // Fetch plans - filter by user role
     fetch("/api/plans")
       .then(r => r.json())
       .then(d => {
-        setPlans(d?.plans || []);
+        const allPlans = d?.plans || [];
+        // Clients only see CLIENT plans, Commissionaires see COMMISSIONAIRE plans, Admin sees all
+        if (user.role === "ADMIN" || user.role === "SUPER_ADMIN") {
+          setPlans(allPlans);
+        } else {
+          setPlans(allPlans.filter((p: any) => p.role === user.role));
+        }
       })
       .catch(() => {});
   }, [user]);
