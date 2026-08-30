@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
 import { Shield, User, Home, CreditCard, AlertTriangle, Filter, ChevronLeft, ChevronRight } from "lucide-react";
+import { useI18n } from "@/i18n";
 
 export default function AdminAuditPage() {
   const [actions, setActions] = useState<any[]>([]);
@@ -14,6 +15,7 @@ export default function AdminAuditPage() {
   const [filterTarget, setFilterTarget] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const { t } = useI18n();
 
   const fetchAuditLog = async () => {
     setLoading(true);
@@ -55,8 +57,8 @@ export default function AdminAuditPage() {
   return (
     <div className="max-w-7xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Audit Log</h1>
-        <p className="text-slate-500 text-sm mt-1">Track all admin actions across the platform</p>
+        <h1 className="text-2xl font-bold text-slate-900">{t("adminAudit.title")}</h1>
+        <p className="text-slate-500 text-sm mt-1">{t("adminAudit.subtitle")}</p>
       </div>
 
       {/* Filters */}
@@ -66,7 +68,7 @@ export default function AdminAuditPage() {
           onChange={(e) => { setFilterType(e.target.value); setPage(1); }}
           className="px-4 py-2.5 rounded-lg border border-slate-300 text-sm bg-white"
         >
-          <option value="">All Action Types</option>
+          <option value="">{t("adminAudit.allActions")}</option>
           {actionTypes.map((t) => (
             <option key={t} value={t}>{t.replace(/_/g, " ")}</option>
           ))}
@@ -76,16 +78,16 @@ export default function AdminAuditPage() {
           onChange={(e) => { setFilterTarget(e.target.value); setPage(1); }}
           className="px-4 py-2.5 rounded-lg border border-slate-300 text-sm bg-white"
         >
-          <option value="">All Targets</option>
-          <option value="USER">Users</option>
-          <option value="PROPERTY">Properties</option>
-          <option value="REPORT">Reports</option>
-          <option value="PAYMENT">Payments</option>
-          <option value="MEMBERSHIP">Memberships</option>
+          <option value="">{t("adminAudit.allTargets")}</option>
+          <option value="USER">{t("adminAudit.users")}</option>
+          <option value="PROPERTY">{t("adminAudit.properties")}</option>
+          <option value="REPORT">{t("adminAudit.reports")}</option>
+          <option value="PAYMENT">{t("adminAudit.payments")}</option>
+          <option value="MEMBERSHIP">{t("adminAudit.memberships")}</option>
         </select>
         {(filterType || filterTarget) && (
           <Button variant="outline" size="sm" onClick={() => { setFilterType(""); setFilterTarget(""); setPage(1); }}>
-            Clear Filters
+            {t("adminAudit.clearFilters")}
           </Button>
         )}
       </div>
@@ -93,9 +95,9 @@ export default function AdminAuditPage() {
       {/* Audit Entries */}
       <div className="space-y-2">
         {loading ? (
-          <div className="text-center py-12 text-slate-500">Loading audit log...</div>
+          <div className="text-center py-12 text-slate-500">{t("adminAudit.loading")}</div>
         ) : actions.length === 0 ? (
-          <div className="text-center py-12 text-slate-500">No audit entries found</div>
+          <div className="text-center py-12 text-slate-500">{t("adminAudit.noEntries")}</div>
         ) : actions.map((a) => {
           const Icon = getIcon(a.actionType);
           const color = getColor(a.actionType);
@@ -137,11 +139,11 @@ export default function AdminAuditPage() {
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-4 mt-6">
           <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
-            <ChevronLeft className="h-4 w-4" /> Previous
+            <ChevronLeft className="h-4 w-4" /> {t("adminAudit.previous")}
           </Button>
-          <span className="text-sm text-slate-600">Page {page} of {totalPages}</span>
+          <span className="text-sm text-slate-600">{t("adminAudit.page")} {page} {t("adminAudit.of")} {totalPages}</span>
           <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
-            Next <ChevronRight className="h-4 w-4" />
+            {t("adminAudit.next")} <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
       )}

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { formatPrice } from "@/lib/utils";
 import { Home, MapPin, Edit2, Save, X, DollarSign, Settings } from "lucide-react";
+import { useI18n } from "@/i18n";
 
 export default function AdminMarketplacesPage() {
   const [marketplaces, setMarketplaces] = useState<any[]>([]);
@@ -15,6 +16,7 @@ export default function AdminMarketplacesPage() {
   const [editingPlan, setEditingPlan] = useState<string | null>(null);
   const [planForm, setPlanForm] = useState<any>({});
   const { toast } = useToast();
+  const { t } = useI18n();
 
   useEffect(() => {
     fetch("/api/admin/marketplaces")
@@ -31,16 +33,16 @@ export default function AdminMarketplacesPage() {
         body: JSON.stringify(editForm),
       });
       if (res.ok) {
-        toast("Marketplace updated", "success");
+        toast(t("adminMarketplaces.updated"), "success");
         setEditing(null);
         const refreshed = await fetch("/api/admin/marketplaces").then(r => r.json());
         setMarketplaces(refreshed?.marketplaces || []);
       } else {
         const data = await res.json();
-        toast(data.error || "Failed to update", "error");
+        toast(data.error || t("adminMarketplaces.failedUpdate"), "error");
       }
     } catch {
-      toast("Failed to update marketplace", "error");
+      toast(t("adminMarketplaces.failedUpdateMarketplace"), "error");
     }
   };
 
@@ -52,16 +54,16 @@ export default function AdminMarketplacesPage() {
         body: JSON.stringify(planForm),
       });
       if (res.ok) {
-        toast("Plan updated", "success");
+        toast(t("adminMarketplaces.planUpdated"), "success");
         setEditingPlan(null);
         const refreshed = await fetch("/api/admin/marketplaces").then(r => r.json());
         setMarketplaces(refreshed?.marketplaces || []);
       } else {
         const data = await res.json();
-        toast(data.error || "Failed to update plan", "error");
+        toast(data.error || t("adminMarketplaces.failedUpdatePlan"), "error");
       }
     } catch {
-      toast("Failed to update plan", "error");
+      toast(t("adminMarketplaces.failedUpdatePlan"), "error");
     }
   };
 
@@ -74,23 +76,23 @@ export default function AdminMarketplacesPage() {
         body: JSON.stringify({ id, status: newStatus }),
       });
       if (res.ok) {
-        toast(`Marketplace ${newStatus.toLowerCase()}`, "success");
+        toast(`${t("adminMarketplaces.marketplaceStatus")} ${newStatus.toLowerCase()}`, "success");
         setMarketplaces(prev => prev.map(m => m.id === id ? { ...m, status: newStatus } : m));
       }
     } catch {
-      toast("Failed to update marketplace", "error");
+      toast(t("adminMarketplaces.failedUpdateMarketplace"), "error");
     }
   };
 
   return (
     <div className="max-w-7xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Marketplaces & Plans</h1>
-        <p className="text-slate-500 text-sm mt-1">Manage marketplaces, pricing, and plan features</p>
+        <h1 className="text-2xl font-bold text-slate-900">{t("adminMarketplaces.title")}</h1>
+        <p className="text-slate-500 text-sm mt-1">{t("adminMarketplaces.subtitle")}</p>
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-slate-500">Loading...</div>
+        <div className="text-center py-12 text-slate-500">{t("adminMarketplaces.loading")}</div>
       ) : (
         <div className="space-y-6">
           {marketplaces.map((m) => (
@@ -111,7 +113,7 @@ export default function AdminMarketplacesPage() {
                       ) : (
                         <CardTitle className="text-lg">{m.displayName}</CardTitle>
                       )}
-                      <p className="text-sm text-slate-500">{m._count.properties} listings · {m._count.plans} plans</p>
+                      <p className="text-sm text-slate-500">{m._count.properties} {t("adminMarketplaces.listings")} · {m._count.plans} {t("adminMarketplaces.plans")}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -120,7 +122,7 @@ export default function AdminMarketplacesPage() {
                       <Edit2 className="h-3.5 w-3.5" />
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => toggleMarketplaceStatus(m.id, m.status)}>
-                      {m.status === "ACTIVE" ? "Deactivate" : "Activate"}
+                      {m.status === "ACTIVE" ? t("adminMarketplaces.deactivate") : t("adminMarketplaces.activate")}
                     </Button>
                   </div>
                 </div>
@@ -132,31 +134,31 @@ export default function AdminMarketplacesPage() {
                       {editingPlan === plan.id ? (
                         <div className="space-y-3">
                           <div className="flex items-center gap-2">
-                            <label className="text-sm text-slate-600 w-20">Price (RWF):</label>
+                            <label className="text-sm text-slate-600 w-20">{t("adminMarketplaces.priceLabel")}</label>
                             <input type="number" value={planForm.price || ""} onChange={(e) => setPlanForm({ ...planForm, price: parseInt(e.target.value) })} className="border border-slate-300 rounded px-3 py-1.5 text-sm w-32" />
                           </div>
                           <div className="flex items-center gap-2">
-                            <label className="text-sm text-slate-600 w-20">Display Name:</label>
+                            <label className="text-sm text-slate-600 w-20">{t("adminMarketplaces.displayName")}</label>
                             <input value={planForm.displayName || ""} onChange={(e) => setPlanForm({ ...planForm, displayName: e.target.value })} className="border border-slate-300 rounded px-3 py-1.5 text-sm flex-1" />
                           </div>
                           <div className="flex items-center gap-2">
-                            <label className="text-sm text-slate-600 w-20">Max Listings:</label>
+                            <label className="text-sm text-slate-600 w-20">{t("adminMarketplaces.maxListings")}</label>
                             <input type="number" value={planForm.maxActiveListings || 0} onChange={(e) => setPlanForm({ ...planForm, maxActiveListings: parseInt(e.target.value) })} className="border border-slate-300 rounded px-3 py-1.5 text-sm w-20" />
                           </div>
                           <div className="flex items-center gap-2">
-                            <label className="text-sm text-slate-600 w-20">Max Images:</label>
+                            <label className="text-sm text-slate-600 w-20">{t("adminMarketplaces.maxImages")}</label>
                             <input type="number" value={planForm.maxImagesPerListing || 0} onChange={(e) => setPlanForm({ ...planForm, maxImagesPerListing: parseInt(e.target.value) })} className="border border-slate-300 rounded px-3 py-1.5 text-sm w-20" />
                           </div>
                           <div className="flex items-center gap-2">
-                            <label className="text-sm text-slate-600 w-20">Status:</label>
+                            <label className="text-sm text-slate-600 w-20">{t("adminMarketplaces.status")}</label>
                             <select value={planForm.status || "ACTIVE"} onChange={(e) => setPlanForm({ ...planForm, status: e.target.value })} className="border border-slate-300 rounded px-3 py-1.5 text-sm">
-                              <option value="ACTIVE">Active</option>
-                              <option value="INACTIVE">Inactive</option>
+                              <option value="ACTIVE">{t("adminMarketplaces.active")}</option>
+                              <option value="INACTIVE">{t("adminMarketplaces.inactive")}</option>
                             </select>
                           </div>
                           <div className="flex gap-2">
-                            <Button size="sm" onClick={savePlan}><Save className="h-3.5 w-3.5 mr-1" /> Save</Button>
-                            <Button size="sm" variant="outline" onClick={() => setEditingPlan(null)}>Cancel</Button>
+                            <Button size="sm" onClick={savePlan}><Save className="h-3.5 w-3.5 mr-1" /> {t("adminMarketplaces.save")}</Button>
+                            <Button size="sm" variant="outline" onClick={() => setEditingPlan(null)}>{t("adminMarketplaces.cancel")}</Button>
                           </div>
                         </div>
                       ) : (
@@ -167,12 +169,12 @@ export default function AdminMarketplacesPage() {
                           </div>
                           <div className="flex items-center gap-1 mb-2">
                             <span className="text-2xl font-bold text-slate-900">{formatPrice(plan.price)}</span>
-                            <span className="text-sm text-slate-500">one-time</span>
+                            <span className="text-sm text-slate-500">{t("adminMarketplaces.oneTime")}</span>
                           </div>
                           <div className="flex items-center gap-4 text-xs text-slate-500 mb-3">
-                            <span>Role: <strong>{plan.role}</strong></span>
-                            <span>Max listings: <strong>{plan.maxActiveListings}</strong></span>
-                            <span>Max images: <strong>{plan.maxImagesPerListing}</strong></span>
+                            <span>{t("adminMarketplaces.role")} <strong>{plan.role}</strong></span>
+                            <span>{t("adminMarketplaces.maxListings_")} <strong>{plan.maxActiveListings}</strong></span>
+                            <span>{t("adminMarketplaces.maxImages_")} <strong>{plan.maxImagesPerListing}</strong></span>
                           </div>
                           <Button
                             size="sm"
@@ -189,7 +191,7 @@ export default function AdminMarketplacesPage() {
                               });
                             }}
                           >
-                            <Edit2 className="h-3.5 w-3.5 mr-1" /> Edit Plan
+                            <Edit2 className="h-3.5 w-3.5 mr-1" /> {t("adminMarketplaces.editPlan")}
                           </Button>
                         </>
                       )}

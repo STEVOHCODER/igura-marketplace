@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, Home, MapPin, LogIn, UserPlus, LayoutDashboard, LogOut, User, ChevronDown } from "lucide-react";
 import { cn, getInitials } from "@/lib/utils";
+import { useI18n } from "@/i18n";
+import { LanguageSwitcher } from "@/components/ui/language-switcher";
 
 interface User {
   id: string;
@@ -14,6 +16,7 @@ interface User {
 }
 
 export function Navbar() {
+  const { t } = useI18n();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [scrolled, setScrolled] = useState(false);
@@ -50,8 +53,8 @@ export function Navbar() {
   }, [pathname]);
 
   const navLinks = [
-    { href: "/rent/houses", label: "House Rental", icon: Home },
-    { href: "/plots", label: "Plots & Land", icon: MapPin },
+    { href: "/rent/houses", label: t("nav.houseRental"), icon: Home },
+    { href: "/plots", label: t("nav.plotsLand"), icon: MapPin },
   ];
 
   const handleLogout = async () => {
@@ -72,7 +75,6 @@ export function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 shrink-0">
             <svg className="h-8 w-auto" viewBox="0 0 200 48" xmlns="http://www.w3.org/2000/svg">
               <defs>
@@ -88,7 +90,6 @@ export function Navbar() {
             </svg>
           </Link>
 
-          {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => (
               <Link
@@ -107,8 +108,8 @@ export function Navbar() {
             ))}
           </nav>
 
-          {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-2">
+            <LanguageSwitcher />
             {user ? (
               <>
                 <Link
@@ -116,7 +117,7 @@ export function Navbar() {
                   className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all"
                 >
                   <LayoutDashboard className="h-4 w-4" />
-                  Dashboard
+                  {t("nav.dashboard")}
                 </Link>
                 <div className="relative" ref={userMenuRef}>
                   <button
@@ -145,21 +146,21 @@ export function Navbar() {
                         onClick={() => setUserMenuOpen(false)}
                         className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                       >
-                        <LayoutDashboard className="h-4 w-4" /> Dashboard
+                        <LayoutDashboard className="h-4 w-4" /> {t("nav.dashboard")}
                       </Link>
                       <Link
                         href="/dashboard/profile"
                         onClick={() => setUserMenuOpen(false)}
                         className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                       >
-                        <User className="h-4 w-4" /> Profile
+                        <User className="h-4 w-4" /> {t("nav.profile")}
                       </Link>
                       <hr className="my-1 border-slate-100" />
                       <button
                         onClick={handleLogout}
                         className="flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors w-full"
                       >
-                        <LogOut className="h-4 w-4" /> Sign Out
+                        <LogOut className="h-4 w-4" /> {t("nav.signOut")}
                       </button>
                     </div>
                   )}
@@ -172,20 +173,19 @@ export function Navbar() {
                   className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all"
                 >
                   <LogIn className="h-4 w-4" />
-                  Sign In
+                  {t("nav.signIn")}
                 </Link>
                 <Link
                   href="/register"
                   className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-500 transition-all shadow-sm shadow-emerald-200"
                 >
                   <UserPlus className="h-4 w-4" />
-                  Get Started
+                  {t("nav.getStarted")}
                 </Link>
               </>
             )}
           </div>
 
-          {/* Mobile Toggle */}
           <button
             className="md:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors"
             onClick={() => setMobileOpen(!mobileOpen)}
@@ -196,14 +196,16 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Menu */}
       <div
         className={cn(
           "md:hidden overflow-hidden transition-all duration-300",
-          mobileOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
+          mobileOpen ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"
         )}
       >
         <div className="px-4 py-3 space-y-1 border-t border-slate-200 bg-white">
+          <div className="flex justify-center mb-2">
+            <LanguageSwitcher />
+          </div>
           {navLinks.map((link) => (
             <Link
               key={link.href}
@@ -239,20 +241,20 @@ export function Navbar() {
                 onClick={() => setMobileOpen(false)}
                 className="flex items-center gap-2.5 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50"
               >
-                <LayoutDashboard className="h-5 w-5" /> Dashboard
+                <LayoutDashboard className="h-5 w-5" /> {t("nav.dashboard")}
               </Link>
               <Link
                 href="/dashboard/profile"
                 onClick={() => setMobileOpen(false)}
                 className="flex items-center gap-2.5 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50"
               >
-                <User className="h-5 w-5" /> Profile
+                <User className="h-5 w-5" /> {t("nav.profile")}
               </Link>
               <button
                 onClick={() => { handleLogout(); setMobileOpen(false); }}
                 className="flex items-center gap-2.5 px-3 py-3 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 w-full"
               >
-                <LogOut className="h-5 w-5" /> Sign Out
+                <LogOut className="h-5 w-5" /> {t("nav.signOut")}
               </button>
             </>
           ) : (
@@ -262,14 +264,14 @@ export function Navbar() {
                 onClick={() => setMobileOpen(false)}
                 className="flex items-center gap-2.5 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50"
               >
-                <LogIn className="h-5 w-5" /> Sign In
+                <LogIn className="h-5 w-5" /> {t("nav.signIn")}
               </Link>
               <Link
                 href="/register"
                 onClick={() => setMobileOpen(false)}
                 className="flex items-center gap-2.5 px-3 py-3 rounded-xl text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-500 mt-1"
               >
-                <UserPlus className="h-5 w-5" /> Get Started
+                <UserPlus className="h-5 w-5" /> {t("nav.getStarted")}
               </Link>
             </>
           )}

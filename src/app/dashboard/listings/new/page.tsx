@@ -6,12 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
+import { useI18n } from "@/i18n";
 
 const STEPS = ["Type", "Images", "Details", "Location", "Coordinates", "Keywords", "Preview"];
 
 export default function NewListingPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useI18n();
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [marketplaces, setMarketplaces] = useState<any[]>([]);
@@ -64,12 +66,12 @@ export default function NewListingPage() {
   const handleImageAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (images.length + files.length > 3) {
-      toast("Maximum 3 images allowed", "error");
+      toast(t("create.maxImages"), "error");
       return;
     }
     const validFiles = files.filter(f => {
-      if (f.size > 5 * 1024 * 1024) { toast(`${f.name} is too large (max 5MB)`, "error"); return false; }
-      if (!["image/jpeg", "image/png", "image/webp"].includes(f.type)) { toast(`${f.name} is not a supported format`, "error"); return false; }
+      if (f.size > 5 * 1024 * 1024) { toast(`${f.name} ${t("create.tooLarge")}`, "error"); return false; }
+      if (!["image/jpeg", "image/png", "image/webp"].includes(f.type)) { toast(`${f.name} ${t("create.unsupported")}`, "error"); return false; }
       return true;
     });
     const newImages = [...images, ...validFiles].slice(0, 3);
@@ -104,7 +106,7 @@ export default function NewListingPage() {
         body: JSON.stringify(body),
       });
       const data = await res.json();
-      if (!res.ok) { toast(data.error || "Failed to create listing", "error"); return; }
+      if (!res.ok) { toast(data.error || t("create.failedCreate"), "error"); return; }
 
       // Upload images
       for (let i = 0; i < images.length; i++) {
@@ -114,10 +116,10 @@ export default function NewListingPage() {
         await fetch(`/api/properties/${data.property.id}/images`, { method: "POST", body: fd });
       }
 
-      toast("Listing created successfully!", "success");
+      toast(t("create.successCreate"), "success");
       router.push("/dashboard/listings");
     } catch {
-      toast("Something went wrong", "error");
+      toast(t("create.wrong"), "error");
     } finally {
       setSubmitting(false);
     }
@@ -127,7 +129,7 @@ export default function NewListingPage() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold text-slate-900 mb-6">Create New Listing</h1>
+      <h1 className="text-2xl font-bold text-slate-900 mb-6">{t("create.title")}</h1>
 
       {/* Progress */}
       <div className="mb-8">
@@ -149,23 +151,23 @@ export default function NewListingPage() {
           {/* Step 0: Marketplace & Type */}
           {step === 0 && (
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Select Marketplace & Property Type</h2>
+              <h2 className="text-lg font-semibold">{t("create.selectMarketplace")}</h2>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Marketplace</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">{t("create.marketplace")}</label>
                 <div className="grid grid-cols-2 gap-3">
                   {["house_rental", "plot_sale"].map((m) => (
                     <button key={m} onClick={() => updateForm("marketplace", m)} className={`p-4 rounded-xl border-2 text-left transition-all ${form.marketplace === m ? "border-emerald-600 bg-emerald-50" : "border-slate-200 hover:border-slate-300"}`}>
-                      <p className="font-medium">{m === "house_rental" ? "House Rental" : "Plot Selling (VIP)"}</p>
-                      <p className="text-sm text-slate-500 mt-1">{m === "house_rental" ? "Rent houses" : "Sell plots"}</p>
+                      <p className="font-medium">{m === "house_rental" ? t("create.houseRental") : t("create.plotSelling")}</p>
+                      <p className="text-sm text-slate-500 mt-1">{m === "house_rental" ? t("create.rentHouses") : t("create.sellPlots")}</p>
                     </button>
                   ))}
                 </div>
               </div>
               {form.marketplace && (
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Property Type</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">{t("create.propertyType")}</label>
                   <select value={form.propertyTypeId} onChange={(e) => updateForm("propertyTypeId", e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm">
-                    <option value="">Select type</option>
+                    <option value="">{t("create.selectType")}</option>
                     {propertyTypes.filter((t: any) => t.marketplaceId === form.marketplace || true).map((t: any) => (
                       <option key={t.id} value={t.id}>{t.displayName}</option>
                     ))}
@@ -178,8 +180,8 @@ export default function NewListingPage() {
           {/* Step 1: Images */}
           {step === 1 && (
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Property Images</h2>
-              <p className="text-sm text-slate-500">Upload up to 3 images. First image will be the main photo.</p>
+              <h2 className="text-lg font-semibold">{t("create.propertyImages")}</h2>
+              <p className="text-sm text-slate-500">{t("create.imagesDesc")}</p>
               <div className="grid grid-cols-3 gap-4">
                 {imagePreviews.map((preview, i) => (
                   <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-slate-200">
@@ -192,7 +194,7 @@ export default function NewListingPage() {
                 {images.length < 3 && (
                   <label className="aspect-square rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center cursor-pointer hover:border-emerald-400 transition-colors">
                     <Upload className="h-8 w-8 text-slate-400 mb-2" />
-                    <span className="text-sm text-slate-500">Add Image</span>
+                    <span className="text-sm text-slate-500">{t("create.addImage")}</span>
                     <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={handleImageAdd} className="hidden" />
                   </label>
                 )}
@@ -203,41 +205,41 @@ export default function NewListingPage() {
           {/* Step 2: Details */}
           {step === 2 && (
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Property Details</h2>
-              <Input label="Title" placeholder="e.g. Spacious Room + Salon in Kacyiru" value={form.title} onChange={(e) => updateForm("title", e.target.value)} />
+              <h2 className="text-lg font-semibold">{t("create.propertyDetails")}</h2>
+              <Input label={t("create.title_")} placeholder={t("create.titlePlaceholder")} value={form.title} onChange={(e) => updateForm("title", e.target.value)} />
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
-                <textarea value={form.description} onChange={(e) => updateForm("description", e.target.value)} rows={4} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" placeholder="Describe the property..." />
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t("create.description_")}</label>
+                <textarea value={form.description} onChange={(e) => updateForm("description", e.target.value)} rows={4} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" placeholder={t("create.descPlaceholder")} />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <Input label="Price (RWF/month)" type="number" placeholder="e.g. 50000" value={form.price} onChange={(e) => updateForm("price", e.target.value)} />
+                <Input label={t("create.priceMonth")} type="number" placeholder={t("create.pricePlaceholder")} value={form.price} onChange={(e) => updateForm("price", e.target.value)} />
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Negotiable</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{t("create.negotiable")}</label>
                   <div className="flex gap-3 mt-2">
-                    <button onClick={() => updateForm("negotiable", true)} className={`px-4 py-2 rounded-lg text-sm font-medium ${form.negotiable ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-600"}`}>Negotiable</button>
-                    <button onClick={() => updateForm("negotiable", false)} className={`px-4 py-2 rounded-lg text-sm font-medium ${!form.negotiable ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-600"}`}>Fixed Price</button>
+                    <button onClick={() => updateForm("negotiable", true)} className={`px-4 py-2 rounded-lg text-sm font-medium ${form.negotiable ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-600"}`}>{t("create.negotiable")}</button>
+                    <button onClick={() => updateForm("negotiable", false)} className={`px-4 py-2 rounded-lg text-sm font-medium ${!form.negotiable ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-600"}`}>{t("create.fixedPrice")}</button>
                   </div>
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-4">
-                <Input label="Bedrooms" type="number" value={form.bedrooms} onChange={(e) => updateForm("bedrooms", e.target.value)} />
-                <Input label="Bathrooms" type="number" value={form.bathrooms} onChange={(e) => updateForm("bathrooms", e.target.value)} />
-                <Input label="Area (m²)" type="number" value={form.areaValue} onChange={(e) => updateForm("areaValue", e.target.value)} />
+                <Input label={t("create.bedrooms_")} type="number" value={form.bedrooms} onChange={(e) => updateForm("bedrooms", e.target.value)} />
+                <Input label={t("create.bathrooms_")} type="number" value={form.bathrooms} onChange={(e) => updateForm("bathrooms", e.target.value)} />
+                <Input label={t("create.areaM2")} type="number" value={form.areaValue} onChange={(e) => updateForm("areaValue", e.target.value)} />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <Input label="Your Name" value={form.contactName} onChange={(e) => updateForm("contactName", e.target.value)} placeholder="Name for contact" />
-                <Input label="Contact Phone" value={form.contactPhone} onChange={(e) => updateForm("contactPhone", e.target.value)} placeholder="07XXXXXXXX" />
+                <Input label={t("create.yourName")} value={form.contactName} onChange={(e) => updateForm("contactName", e.target.value)} placeholder={t("create.namePlaceholder")} />
+                <Input label={t("create.contactPhone")} value={form.contactPhone} onChange={(e) => updateForm("contactPhone", e.target.value)} placeholder={t("create.phonePlaceholder")} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Availability</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t("create.availability_")}</label>
                 <select value={form.availabilityStatus} onChange={(e) => updateForm("availabilityStatus", e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm">
-                  <option value="AVAILABLE">Available Now</option>
-                  <option value="UPCOMING">Available on a specific date</option>
-                  <option value="UNAVAILABLE">Unavailable</option>
+                  <option value="AVAILABLE">{t("create.availableNow")}</option>
+                  <option value="UPCOMING">{t("create.availableSpecific")}</option>
+                  <option value="UNAVAILABLE">{t("create.unavailable")}</option>
                 </select>
               </div>
               {form.availabilityStatus === "UPCOMING" && (
-                <Input label="Available From" type="date" value={form.availabilityDate} onChange={(e) => updateForm("availabilityDate", e.target.value)} />
+                <Input label={t("create.availableFrom")} type="date" value={form.availabilityDate} onChange={(e) => updateForm("availabilityDate", e.target.value)} />
               )}
             </div>
           )}
@@ -245,36 +247,36 @@ export default function NewListingPage() {
           {/* Step 3: Location */}
           {step === 3 && (
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Location</h2>
+              <h2 className="text-lg font-semibold">{t("create.location_")}</h2>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">District</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t("create.district")}</label>
                 <select value={form.locationDistrict} onChange={(e) => updateForm("locationDistrict", e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm">
-                  <option value="">Select district</option>
+                  <option value="">{t("create.selectDistrict")}</option>
                   {districts.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
-              <Input label="Sector" value={form.locationSector} onChange={(e) => updateForm("locationSector", e.target.value)} placeholder="e.g. Kacyiru" />
-              <Input label="Cell" value={form.locationCell} onChange={(e) => updateForm("locationCell", e.target.value)} placeholder="e.g. Kamatamu" />
-              <Input label="Village" value={form.locationVillage} onChange={(e) => updateForm("locationVillage", e.target.value)} placeholder="e.g. Ukwezi" />
+              <Input label={t("create.sector_")} value={form.locationSector} onChange={(e) => updateForm("locationSector", e.target.value)} placeholder={t("create.sectorPlaceholder")} />
+              <Input label={t("create.cell_")} value={form.locationCell} onChange={(e) => updateForm("locationCell", e.target.value)} placeholder={t("create.cellPlaceholder")} />
+              <Input label={t("create.village_")} value={form.locationVillage} onChange={(e) => updateForm("locationVillage", e.target.value)} placeholder={t("create.villagePlaceholder")} />
             </div>
           )}
 
           {/* Step 4: Coordinates */}
           {step === 4 && (
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold">GPS Coordinates</h2>
-              <p className="text-sm text-slate-500">Optional. Help clients find the exact location.</p>
+              <h2 className="text-lg font-semibold">{t("create.gpsCoordinates")}</h2>
+              <p className="text-sm text-slate-500">{t("create.gpsDesc")}</p>
               <div className="grid grid-cols-2 gap-4">
-                <Input label="Latitude" type="number" step="any" value={form.latitude} onChange={(e) => updateForm("latitude", e.target.value)} placeholder="-1.9403" />
-                <Input label="Longitude" type="number" step="any" value={form.longitude} onChange={(e) => updateForm("longitude", e.target.value)} placeholder="29.8739" />
+                <Input label={t("create.latitude")} type="number" step="any" value={form.latitude} onChange={(e) => updateForm("latitude", e.target.value)} placeholder="-1.9403" />
+                <Input label={t("create.longitude")} type="number" step="any" value={form.longitude} onChange={(e) => updateForm("longitude", e.target.value)} placeholder="29.8739" />
               </div>
               <div className="flex items-center gap-3">
                 <button onClick={() => updateForm("coordinatesRevealed", !form.coordinatesRevealed)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.coordinatesRevealed ? "bg-emerald-600" : "bg-slate-300"}`}>
                   <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${form.coordinatesRevealed ? "translate-x-6" : "translate-x-1"}`} />
                 </button>
                 <div>
-                  <p className="text-sm font-medium text-slate-900">Reveal coordinates to clients</p>
-                  <p className="text-xs text-slate-500">If off, exact GPS location stays hidden</p>
+                  <p className="text-sm font-medium text-slate-900">{t("create.revealCoords")}</p>
+                  <p className="text-xs text-slate-500">{t("create.coordsHidden")}</p>
                 </div>
               </div>
             </div>
@@ -283,11 +285,11 @@ export default function NewListingPage() {
           {/* Step 5: Keywords */}
           {step === 5 && (
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Nearby Infrastructure</h2>
-              <p className="text-sm text-slate-500">Add searchable keywords that help clients find your listing.</p>
+              <h2 className="text-lg font-semibold">{t("create.nearbyInfra")}</h2>
+              <p className="text-sm text-slate-500">{t("create.nearbyDesc")}</p>
               <div className="flex gap-2">
-                <Input value={form.keywordInput} onChange={(e) => updateForm("keywordInput", e.target.value)} placeholder="e.g. ULK, Hospital, Market..." onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addKeyword())} />
-                <Button onClick={addKeyword} type="button">Add</Button>
+                <Input value={form.keywordInput} onChange={(e) => updateForm("keywordInput", e.target.value)} placeholder={t("create.nearbyPlaceholder")} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addKeyword())} />
+                <Button onClick={addKeyword} type="button">{t("create.add")}</Button>
               </div>
               {form.keywords.length > 0 && (
                 <div className="flex flex-wrap gap-2">
@@ -312,16 +314,16 @@ export default function NewListingPage() {
           {/* Step 6: Preview */}
           {step === 6 && (
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Preview Your Listing</h2>
+              <h2 className="text-lg font-semibold">{t("create.previewListing")}</h2>
               <div className="bg-slate-50 rounded-xl p-4 space-y-3">
                 {imagePreviews.length > 0 && (
                   <div className="grid grid-cols-3 gap-2 rounded-lg overflow-hidden">
                     {imagePreviews.map((p, i) => <img key={i} src={p} alt="" className="aspect-square object-cover" />)}
                   </div>
                 )}
-                <h3 className="text-lg font-semibold">{form.title || "Untitled"}</h3>
-                <p className="text-emerald-600 text-xl font-bold">{form.price ? `${parseInt(form.price).toLocaleString()} RWF` : "No price"}/month</p>
-                <p className="text-sm text-slate-600">{form.description || "No description"}</p>
+                <h3 className="text-lg font-semibold">{form.title || t("create.untitled")}</h3>
+                <p className="text-emerald-600 text-xl font-bold">{form.price ? `${parseInt(form.price).toLocaleString()} RWF` : t("create.noPrice")}/month</p>
+                <p className="text-sm text-slate-600">{form.description || t("create.noDesc")}</p>
                 <div className="flex flex-wrap gap-2 text-sm text-slate-500">
                   {form.locationDistrict && <span>{form.locationSector}, {form.locationDistrict}</span>}
                   {form.bedrooms && <span>{form.bedrooms} beds</span>}
@@ -342,15 +344,15 @@ export default function NewListingPage() {
       {/* Navigation */}
       <div className="flex items-center justify-between mt-6">
         <Button variant="outline" onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0}>
-          <ArrowLeft className="h-4 w-4 mr-1" />Back
+          <ArrowLeft className="h-4 w-4 mr-1" />{t("create.back")}
         </Button>
         {step < STEPS.length - 1 ? (
           <Button onClick={() => setStep(step + 1)}>
-            Next<ArrowRight className="h-4 w-4 ml-1" />
+            {t("create.next")}<ArrowRight className="h-4 w-4 ml-1" />
           </Button>
         ) : (
           <Button onClick={handleSubmit} loading={submitting}>
-            Publish Listing
+            {t("create.publishListing")}
           </Button>
         )}
       </div>

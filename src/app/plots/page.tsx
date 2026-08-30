@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useI18n } from "@/i18n";
 
 const RWANDA_DISTRICTS = [
   "Gasabo","Kicukiro","Nyarugenge","Huye","Rubavu","Musanze","Nyagatare",
@@ -16,6 +17,7 @@ const RWANDA_DISTRICTS = [
 ];
 
 export default function PlotSearchPage() {
+  const { t } = useI18n();
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -87,12 +89,12 @@ export default function PlotSearchPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">Plots for Sale <Badge variant="warning" className="ml-2">VIP</Badge></h1>
-              <p className="text-sm text-slate-500 mt-1">{total} plots available</p>
+              <h1 className="text-2xl font-bold text-slate-900">{t("plots.title")} <Badge variant="warning" className="ml-2">{t("plots.vip")}</Badge></h1>
+              <p className="text-sm text-slate-500 mt-1">{total} {t("plots.available")}</p>
             </div>
             <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)}>
               <SlidersHorizontal className="h-4 w-4 mr-1.5" />
-              Filters
+              {t("plots.filters")}
             </Button>
           </div>
 
@@ -101,47 +103,47 @@ export default function PlotSearchPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
                 type="text"
-                placeholder='Search "plot in Gasabo", "land near Kigali"...'
+                placeholder={t("plots.searchPlaceholder")}
                 value={filters.q}
                 onChange={(e) => setFilters({ ...filters, q: e.target.value })}
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               />
             </div>
-            <Button type="submit" size="lg">Search</Button>
+            <Button type="submit" size="lg">{t("plots.search")}</Button>
           </form>
 
           {showFilters && (
             <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 <select value={filters.district} onChange={(e) => setFilters({ ...filters, district: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white">
-                  <option value="">All Districts</option>
+                  <option value="">{t("plots.allDistricts")}</option>
                   {RWANDA_DISTRICTS.filter((d, i, a) => a.indexOf(d) === i).map((d) => (
                     <option key={d} value={d}>{d}</option>
                   ))}
                 </select>
-                <input type="text" placeholder="Sector" value={filters.sector} onChange={(e) => setFilters({ ...filters, sector: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                <input type="text" placeholder={t("plots.sector")} value={filters.sector} onChange={(e) => setFilters({ ...filters, sector: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
                 <select value={filters.purpose} onChange={(e) => setFilters({ ...filters, purpose: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white">
-                  <option value="">All Purposes</option>
-                  <option value="residential">Residential</option>
-                  <option value="commercial">Commercial</option>
-                  <option value="farming">Farming</option>
-                  <option value="industrial">Industrial</option>
+                  <option value="">{t("plots.allPurposes")}</option>
+                  <option value="residential">{t("plots.residential")}</option>
+                  <option value="commercial">{t("plots.commercial")}</option>
+                  <option value="farming">{t("plots.farming")}</option>
+                  <option value="industrial">{t("plots.industrial")}</option>
                 </select>
-                <input type="number" placeholder="Min Price (RWF)" value={filters.minPrice} onChange={(e) => setFilters({ ...filters, minPrice: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-                <input type="number" placeholder="Max Price (RWF)" value={filters.maxPrice} onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                <input type="number" placeholder={t("plots.minPrice")} value={filters.minPrice} onChange={(e) => setFilters({ ...filters, minPrice: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                <input type="number" placeholder={t("plots.maxPrice")} value={filters.maxPrice} onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3">
-                <input type="number" placeholder="Min Area (m²)" value={filters.areaMin} onChange={(e) => setFilters({ ...filters, areaMin: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-                <input type="number" placeholder="Max Area (m²)" value={filters.areaMax} onChange={(e) => setFilters({ ...filters, areaMax: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                <input type="number" placeholder={t("plots.minArea")} value={filters.areaMin} onChange={(e) => setFilters({ ...filters, areaMin: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                <input type="number" placeholder={t("plots.maxArea")} value={filters.areaMax} onChange={(e) => setFilters({ ...filters, areaMax: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
                 <select value={filters.availability} onChange={(e) => setFilters({ ...filters, availability: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white">
-                  <option value="">Any Availability</option>
-                  <option value="AVAILABLE">Available Now</option>
-                  <option value="UPCOMING">Coming Soon</option>
+                  <option value="">{t("plots.anyAvailability")}</option>
+                  <option value="AVAILABLE">{t("plots.availableNow")}</option>
+                  <option value="UPCOMING">{t("plots.comingSoon")}</option>
                 </select>
               </div>
               {hasActiveFilters && (
                 <button onClick={clearFilters} className="mt-3 text-sm text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
-                  <X className="h-3 w-3" /> Clear all filters
+                  <X className="h-3 w-3" /> {t("plots.clearFilters")}
                 </button>
               )}
             </div>
@@ -156,26 +158,24 @@ export default function PlotSearchPage() {
               <Lock className="h-8 w-8 text-amber-600" />
             </div>
             <h2 className="text-2xl font-bold text-slate-900 mb-2">
-              {needsAuth ? "Sign in to search plots" : "Membership required"}
+              {needsAuth ? t("plots.signInTitle") : t("plots.membershipTitle")}
             </h2>
             <p className="text-slate-600 mb-6 max-w-md mx-auto">
-              {needsAuth
-                ? "Create an account or sign in to browse plot listings."
-                : "You need an active Plot Selling VIP membership to search and view full listings. Plans start at 15,000 RWF."}
+              {needsAuth ? t("plots.signInDesc") : t("plots.membershipDesc")}
             </p>
             <div className="flex items-center justify-center gap-3">
               {needsAuth ? (
                 <>
                   <a href="/login" className="inline-flex items-center gap-2 bg-emerald-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-emerald-700 transition-colors">
-                    <LogIn className="h-4 w-4" /> Sign In
+                    <LogIn className="h-4 w-4" /> {t("plots.signIn")}
                   </a>
                   <a href="/register" className="inline-flex items-center gap-2 border border-slate-300 text-slate-700 px-6 py-3 rounded-xl font-medium hover:bg-slate-50 transition-colors">
-                    Create Account
+                    {t("plots.createAccount")}
                   </a>
                 </>
               ) : (
                 <a href="/dashboard/memberships" className="inline-flex items-center gap-2 bg-emerald-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-emerald-700 transition-colors">
-                  Get Membership — From 15,000 RWF
+                  {t("plots.getMembership")}
                 </a>
               )}
             </div>
@@ -196,9 +196,9 @@ export default function PlotSearchPage() {
         ) : properties.length === 0 ? (
           <EmptyState
             icon={<MapPin className="h-12 w-12" />}
-            title="No plots found"
-            description="Try adjusting your search filters or check back later."
-            action={hasActiveFilters ? <Button variant="outline" onClick={clearFilters}>Clear Filters</Button> : undefined}
+            title={t("plots.noResults")}
+            description={t("plots.noResultsDesc")}
+            action={hasActiveFilters ? <Button variant="outline" onClick={clearFilters}>{t("plots.clearFiltersBtn")}</Button> : undefined}
           />
         ) : (
           <>

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { formatPrice, formatDate } from "@/lib/utils";
+import { useI18n } from "@/i18n";
 
 export default function AdminListingsPage() {
   const [listings, setListings] = useState<any[]>([]);
@@ -15,6 +16,7 @@ export default function AdminListingsPage() {
   const [marketplaceFilter, setMarketplaceFilter] = useState("all");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const { toast } = useToast();
+  const { t } = useI18n();
 
   useEffect(() => {
     fetch("/api/admin/listings")
@@ -32,30 +34,30 @@ export default function AdminListingsPage() {
         body: JSON.stringify({ status, adminNote: note }),
       });
       if (res.ok) {
-        toast(`Listing ${status.toLowerCase()}`, "success");
+        toast(`${t("adminListings.listingStatus")} ${status.toLowerCase()}`, "success");
         setListings(prev => prev.map(l => l.id === id ? { ...l, status } : l));
       } else {
         const data = await res.json();
-        toast(data.error || "Failed to update", "error");
+        toast(data.error || t("adminListings.failedUpdate"), "error");
       }
     } catch {
-      toast("Failed to update listing", "error");
+      toast(t("adminListings.failedUpdateListing"), "error");
     } finally {
       setActionLoading(null);
     }
   };
 
   const removeListing = async (id: string) => {
-    if (!confirm("Permanently remove this listing?")) return;
+    if (!confirm(t("adminListings.removeConfirm"))) return;
     setActionLoading(id + "DELETE");
     try {
       const res = await fetch(`/api/properties/${id}`, { method: "DELETE" });
       if (res.ok) {
-        toast("Listing removed", "success");
+        toast(t("adminListings.listingRemoved"), "success");
         setListings(prev => prev.filter(l => l.id !== id));
       }
     } catch {
-      toast("Failed to remove listing", "error");
+      toast(t("adminListings.failedRemove"), "error");
     } finally {
       setActionLoading(null);
     }
@@ -90,8 +92,8 @@ export default function AdminListingsPage() {
     <div className="max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Manage Listings</h1>
-          <p className="text-slate-500 text-sm mt-1">{listings.length} total listings · {statusCounts.ACTIVE} active · {statusCounts.DRAFT} drafts</p>
+          <h1 className="text-2xl font-bold text-slate-900">{t("adminListings.title")}</h1>
+          <p className="text-slate-500 text-sm mt-1">{listings.length} {t("adminListings.total")} · {statusCounts.ACTIVE} {t("adminListings.active")} · {statusCounts.DRAFT} {t("adminListings.drafts")}</p>
         </div>
       </div>
 
@@ -107,7 +109,7 @@ export default function AdminListingsPage() {
                 : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
             }`}
           >
-            {f === "all" ? "All" : f.charAt(0) + f.slice(1).toLowerCase()}
+            {f === "all" ? t("adminListings.all") : f.charAt(0) + f.slice(1).toLowerCase()}
             <span className="ml-1.5 text-xs opacity-70">({statusCounts[f]})</span>
           </button>
         ))}
@@ -119,7 +121,7 @@ export default function AdminListingsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Search by title, owner name, or email..."
+            placeholder={t("adminListings.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 text-sm"
@@ -130,9 +132,9 @@ export default function AdminListingsPage() {
           onChange={(e) => setMarketplaceFilter(e.target.value)}
           className="px-4 py-2.5 rounded-lg border border-slate-300 text-sm bg-white"
         >
-          <option value="all">All Marketplaces</option>
-          <option value="House Rental">House Rental</option>
-          <option value="Plot Selling VIP">Plot Selling VIP</option>
+          <option value="all">{t("adminListings.allMarketplaces")}</option>
+          <option value="House Rental">{t("adminListings.houseRental")}</option>
+          <option value="Plot Selling VIP">{t("adminListings.plotSelling")}</option>
         </select>
       </div>
 
@@ -142,21 +144,21 @@ export default function AdminListingsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">Property</th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">Owner</th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">Marketplace</th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">Price</th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">Views</th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">Status</th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">Created</th>
-                  <th className="text-right px-4 py-3 font-medium text-slate-600">Actions</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">{t("adminListings.property")}</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">{t("adminListings.owner")}</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">{t("adminListings.marketplace")}</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">{t("adminListings.price")}</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">{t("adminListings.views")}</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">{t("adminListings.status")}</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">{t("adminListings.created")}</th>
+                  <th className="text-right px-4 py-3 font-medium text-slate-600">{t("adminListings.actions")}</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-500">Loading...</td></tr>
+                  <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-500">{t("adminListings.loading")}</td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-500">No listings found</td></tr>
+                  <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-500">{t("adminListings.noListings")}</td></tr>
                 ) : filtered.map((l) => (
                   <tr key={l.id} className="border-b border-slate-100 hover:bg-slate-50">
                     <td className="px-4 py-3">

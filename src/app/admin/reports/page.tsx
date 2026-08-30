@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { formatDate, formatPrice } from "@/lib/utils";
 import { AlertTriangle, Eye, Trash2, Ban, CheckCircle, XCircle, ExternalLink } from "lucide-react";
+import { useI18n } from "@/i18n";
 
 export default function AdminReportsPage() {
   const [reports, setReports] = useState<any[]>([]);
@@ -13,6 +14,7 @@ export default function AdminReportsPage() {
   const [filter, setFilter] = useState("all");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const { toast } = useToast();
+  const { t } = useI18n();
 
   useEffect(() => {
     fetch("/api/admin/reports")
@@ -44,7 +46,7 @@ export default function AdminReportsPage() {
   };
 
   const handleResolveWithAction = (id: string, action: string) => {
-    const note = prompt("Admin note (optional):");
+    const note = prompt(t("adminReports.adminNotePrompt"));
     updateReport(id, "RESOLVED", note || undefined, action);
   };
 
@@ -60,8 +62,8 @@ export default function AdminReportsPage() {
   return (
     <div className="max-w-7xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Reports & Moderation</h1>
-        <p className="text-slate-500 text-sm mt-1">{reports.length} total reports · {statusCounts.PENDING} pending review</p>
+        <h1 className="text-2xl font-bold text-slate-900">{t("adminReports.title")}</h1>
+        <p className="text-slate-500 text-sm mt-1">{reports.length} {t("adminReports.total")} · {statusCounts.PENDING} {t("adminReports.pendingReview")}</p>
       </div>
 
       {/* Status Filter Tabs */}
@@ -76,7 +78,7 @@ export default function AdminReportsPage() {
                 : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
             }`}
           >
-            {f === "all" ? "All" : f.charAt(0) + f.slice(1).toLowerCase()}
+            {f === "all" ? t("adminReports.all") : f.charAt(0) + f.slice(1).toLowerCase()}
             <span className="ml-1.5 text-xs opacity-70">({statusCounts[f]})</span>
           </button>
         ))}
@@ -84,12 +86,12 @@ export default function AdminReportsPage() {
 
       <div className="space-y-4">
         {loading ? (
-          <div className="text-center py-12 text-slate-500">Loading...</div>
+          <div className="text-center py-12 text-slate-500">{t("adminReports.loading")}</div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-12 text-slate-500">
             <CheckCircle className="h-12 w-12 text-emerald-400 mx-auto mb-3" />
-            <p className="text-lg font-medium text-slate-900">No reports found</p>
-            <p className="text-sm text-slate-500">All clear! No reports matching this filter.</p>
+            <p className="text-lg font-medium text-slate-900">{t("adminReports.noReports")}</p>
+            <p className="text-sm text-slate-500">{t("adminReports.allClear")}</p>
           </div>
         ) : filtered.map((r) => (
           <Card key={r.id} className={r.status === "PENDING" ? "border-amber-200 bg-amber-50/30" : ""}>
@@ -108,22 +110,22 @@ export default function AdminReportsPage() {
 
                   {/* Reporter & Property Info */}
                   <div className="flex flex-wrap gap-4 mt-3 text-xs text-slate-500">
-                    <span>Reported by: <strong className="text-slate-700">{r.reporter?.firstName} {r.reporter?.lastName}</strong></span>
+                    <span>{t("adminReports.reportedBy")} <strong className="text-slate-700">{r.reporter?.firstName} {r.reporter?.lastName}</strong></span>
                     {r.property && (
                       <span className="flex items-center gap-1">
-                        Property: <strong className="text-slate-700">{r.property.title}</strong>
+                        {t("adminReports.property")} <strong className="text-slate-700">{r.property.title}</strong>
                         <a href={`/rent/houses/${r.property.slug}`} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline">
                           <ExternalLink className="h-3 w-3 inline" />
                         </a>
                       </span>
                     )}
-                    {r.property && <span>Price: {formatPrice(r.property.price)}</span>}
-                    {r.property && <span>Location: {r.property.locationDistrict}</span>}
+                    {r.property && <span>{t("adminReports.price")} {formatPrice(r.property.price)}</span>}
+                    {r.property && <span>{t("adminReports.location")} {r.property.locationDistrict}</span>}
                   </div>
 
                   {r.adminNote && (
                     <div className="mt-2 p-2 bg-slate-100 rounded text-xs text-slate-600">
-                      <strong>Admin note:</strong> {r.adminNote}
+                      <strong>{t("adminReports.adminNote")}</strong> {r.adminNote}
                     </div>
                   )}
                 </div>
@@ -139,7 +141,7 @@ export default function AdminReportsPage() {
                         onClick={() => updateReport(r.id, "RESOLVED")}
                         disabled={actionLoading === r.id + "RESOLVED"}
                       >
-                        <CheckCircle className="h-3.5 w-3.5 mr-1" /> Resolve
+                        <CheckCircle className="h-3.5 w-3.5 mr-1" /> {t("adminReports.resolve")}
                       </Button>
                       <Button
                         size="sm"
@@ -147,7 +149,7 @@ export default function AdminReportsPage() {
                         onClick={() => updateReport(r.id, "DISMISSED")}
                         disabled={actionLoading === r.id + "DISMISSED"}
                       >
-                        <XCircle className="h-3.5 w-3.5 mr-1" /> Dismiss
+                        <XCircle className="h-3.5 w-3.5 mr-1" /> {t("adminReports.dismiss")}
                       </Button>
                     </div>
                     <div className="flex gap-2">
@@ -158,19 +160,19 @@ export default function AdminReportsPage() {
                         onClick={() => handleResolveWithAction(r.id, "HIDE")}
                         disabled={actionLoading === r.id + "RESOLVED"}
                       >
-                        <Ban className="h-3.5 w-3.5 mr-1" /> Hide Listing
+                        <Ban className="h-3.5 w-3.5 mr-1" /> {t("adminReports.hideListing")}
                       </Button>
                       <Button
                         size="sm"
                         variant="destructive"
                         onClick={() => {
-                          if (confirm("Permanently remove this listing?")) {
+                          if (confirm(t("adminReports.removeConfirm"))) {
                             handleResolveWithAction(r.id, "REMOVE");
                           }
                         }}
                         disabled={actionLoading === r.id + "RESOLVED"}
                       >
-                        <Trash2 className="h-3.5 w-3.5 mr-1" /> Remove
+                        <Trash2 className="h-3.5 w-3.5 mr-1" /> {t("adminReports.remove")}
                       </Button>
                     </div>
                   </div>

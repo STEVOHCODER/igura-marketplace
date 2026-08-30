@@ -4,9 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Home, MapPin, CreditCard, Settings, LogOut, Menu, X, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { t } = useI18n();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
 
@@ -18,17 +20,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, []);
 
   const commissionaireNav = [
-    { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
-    { name: "My Listings", href: "/dashboard/listings", icon: Home },
-    { name: "New Listing", href: "/dashboard/listings/new", icon: Plus },
-    { name: "Memberships", href: "/dashboard/memberships", icon: CreditCard },
+    { name: t("dash.overview"), href: "/dashboard", icon: LayoutDashboard },
+    { name: t("dash.myListings"), href: "/dashboard/listings", icon: Home },
+    { name: t("dash.newListing"), href: "/dashboard/listings/new", icon: Plus },
+    { name: t("dash.memberships"), href: "/dashboard/memberships", icon: CreditCard },
   ];
 
   const clientNav = [
-    { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Search Houses", href: "/rent/houses", icon: Home },
-    { name: "Search Plots", href: "/plots", icon: MapPin },
-    { name: "Memberships", href: "/dashboard/memberships", icon: CreditCard },
+    { name: t("dash.overview"), href: "/dashboard", icon: LayoutDashboard },
+    { name: t("dash.searchHouses"), href: "/rent/houses", icon: Home },
+    { name: t("dash.searchPlots"), href: "/plots", icon: MapPin },
+    { name: t("dash.memberships"), href: "/dashboard/memberships", icon: CreditCard },
   ];
 
   const navigation = user?.role === "COMMISSIONAIRE" ? commissionaireNav : clientNav;
@@ -72,7 +74,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </nav>
             <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 w-full mt-4">
               <LogOut className="h-5 w-5" />
-              Logout
+              {t("dash.logout")}
             </button>
           </div>
         </div>
@@ -113,7 +115,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )}
             <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 w-full">
               <LogOut className="h-5 w-5" />
-              Logout
+              {t("dash.logout")}
             </button>
           </div>
         </div>

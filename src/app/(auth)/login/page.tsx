@@ -6,8 +6,10 @@ import { Eye, EyeOff, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
+import { useI18n } from "@/i18n";
 
 function LoginForm() {
+  const { t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -32,15 +34,15 @@ function LoginForm() {
 
       if (!res.ok) {
         if (data.errors) setErrors(data.errors);
-        else toast(data.error || "Login failed", "error");
+        else toast(data.error || t("login.error"), "error");
         return;
       }
 
-      toast("Welcome back!", "success");
+      toast(t("login.success"), "success");
       const redirect = searchParams.get("redirect") || "/dashboard";
       router.push(redirect);
     } catch {
-      toast("Something went wrong", "error");
+      toast(t("login.wrong"), "error");
     } finally {
       setLoading(false);
     }
@@ -63,16 +65,16 @@ function LoginForm() {
             <text x="50" y="33" fontFamily="Inter, system-ui, sans-serif" fontSize="26" fontWeight="700" fill="#0f172a">Igura</text>
           </svg>
         </Link>
-        <h1 className="text-2xl font-bold text-slate-900">Welcome back</h1>
-        <p className="text-sm text-slate-500 mt-1.5">Sign in to your account to continue</p>
+        <h1 className="text-2xl font-bold text-slate-900">{t("login.welcomeBack")}</h1>
+        <p className="text-sm text-slate-500 mt-1.5">{t("login.subtitle")}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
           id="email"
-          label="Email address"
+          label={t("login.email")}
           type="email"
-          placeholder="you@example.com"
+          placeholder={t("login.emailPlaceholder")}
           value={form.email}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
           error={errors.email}
@@ -81,9 +83,9 @@ function LoginForm() {
         <div className="relative">
           <Input
             id="password"
-            label="Password"
+            label={t("login.password")}
             type={showPassword ? "text" : "password"}
-            placeholder="Enter your password"
+            placeholder={t("login.passwordPlaceholder")}
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
             error={errors.password}
@@ -99,16 +101,16 @@ function LoginForm() {
         </div>
 
         <Button type="submit" loading={loading} className="w-full" size="lg">
-          Sign In
+          {t("login.signIn")}
           <ArrowRight className="h-4 w-4 ml-1.5" />
         </Button>
       </form>
 
       <div className="mt-6 pt-6 border-t border-slate-100 text-center">
         <p className="text-sm text-slate-500">
-          Don&apos;t have an account?{" "}
+          {t("login.noAccount")}{" "}
           <Link href="/register" className="text-emerald-600 font-semibold hover:text-emerald-700 transition-colors">
-            Create one free
+            {t("login.createFree")}
           </Link>
         </p>
       </div>

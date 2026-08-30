@@ -1,21 +1,25 @@
+"use client";
 import Link from "next/link";
 import { Home, MapPin, Shield, Users, ArrowRight, Search, Star, CheckCircle, ChevronRight, Building2, TrendingUp, Heart } from "lucide-react";
 import { PublicLayout } from "@/components/layout/public-layout";
-
-const stats = [
-  { value: "2,500+", label: "Active Listings", icon: Building2 },
-  { value: "30", label: "Districts Covered", icon: MapPin },
-  { value: "1,200+", label: "Happy Clients", icon: Heart },
-  { value: "100%", label: "Verified Owners", icon: Shield },
-];
-
-const testimonials = [
-  { name: "Alice Mukamana", role: "Tenant, Kigali", content: "Found my perfect apartment in Remera within a week. The verification process gave me confidence that the listing was real.", rating: 5 },
-  { name: "Jean-Pierre Habimana", role: "Property Owner", content: "Listed my house and got 15 inquiries in the first day. Igura makes it easy to connect with serious renters.", rating: 5 },
-  { name: "Grace Uwimana", role: "Land Buyer", content: "Bought a residential plot in Bugesera through Igura. The process was transparent and secure from start to finish.", rating: 5 },
-];
+import { useI18n } from "@/i18n";
 
 export default function HomePage() {
+  const { t } = useI18n();
+
+  const stats = [
+    { value: "2,500+", label: t("stats.activeListings"), icon: Building2 },
+    { value: "30", label: t("stats.districts"), icon: MapPin },
+    { value: "1,200+", label: t("stats.happyClients"), icon: Heart },
+    { value: "100%", label: t("stats.verifiedOwners"), icon: Shield },
+  ];
+
+  const testimonials = [
+    { name: "Alice Mukamana", role: "Tenant, Kigali", content: "Found my perfect apartment in Remera within a week. The verification process gave me confidence that the listing was real.", rating: 5 },
+    { name: "Jean-Pierre Habimana", role: "Property Owner", content: "Listed my house and got 15 inquiries in the first day. Igura makes it easy to connect with serious renters.", rating: 5 },
+    { name: "Grace Uwimana", role: "Land Buyer", content: "Bought a residential plot in Bugesera through Igura. The process was transparent and secure from start to finish.", rating: 5 },
+  ];
+
   return (
     <PublicLayout>
       {/* Hero */}
@@ -29,28 +33,28 @@ export default function HomePage() {
             <div className="animate-fade-in-up">
               <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-4 py-1.5 mb-6">
                 <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-sm font-medium text-emerald-300">Rwanda&apos;s Most Trusted Platform</span>
+                <span className="text-sm font-medium text-emerald-300">{t("hero.badge")}</span>
               </div>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.1]">
-                Find a place<br />to call <span className="text-emerald-400">home.</span><br />
-                <span className="text-emerald-400">Find land</span> for your future.
+                {t("hero.title1")}<br />{t("hero.titleHome")}<br />
+                <span className="text-emerald-400">{t("hero.title2")}</span> {t("hero.titleFuture")}
               </h1>
               <p className="mt-6 text-lg sm:text-xl text-slate-300 max-w-lg leading-relaxed">
-                Search houses for rent, discover plots for sale, and connect with verified property owners across Rwanda.
+                {t("hero.desc")}
               </p>
               <div className="mt-8 flex flex-col sm:flex-row gap-4">
                 <Link href="/rent/houses" className="group inline-flex items-center justify-center gap-2 bg-emerald-600 text-white px-7 py-4 rounded-xl text-base font-semibold hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-600/25 hover:shadow-emerald-500/30 hover:-translate-y-0.5">
-                  <Search className="h-5 w-5" />Find a House
+                  <Search className="h-5 w-5" />{t("hero.findHouse")}
                   <ChevronRight className="h-4 w-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                 </Link>
                 <Link href="/plots" className="group inline-flex items-center justify-center gap-2 bg-white/10 text-white px-7 py-4 rounded-xl text-base font-semibold hover:bg-white/15 transition-all border border-white/15 hover:border-white/25 hover:-translate-y-0.5">
-                  <MapPin className="h-5 w-5" />Find a Plot
+                  <MapPin className="h-5 w-5" />{t("hero.findPlot")}
                 </Link>
               </div>
               <div className="mt-8 flex flex-wrap items-center gap-4 sm:gap-6 text-sm text-slate-400">
-                <div className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-400" /><span>Membership-based access</span></div>
-                <div className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-400" /><span>Verified owners</span></div>
-                <div className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-400" /><span>Secure payments</span></div>
+                <div className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-400" /><span>{t("hero.membershipAccess")}</span></div>
+                <div className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-400" /><span>{t("hero.verifiedOwners")}</span></div>
+                <div className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-400" /><span>{t("hero.securePayments")}</span></div>
               </div>
             </div>
             <div className="hidden lg:block animate-fade-in-up delay-200">
@@ -64,22 +68,22 @@ export default function HomePage() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
                     <div className="absolute bottom-4 left-4 right-4">
-                      <p className="text-white/90 text-sm font-medium">Your perfect property awaits</p>
+                      <p className="text-white/90 text-sm font-medium">{t("hero.propertyAwaits")}</p>
                     </div>
                   </div>
                 </div>
                 <div className="absolute -bottom-6 -left-6 bg-white rounded-2xl p-4 shadow-xl animate-slide-in-right delay-300">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-xl bg-emerald-100 flex items-center justify-center"><TrendingUp className="h-5 w-5 text-emerald-600" /></div>
-                    <div><p className="text-2xl font-bold text-slate-900">2,500+</p><p className="text-xs text-slate-500">Active listings</p></div>
+                    <div><p className="text-2xl font-bold text-slate-900">2,500+</p><p className="text-xs text-slate-500">{t("hero.activeListings")}</p></div>
                   </div>
                 </div>
                 <div className="absolute -top-4 -right-4 bg-white rounded-2xl p-4 shadow-xl animate-slide-in-right delay-400">
                   <div className="flex items-center gap-1 mb-1">
                     {[...Array(5)].map((_, i) => (<Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />))}
                   </div>
-                  <p className="text-sm font-medium text-slate-900">4.9/5 rating</p>
-                  <p className="text-xs text-slate-500">from 800+ reviews</p>
+                  <p className="text-sm font-medium text-slate-900">{t("hero.rating")}</p>
+                  <p className="text-xs text-slate-500">{t("hero.reviews")}</p>
                 </div>
               </div>
             </div>
@@ -110,15 +114,15 @@ export default function HomePage() {
       <section className="py-20 sm:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <span className="text-sm font-semibold text-emerald-600 tracking-wide uppercase">Simple Process</span>
-            <h2 className="mt-3 text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">How Igura Works</h2>
-            <p className="mt-4 text-lg text-slate-500 max-w-2xl mx-auto">Three simple steps to find your next home or list your property</p>
+            <span className="text-sm font-semibold text-emerald-600 tracking-wide uppercase">{t("how.simpleProcess")}</span>
+            <h2 className="mt-3 text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">{t("how.title")}</h2>
+            <p className="mt-4 text-lg text-slate-500 max-w-2xl mx-auto">{t("how.desc")}</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
             {[
-              { step: "01", icon: Users, title: "Create Account", desc: "Sign up in seconds and choose your role as client or commissionaire." },
-              { step: "02", icon: Search, title: "Subscribe & Search", desc: "Choose a membership plan, then browse verified listings with powerful filters." },
-              { step: "03", icon: Home, title: "Connect & Move", desc: "Contact property owners directly and secure your perfect place." },
+              { step: "01", icon: Users, title: t("how.step1Title"), desc: t("how.step1Desc") },
+              { step: "02", icon: Search, title: t("how.step2Title"), desc: t("how.step2Desc") },
+              { step: "03", icon: Home, title: t("how.step3Title"), desc: t("how.step3Desc") },
             ].map((item, i) => (
               <div key={item.step} className="relative group">
                 <div className="bg-slate-50 rounded-2xl p-8 border border-slate-100 group-hover:border-emerald-200 group-hover:bg-emerald-50/30 transition-all duration-300">
@@ -142,9 +146,9 @@ export default function HomePage() {
       <section className="py-20 sm:py-24 bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <span className="text-sm font-semibold text-emerald-600 tracking-wide uppercase">Two Marketplaces</span>
-            <h2 className="mt-3 text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">One Platform, Every Need</h2>
-            <p className="mt-4 text-lg text-slate-500 max-w-2xl mx-auto">Whether you need a home to rent or land to build on, we&apos;ve got you covered</p>
+            <span className="text-sm font-semibold text-emerald-600 tracking-wide uppercase">{t("marketplace.badge")}</span>
+            <h2 className="mt-3 text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">{t("marketplace.title")}</h2>
+            <p className="mt-4 text-lg text-slate-500 max-w-2xl mx-auto">{t("marketplace.desc")}</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <Link href="/rent/houses" className="group">
@@ -154,9 +158,9 @@ export default function HomePage() {
                   <div className="h-14 w-14 rounded-2xl bg-emerald-100 flex items-center justify-center mb-6 group-hover:bg-emerald-600 transition-colors duration-300">
                     <Home className="h-7 w-7 text-emerald-600 group-hover:text-white transition-colors" />
                   </div>
-                  <h3 className="text-2xl font-bold text-slate-900 mb-3">House Rental</h3>
-                  <p className="text-slate-500 leading-relaxed mb-6">Find rooms, apartments, and houses for rent across Rwanda. From single rooms to family homes.</p>
-                  <div className="flex items-center gap-2 text-emerald-600 font-semibold group-hover:gap-3 transition-all">Browse houses <ArrowRight className="h-5 w-5" /></div>
+                  <h3 className="text-2xl font-bold text-slate-900 mb-3">{t("marketplace.houseRental")}</h3>
+                  <p className="text-slate-500 leading-relaxed mb-6">{t("marketplace.houseRentalDesc")}</p>
+                  <div className="flex items-center gap-2 text-emerald-600 font-semibold group-hover:gap-3 transition-all">{t("marketplace.browseHouses")} <ArrowRight className="h-5 w-5" /></div>
                 </div>
               </div>
             </Link>
@@ -167,9 +171,9 @@ export default function HomePage() {
                   <div className="h-14 w-14 rounded-2xl bg-amber-100 flex items-center justify-center mb-6 group-hover:bg-amber-500 transition-colors duration-300">
                     <MapPin className="h-7 w-7 text-amber-600 group-hover:text-white transition-colors" />
                   </div>
-                  <h3 className="text-2xl font-bold text-slate-900 mb-3">Plot Selling <span className="text-sm font-semibold text-amber-600 ml-2 bg-amber-50 px-2 py-0.5 rounded-full">VIP</span></h3>
-                  <p className="text-slate-500 leading-relaxed mb-6">Discover residential, commercial, and farming plots for sale. Invest in Rwanda&apos;s growth.</p>
-                  <div className="flex items-center gap-2 text-amber-600 font-semibold group-hover:gap-3 transition-all">Browse plots <ArrowRight className="h-5 w-5" /></div>
+                  <h3 className="text-2xl font-bold text-slate-900 mb-3">{t("marketplace.plotSelling")} <span className="text-sm font-semibold text-amber-600 ml-2 bg-amber-50 px-2 py-0.5 rounded-full">VIP</span></h3>
+                  <p className="text-slate-500 leading-relaxed mb-6">{t("marketplace.plotSellingDesc")}</p>
+                  <div className="flex items-center gap-2 text-amber-600 font-semibold group-hover:gap-3 transition-all">{t("marketplace.browsePlots")} <ArrowRight className="h-5 w-5" /></div>
                 </div>
               </div>
             </Link>
@@ -181,24 +185,24 @@ export default function HomePage() {
       <section className="py-20 sm:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <span className="text-sm font-semibold text-emerald-600 tracking-wide uppercase">Testimonials</span>
-            <h2 className="mt-3 text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">Loved by Rwandans</h2>
-            <p className="mt-4 text-lg text-slate-500 max-w-2xl mx-auto">See what our users have to say about their experience with Igura</p>
+            <span className="text-sm font-semibold text-emerald-600 tracking-wide uppercase">{t("testimonials.badge")}</span>
+            <h2 className="mt-3 text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">{t("testimonials.title")}</h2>
+            <p className="mt-4 text-lg text-slate-500 max-w-2xl mx-auto">{t("testimonials.desc")}</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((t) => (
-              <div key={t.name} className="bg-slate-50 rounded-2xl p-8 border border-slate-100 hover:border-emerald-200 transition-colors">
+            {testimonials.map((tst) => (
+              <div key={tst.name} className="bg-slate-50 rounded-2xl p-8 border border-slate-100 hover:border-emerald-200 transition-colors">
                 <div className="flex items-center gap-1 mb-4">
-                  {[...Array(t.rating)].map((_, i) => (<Star key={i} className="h-5 w-5 fill-amber-400 text-amber-400" />))}
+                  {[...Array(tst.rating)].map((_, i) => (<Star key={i} className="h-5 w-5 fill-amber-400 text-amber-400" />))}
                 </div>
-                <p className="text-slate-600 leading-relaxed mb-6">&ldquo;{t.content}&rdquo;</p>
+                <p className="text-slate-600 leading-relaxed mb-6">&ldquo;{tst.content}&rdquo;</p>
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
-                    <span className="text-sm font-semibold text-emerald-700">{t.name.split(" ").map(n => n[0]).join("")}</span>
+                    <span className="text-sm font-semibold text-emerald-700">{tst.name.split(" ").map(n => n[0]).join("")}</span>
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-900">{t.name}</p>
-                    <p className="text-sm text-slate-500">{t.role}</p>
+                    <p className="font-semibold text-slate-900">{tst.name}</p>
+                    <p className="text-sm text-slate-500">{tst.role}</p>
                   </div>
                 </div>
               </div>
@@ -211,14 +215,14 @@ export default function HomePage() {
       <section className="py-20 bg-gradient-to-r from-emerald-600 to-emerald-700 relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.03]" />
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Ready to Get Started?</h2>
-          <p className="mt-4 text-lg text-emerald-100 max-w-xl mx-auto">Join thousands of Rwandans who trust Igura to find their next home or investment property.</p>
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">{t("cta.title")}</h2>
+          <p className="mt-4 text-lg text-emerald-100 max-w-xl mx-auto">{t("cta.desc")}</p>
           <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/register" className="inline-flex items-center justify-center gap-2 bg-white text-emerald-700 px-8 py-4 rounded-xl text-base font-semibold hover:bg-emerald-50 transition-all shadow-lg hover:-translate-y-0.5">
-              Create Free Account <ArrowRight className="h-5 w-5" />
+              {t("cta.createAccount")} <ArrowRight className="h-5 w-5" />
             </Link>
             <Link href="/register" className="inline-flex items-center justify-center gap-2 bg-emerald-500/30 text-white px-8 py-4 rounded-xl text-base font-semibold hover:bg-emerald-500/40 transition-all border border-emerald-400/30">
-              Learn More
+              {t("cta.learnMore")}
             </Link>
           </div>
         </div>

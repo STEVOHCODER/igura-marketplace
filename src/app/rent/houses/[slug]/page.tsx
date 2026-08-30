@@ -6,6 +6,9 @@ import { PublicLayout } from "@/components/layout/public-layout";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice, availabilityLabel } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
+import { en } from "@/i18n/en";
+
+const t = (key: string) => en[key as keyof typeof en] || key;
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -71,7 +74,7 @@ export default async function HouseDetailPage({ params }: Props) {
         <nav className="flex items-center gap-2 text-sm text-slate-500 mb-6">
           <Link href="/rent/houses" className="flex items-center gap-1 hover:text-emerald-600 transition-colors">
             <ArrowLeft className="h-3.5 w-3.5" />
-            Houses for Rent
+            {t("houses.title")}
           </Link>
           {property.locationDistrict && (
             <>
@@ -108,7 +111,7 @@ export default async function HouseDetailPage({ params }: Props) {
               <div className="aspect-[16/9] bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400">
                 <div className="text-center">
                   <Home className="h-16 w-16 mx-auto mb-3 text-slate-300" />
-                  <p className="text-sm text-slate-400">No images available</p>
+                  <p className="text-sm text-slate-400">{t("detail.noImages")}</p>
                 </div>
               </div>
             )}
@@ -120,7 +123,7 @@ export default async function HouseDetailPage({ params }: Props) {
                   <h1 className="text-2xl font-bold text-slate-900 leading-tight">{property.title}</h1>
                   <div className="flex items-center gap-2 mt-3">
                     <Badge variant={property.negotiable ? "outline" : "default"}>
-                      {property.negotiable ? "Negotiable" : "Fixed Price"}
+                      {property.negotiable ? t("detail.negotiable") : t("detail.fixedPrice")}
                     </Badge>
                     <Badge variant={property.availabilityStatus === "AVAILABLE" ? "success" : property.availabilityStatus === "UNAVAILABLE" ? "danger" : "warning"}>
                       {availabilityLabel(property.availabilityStatus, property.availabilityDate)}
@@ -129,7 +132,7 @@ export default async function HouseDetailPage({ params }: Props) {
                 </div>
                 <div className="text-right shrink-0">
                   <div className="text-3xl font-extrabold text-emerald-600">{formatPrice(property.price)}</div>
-                  <div className="text-sm text-slate-500">/month</div>
+                  <div className="text-sm text-slate-500">{t("detail.month")}</div>
                 </div>
               </div>
 
@@ -142,7 +145,7 @@ export default async function HouseDetailPage({ params }: Props) {
                         <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center">
                           <Bed className="h-4 w-4 text-emerald-600" />
                         </div>
-                        {property.bedrooms} Beds
+                        {property.bedrooms} {t("detail.beds")}
                       </span>
                     )}
                     {property.bathrooms != null && (
@@ -150,7 +153,7 @@ export default async function HouseDetailPage({ params }: Props) {
                         <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center">
                           <Bath className="h-4 w-4 text-emerald-600" />
                         </div>
-                        {property.bathrooms} Baths
+                        {property.bathrooms} {t("detail.baths")}
                       </span>
                     )}
                   </div>
@@ -167,7 +170,7 @@ export default async function HouseDetailPage({ params }: Props) {
                   <div className="h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center">
                     <Eye className="h-4 w-4 text-slate-500" />
                   </div>
-                  {property.viewCount} views
+                  {property.viewCount} {t("detail.views")}
                 </span>
                 {(property.locationDistrict || property.locationSector) && (
                   <span className="flex items-center gap-1.5">
@@ -182,14 +185,14 @@ export default async function HouseDetailPage({ params }: Props) {
 
             {/* Description */}
             <div className="bg-white rounded-2xl border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">Description</h2>
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">{t("detail.description")}</h2>
               <p className="text-slate-600 whitespace-pre-line leading-relaxed">{property.description}</p>
             </div>
 
             {/* Keywords */}
             {property.keywords.length > 0 && (
               <div className="bg-white rounded-2xl border border-slate-200 p-6">
-                <h2 className="text-lg font-semibold text-slate-900 mb-4">Nearby Infrastructure</h2>
+                <h2 className="text-lg font-semibold text-slate-900 mb-4">{t("detail.nearbyInfra")}</h2>
                 <div className="flex flex-wrap gap-2">
                   {property.keywords.map((kw) => (
                     <span key={kw.id} className="px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-sm font-medium border border-emerald-100">
@@ -202,19 +205,19 @@ export default async function HouseDetailPage({ params }: Props) {
 
             {/* Location */}
             <div className="bg-white rounded-2xl border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">Location</h2>
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">{t("detail.location")}</h2>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 {property.locationVillage && (
-                  <div className="bg-slate-50 rounded-lg px-3 py-2"><span className="text-slate-500">Village:</span> <span className="font-medium text-slate-900">{property.locationVillage}</span></div>
+                  <div className="bg-slate-50 rounded-lg px-3 py-2"><span className="text-slate-500">{t("detail.village")}</span> <span className="font-medium text-slate-900">{property.locationVillage}</span></div>
                 )}
                 {property.locationCell && (
-                  <div className="bg-slate-50 rounded-lg px-3 py-2"><span className="text-slate-500">Cell:</span> <span className="font-medium text-slate-900">{property.locationCell}</span></div>
+                  <div className="bg-slate-50 rounded-lg px-3 py-2"><span className="text-slate-500">{t("detail.cell")}</span> <span className="font-medium text-slate-900">{property.locationCell}</span></div>
                 )}
                 {property.locationSector && (
-                  <div className="bg-slate-50 rounded-lg px-3 py-2"><span className="text-slate-500">Sector:</span> <span className="font-medium text-slate-900">{property.locationSector}</span></div>
+                  <div className="bg-slate-50 rounded-lg px-3 py-2"><span className="text-slate-500">{t("detail.sector")}</span> <span className="font-medium text-slate-900">{property.locationSector}</span></div>
                 )}
                 {property.locationDistrict && (
-                  <div className="bg-slate-50 rounded-lg px-3 py-2"><span className="text-slate-500">District:</span> <span className="font-medium text-slate-900">{property.locationDistrict}</span></div>
+                  <div className="bg-slate-50 rounded-lg px-3 py-2"><span className="text-slate-500">{t("detail.district")}</span> <span className="font-medium text-slate-900">{property.locationDistrict}</span></div>
                 )}
               </div>
               {showCoords ? (
@@ -225,7 +228,7 @@ export default async function HouseDetailPage({ params }: Props) {
                   </div>
                 </div>
               ) : (
-                <p className="mt-3 text-sm text-slate-400 italic">Exact coordinates are hidden by the owner</p>
+                <p className="mt-3 text-sm text-slate-400 italic">{t("detail.hiddenCoords")}</p>
               )}
             </div>
           </div>
@@ -234,7 +237,7 @@ export default async function HouseDetailPage({ params }: Props) {
           <div className="space-y-6">
             {/* Contact Card */}
             <div className="bg-white rounded-2xl border border-slate-200 p-6 sticky top-24 shadow-sm">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">Contact Owner</h2>
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">{t("detail.contactOwner")}</h2>
               <div className="flex items-center gap-3 mb-5">
                 <div className="h-12 w-12 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-sm shadow-emerald-200">
                   <span className="text-sm font-bold text-white">
@@ -245,7 +248,7 @@ export default async function HouseDetailPage({ params }: Props) {
                   <div className="font-semibold text-slate-900">
                     {property.owner.firstName} {property.owner.lastName}
                   </div>
-                  <div className="text-sm text-slate-500">Property Owner</div>
+                  <div className="text-sm text-slate-500">{t("detail.propertyOwner")}</div>
                 </div>
               </div>
               {property.contactPhone && (
@@ -254,57 +257,57 @@ export default async function HouseDetailPage({ params }: Props) {
                   className="flex items-center justify-center gap-2 w-full bg-emerald-600 text-white py-3.5 rounded-xl font-semibold hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-600/20 hover:shadow-emerald-500/30"
                 >
                   <Phone className="h-5 w-5" />
-                  Call {property.contactPhone}
+                  {t("detail.call")} {property.contactPhone}
                 </a>
               )}
               {property.contactName && (
-                <p className="mt-3 text-sm text-slate-500 text-center">Ask for: <span className="font-medium text-slate-700">{property.contactName}</span></p>
+                <p className="mt-3 text-sm text-slate-500 text-center">{t("detail.askFor")} <span className="font-medium text-slate-700">{property.contactName}</span></p>
               )}
               <div className="flex gap-2 mt-4">
                 <button className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">
-                  <Heart className="h-4 w-4" /> Save
+                  <Heart className="h-4 w-4" /> {t("detail.save")}
                 </button>
                 <button className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">
-                  <Share2 className="h-4 w-4" /> Share
+                  <Share2 className="h-4 w-4" /> {t("detail.share")}
                 </button>
               </div>
             </div>
 
             {/* Summary */}
             <div className="bg-white rounded-2xl border border-slate-200 p-6">
-              <h3 className="font-semibold text-slate-900 mb-4">Property Summary</h3>
+              <h3 className="font-semibold text-slate-900 mb-4">{t("detail.propertySummary")}</h3>
               <dl className="space-y-3 text-sm">
                 <div className="flex justify-between py-2 border-b border-slate-50">
-                  <dt className="text-slate-500">Type</dt>
+                  <dt className="text-slate-500">{t("detail.type")}</dt>
                   <dd className="font-medium text-slate-900">{property.propertyType?.displayName}</dd>
                 </div>
                 <div className="flex justify-between py-2 border-b border-slate-50">
-                  <dt className="text-slate-500">Price</dt>
-                  <dd className="font-bold text-emerald-600">{formatPrice(property.price)}/mo</dd>
+                  <dt className="text-slate-500">{t("detail.price")}</dt>
+                  <dd className="font-bold text-emerald-600">{formatPrice(property.price)}{t("detail.mo")}</dd>
                 </div>
                 <div className="flex justify-between py-2 border-b border-slate-50">
-                  <dt className="text-slate-500">Negotiable</dt>
-                  <dd className="font-medium text-slate-900">{property.negotiable ? "Yes" : "No"}</dd>
+                  <dt className="text-slate-500">{t("detail.negotiable")}</dt>
+                  <dd className="font-medium text-slate-900">{property.negotiable ? t("detail.yes") : t("detail.no")}</dd>
                 </div>
                 <div className="flex justify-between py-2 border-b border-slate-50">
-                  <dt className="text-slate-500">Availability</dt>
+                  <dt className="text-slate-500">{t("detail.availability")}</dt>
                   <dd className="font-medium text-slate-900">{availabilityLabel(property.availabilityStatus, property.availabilityDate)}</dd>
                 </div>
                 {property.bedrooms != null && (
                   <div className="flex justify-between py-2 border-b border-slate-50">
-                    <dt className="text-slate-500">Bedrooms</dt>
+                    <dt className="text-slate-500">{t("detail.bedrooms")}</dt>
                     <dd className="font-medium text-slate-900">{property.bedrooms}</dd>
                   </div>
                 )}
                 {property.bathrooms != null && (
                   <div className="flex justify-between py-2 border-b border-slate-50">
-                    <dt className="text-slate-500">Bathrooms</dt>
+                    <dt className="text-slate-500">{t("detail.bathrooms")}</dt>
                     <dd className="font-medium text-slate-900">{property.bathrooms}</dd>
                   </div>
                 )}
                 {property.areaValue != null && (
                   <div className="flex justify-between py-2">
-                    <dt className="text-slate-500">Area</dt>
+                    <dt className="text-slate-500">{t("detail.area")}</dt>
                     <dd className="font-medium text-slate-900">{property.areaValue} m&sup2;</dd>
                   </div>
                 )}
@@ -313,10 +316,10 @@ export default async function HouseDetailPage({ params }: Props) {
 
             {/* Report */}
             <div className="bg-white rounded-2xl border border-slate-200 p-6">
-              <h3 className="font-semibold text-slate-900 mb-2">Report Listing</h3>
-              <p className="text-sm text-slate-500 mb-3">Is this listing suspicious or inappropriate?</p>
+              <h3 className="font-semibold text-slate-900 mb-2">{t("detail.reportListing")}</h3>
+              <p className="text-sm text-slate-500 mb-3">{t("detail.reportDesc")}</p>
               <button className="text-sm text-red-600 hover:text-red-700 font-medium transition-colors">
-                Report this property
+                {t("detail.reportBtn")}
               </button>
             </div>
           </div>

@@ -7,8 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatPrice, availabilityLabel } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
+import { useI18n } from "@/i18n";
 
 export default function ListingsPage() {
+  const { t } = useI18n();
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -64,11 +66,11 @@ export default function ListingsPage() {
     <div className="max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">My Listings</h1>
-          <p className="text-slate-500 mt-1">{listings.length} total listings</p>
+          <h1 className="text-2xl font-bold text-slate-900">{t("listings.title")}</h1>
+          <p className="text-slate-500 mt-1">{listings.length} {t("listings.total")}</p>
         </div>
         <Link href="/dashboard/listings/new">
-          <Button><Plus className="h-4 w-4 mr-2" />New Listing</Button>
+          <Button><Plus className="h-4 w-4 mr-2" />{t("listings.newListing")}</Button>
         </Link>
       </div>
 
@@ -81,9 +83,9 @@ export default function ListingsPage() {
       ) : listings.length === 0 ? (
         <EmptyState
           icon={<Home className="h-12 w-12" />}
-          title="No listings yet"
-          description="Create your first property listing to get started."
-          action={<Link href="/dashboard/listings/new"><Button>Create Listing</Button></Link>}
+          title={t("listings.noListings")}
+          description={t("listings.noListingsDesc")}
+          action={<Link href="/dashboard/listings/new"><Button>{t("listings.createListing")}</Button></Link>}
         />
       ) : (
         <div className="space-y-4">

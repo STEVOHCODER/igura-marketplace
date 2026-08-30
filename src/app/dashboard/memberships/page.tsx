@@ -6,8 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import { Check, Home, MapPin, Crown } from "lucide-react";
+import { useI18n } from "@/i18n";
 
 export default function MembershipsPage() {
+  const { t } = useI18n();
   const [plans, setPlans] = useState<any[]>([]);
   const [memberships, setMemberships] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -117,7 +119,7 @@ export default function MembershipsPage() {
         <CardContent>
           <div className="text-3xl font-bold text-slate-900 mb-4">
             {formatPrice(plan.price)}
-            <span className="text-sm font-normal text-slate-500"> one-time</span>
+            <span className="text-sm font-normal text-slate-500"> {t("memberships.oneTime")}</span>
           </div>
           <ul className="space-y-2 mb-6">
             {(plan.features || []).map((f: string, i: number) => (
@@ -134,7 +136,7 @@ export default function MembershipsPage() {
             variant={active ? "outline" : "primary"}
             className="w-full"
           >
-            {active ? "Active" : pending ? "Pending Payment" : "Get Started"}
+            {active ? t("memberships.active") : pending ? t("memberships.pending") : t("memberships.getStarted")}
           </Button>
         </CardContent>
       </Card>
@@ -143,13 +145,13 @@ export default function MembershipsPage() {
 
   return (
     <div className="max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold text-slate-900 mb-2">Memberships & Plans</h1>
-      <p className="text-slate-500 mb-8">Choose a marketplace and role to get started</p>
+      <h1 className="text-2xl font-bold text-slate-900 mb-2">{t("memberships.title")}</h1>
+      <p className="text-slate-500 mb-8">{t("memberships.subtitle")}</p>
 
       {/* Active Memberships */}
       {memberships.length > 0 && (
         <div className="mb-8">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">Your Memberships</h2>
+          <h2 className="text-lg font-semibold text-slate-900 mb-4">{t("memberships.yourMemberships")}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {memberships.map((m: any) => (
               <Card key={m.id}>
@@ -173,7 +175,7 @@ export default function MembershipsPage() {
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4">
             <Home className="h-5 w-5 text-emerald-600" />
-            <h2 className="text-lg font-semibold text-slate-900">House Rental</h2>
+            <h2 className="text-lg font-semibold text-slate-900">{t("memberships.houseRental")}</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {rentalPlans.map(renderPlanCard)}
@@ -186,7 +188,7 @@ export default function MembershipsPage() {
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4">
             <MapPin className="h-5 w-5 text-amber-600" />
-            <h2 className="text-lg font-semibold text-slate-900">Plot Selling VIP</h2>
+            <h2 className="text-lg font-semibold text-slate-900">{t("memberships.plotSelling")}</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {plotPlans.map(renderPlanCard)}
@@ -197,7 +199,7 @@ export default function MembershipsPage() {
       {plans.length === 0 && !loading && (
         <Card>
           <CardContent className="p-8 text-center text-slate-500">
-            No plans available. Please contact support.
+            {t("memberships.noPlans")}
           </CardContent>
         </Card>
       )}

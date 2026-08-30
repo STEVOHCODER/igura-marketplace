@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { formatDate } from "@/lib/utils";
+import { useI18n } from "@/i18n";
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<any[]>([]);
@@ -16,6 +17,7 @@ export default function AdminUsersPage() {
   const [granting, setGranting] = useState<string | null>(null);
   const [editingRole, setEditingRole] = useState<string | null>(null);
   const { toast } = useToast();
+  const { t } = useI18n();
 
   useEffect(() => {
     Promise.all([
@@ -35,11 +37,11 @@ export default function AdminUsersPage() {
         body: JSON.stringify({ isActive: !isActive }),
       });
       if (res.ok) {
-        toast(isActive ? "User suspended" : "User activated", "success");
+        toast(isActive ? t("adminUsers.userSuspended") : t("adminUsers.userActivated"), "success");
         setUsers(prev => prev.map(u => u.id === userId ? { ...u, isActive: !isActive } : u));
       }
     } catch {
-      toast("Failed to update user", "error");
+      toast(t("adminUsers.failedUpdate"), "error");
     }
   };
 
@@ -51,15 +53,15 @@ export default function AdminUsersPage() {
         body: JSON.stringify({ role: newRole }),
       });
       if (res.ok) {
-        toast(`Role changed to ${newRole}`, "success");
+        toast(`${t("adminUsers.roleChanged")} ${newRole}`, "success");
         setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
         setEditingRole(null);
       } else {
         const data = await res.json();
-        toast(data.error || "Failed to change role", "error");
+        toast(data.error || t("adminUsers.failedRole"), "error");
       }
     } catch {
-      toast("Failed to change role", "error");
+      toast(t("adminUsers.failedRole"), "error");
     }
   };
 
@@ -73,14 +75,14 @@ export default function AdminUsersPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        toast("Access granted successfully", "success");
+        toast(t("adminUsers.accessGranted"), "success");
         const refreshed = await fetch("/api/admin/users").then(r => r.json());
         setUsers(refreshed?.users || []);
       } else {
-        toast(data.error || "Failed to grant access", "error");
+        toast(data.error || t("adminUsers.failedGrant"), "error");
       }
     } catch {
-      toast("Failed to grant access", "error");
+      toast(t("adminUsers.failedGrant"), "error");
     } finally {
       setGranting(null);
     }
@@ -94,12 +96,12 @@ export default function AdminUsersPage() {
         body: JSON.stringify({ userId, planId, action: "revoke" }),
       });
       if (res.ok) {
-        toast("Access revoked", "success");
+        toast(t("adminUsers.accessRevoked"), "success");
         const refreshed = await fetch("/api/admin/users").then(r => r.json());
         setUsers(refreshed?.users || []);
       }
     } catch {
-      toast("Failed to revoke access", "error");
+      toast(t("adminUsers.failedRevoke"), "error");
     }
   };
 
@@ -122,8 +124,8 @@ export default function AdminUsersPage() {
   return (
     <div className="max-w-7xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Manage Users</h1>
-        <p className="text-slate-500 text-sm mt-1">{users.length} total users · {roleCounts.ADMIN} admins · {roleCounts.COMMISSIONAIRE} commissionaires · {roleCounts.CLIENT} clients</p>
+        <h1 className="text-2xl font-bold text-slate-900">{t("adminUsers.title")}</h1>
+        <p className="text-slate-500 text-sm mt-1">{users.length} {t("adminUsers.totalUsers")} · {roleCounts.ADMIN} {t("adminUsers.admins")} · {roleCounts.COMMISSIONAIRE} {t("adminUsers.commissionaires")} · {roleCounts.CLIENT} {t("adminUsers.clients")}</p>
       </div>
 
       {/* Role Filter Tabs */}
@@ -138,7 +140,7 @@ export default function AdminUsersPage() {
                 : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
             }`}
           >
-            {f === "all" ? "All Roles" : f.charAt(0) + f.slice(1).toLowerCase()}
+            {f === "all" ? t("adminUsers.allRoles") : f.charAt(0) + f.slice(1).toLowerCase()}
             <span className="ml-1.5 text-xs opacity-70">({roleCounts[f]})</span>
           </button>
         ))}
@@ -147,7 +149,7 @@ export default function AdminUsersPage() {
       <div className="mb-6">
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <input type="text" placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 text-sm" />
+          <input type="text" placeholder={t("adminUsers.searchPlaceholder")} value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 text-sm" />
         </div>
       </div>
 
@@ -157,20 +159,20 @@ export default function AdminUsersPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">User</th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">Email</th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">Role</th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">Status</th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">Memberships</th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">Joined</th>
-                  <th className="text-right px-4 py-3 font-medium text-slate-600">Actions</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">{t("adminUsers.user")}</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">{t("adminUsers.email")}</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">{t("adminUsers.role")}</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">{t("adminUsers.status")}</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">{t("adminUsers.memberships")}</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">{t("adminUsers.joined")}</th>
+                  <th className="text-right px-4 py-3 font-medium text-slate-600">{t("adminUsers.actions")}</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-500">Loading...</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-500">{t("adminUsers.loading")}</td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-500">No users found</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-500">{t("adminUsers.noUsers")}</td></tr>
                 ) : filtered.map((u) => (
                   <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50">
                     <td className="px-4 py-3">
@@ -182,7 +184,7 @@ export default function AdminUsersPage() {
                         </div>
                         <div>
                           <div className="font-medium text-slate-900">{u.firstName} {u.lastName}</div>
-                          <div className="text-xs text-slate-400">{u.phone || "No phone"}</div>
+                          <div className="text-xs text-slate-400">{u.phone || t("adminUsers.noPhone")}</div>
                         </div>
                       </div>
                     </td>
@@ -215,7 +217,7 @@ export default function AdminUsersPage() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <Badge variant={u.isActive ? "success" : "danger"}>{u.isActive ? "Active" : "Suspended"}</Badge>
+                      <Badge variant={u.isActive ? "success" : "danger"}>{u.isActive ? t("adminUsers.active") : t("adminUsers.suspended")}</Badge>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1">
@@ -225,7 +227,7 @@ export default function AdminUsersPage() {
                           </Badge>
                         ))}
                         {(!u.memberships || u.memberships.length === 0) && (
-                          <span className="text-xs text-slate-400">None</span>
+                          <span className="text-xs text-slate-400">{t("adminUsers.none")}</span>
                         )}
                       </div>
                     </td>
@@ -244,7 +246,7 @@ export default function AdminUsersPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => {
-                            const planId = prompt(`Grant access — available plans:\n${plans.map(p => `${p.id}: ${p.displayName} (${p.role}) - ${p.marketplace?.displayName}`).join("\n")}`);
+                            const planId = prompt(`${t("adminUsers.grantAccess")}${plans.map(p => `${p.id}: ${p.displayName} (${p.role}) - ${p.marketplace?.displayName}`).join("\n")}`);
                             if (planId) grantAccess(u.id, planId);
                           }}
                           title="Grant membership"

@@ -5,10 +5,12 @@ import { Users, Home, CreditCard, Shield, TrendingUp, TrendingDown, Eye, Clock, 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice, formatDate } from "@/lib/utils";
+import { useI18n } from "@/i18n";
 
 export default function AdminOverview() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const { t } = useI18n();
 
   useEffect(() => {
     fetch("/api/admin/stats")
@@ -20,7 +22,7 @@ export default function AdminOverview() {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-2xl font-bold text-slate-900 mb-8">Admin Dashboard</h1>
+        <h1 className="text-2xl font-bold text-slate-900 mb-8">{t("adminDash.title")}</h1>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 8 }).map((_, i) => (
             <Card key={i}><CardContent className="p-4"><div className="h-16 bg-slate-100 rounded animate-pulse" /></CardContent></Card>
@@ -33,14 +35,14 @@ export default function AdminOverview() {
   if (!stats) return <div className="text-center py-12 text-slate-500">Failed to load stats</div>;
 
   const statCards = [
-    { label: "Total Users", value: stats.users?.total, sub: `+${stats.users?.new30d} this month`, icon: Users, color: "emerald", href: "/admin/users" },
-    { label: "Active Listings", value: stats.listings?.active, sub: `${stats.listings?.pending} pending review`, icon: Home, color: "blue", href: "/admin/listings" },
-    { label: "Total Revenue", value: formatPrice(stats.revenue?.total), sub: `${formatPrice(stats.revenue?.last30d)} last 30d`, icon: DollarSign, color: "amber", href: "/admin/payments" },
-    { label: "Pending Reports", value: stats.reports?.pending, sub: `${stats.reports?.total} total reports`, icon: Shield, color: "red", href: "/admin/reports" },
-    { label: "Successful Payments", value: stats.payments?.successful, sub: `${stats.payments?.failed} failed`, icon: CreditCard, color: "green", href: "/admin/payments" },
-    { label: "Active Memberships", value: stats.memberships?.active, sub: `${stats.memberships?.total} total`, icon: TrendingUp, color: "purple", href: "/admin/users" },
-    { label: "Revenue (7d)", value: formatPrice(stats.revenue?.last7d), sub: "Last 7 days", icon: BarChart3, color: "cyan", href: "/admin/payments" },
-    { label: "Draft Listings", value: stats.listings?.draft, sub: "Not yet published", icon: Clock, color: "orange", href: "/admin/listings" },
+    { label: t("adminDash.totalUsers"), value: stats.users?.total, sub: `+${stats.users?.new30d} ${t("adminDash.thisMonth")}`, icon: Users, color: "emerald", href: "/admin/users" },
+    { label: t("adminDash.activeListings"), value: stats.listings?.active, sub: `${stats.listings?.pending} ${t("adminDash.pendingReview")}`, icon: Home, color: "blue", href: "/admin/listings" },
+    { label: t("adminDash.totalRevenue"), value: formatPrice(stats.revenue?.total), sub: `${formatPrice(stats.revenue?.last30d)} ${t("adminDash.last30d")}`, icon: DollarSign, color: "amber", href: "/admin/payments" },
+    { label: t("adminDash.pendingReports"), value: stats.reports?.pending, sub: `${stats.reports?.total} ${t("adminDash.totalReports")}`, icon: Shield, color: "red", href: "/admin/reports" },
+    { label: t("adminDash.successfulPayments"), value: stats.payments?.successful, sub: `${stats.payments?.failed} ${t("adminDash.failed")}`, icon: CreditCard, color: "green", href: "/admin/payments" },
+    { label: t("adminDash.activeMemberships"), value: stats.memberships?.active, sub: `${stats.memberships?.total} ${t("adminDash.total")}`, icon: TrendingUp, color: "purple", href: "/admin/users" },
+    { label: t("adminDash.revenue7d"), value: formatPrice(stats.revenue?.last7d), sub: t("adminDash.last7days"), icon: BarChart3, color: "cyan", href: "/admin/payments" },
+    { label: t("adminDash.draftListings"), value: stats.listings?.draft, sub: t("adminDash.notPublished"), icon: Clock, color: "orange", href: "/admin/listings" },
   ];
 
   const colorMap: Record<string, string> = {
@@ -58,8 +60,8 @@ export default function AdminOverview() {
     <div className="max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Admin Dashboard</h1>
-          <p className="text-slate-500 text-sm mt-1">Platform overview and key metrics</p>
+          <h1 className="text-2xl font-bold text-slate-900">{t("adminDash.title")}</h1>
+          <p className="text-slate-500 text-sm mt-1">{t("adminDash.subtitle")}</p>
         </div>
       </div>
 
@@ -89,11 +91,11 @@ export default function AdminOverview() {
         {/* Revenue by Marketplace */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Revenue by Marketplace</CardTitle>
+            <CardTitle className="text-lg">{t("adminDash.revenueByMarketplace")}</CardTitle>
           </CardHeader>
           <CardContent>
             {Object.keys(stats.revenue?.byMarketplace || {}).length === 0 ? (
-              <p className="text-slate-500 text-sm">No revenue data yet</p>
+              <p className="text-slate-500 text-sm">{t("adminDash.noRevenue")}</p>
             ) : (
               <div className="space-y-3">
                 {Object.entries(stats.revenue?.byMarketplace || {}).map(([name, amount]) => {
@@ -119,7 +121,7 @@ export default function AdminOverview() {
         {/* Monthly Revenue */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Monthly Revenue</CardTitle>
+            <CardTitle className="text-lg">{t("adminDash.monthlyRevenue")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -145,11 +147,11 @@ export default function AdminOverview() {
         {/* Top Viewed Listings */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Top Viewed Listings</CardTitle>
+            <CardTitle className="text-lg">{t("adminDash.topListings")}</CardTitle>
           </CardHeader>
           <CardContent>
             {(stats.topListings || []).length === 0 ? (
-              <p className="text-slate-500 text-sm">No listings yet</p>
+              <p className="text-slate-500 text-sm">{t("adminDash.noListings")}</p>
             ) : (
               <div className="space-y-3">
                 {stats.topListings.map((l: any, i: number) => (
@@ -173,11 +175,11 @@ export default function AdminOverview() {
         {/* Recent Admin Activity */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Recent Activity</CardTitle>
+            <CardTitle className="text-lg">{t("adminDash.recentActivity")}</CardTitle>
           </CardHeader>
           <CardContent>
             {(stats.recentActions || []).length === 0 ? (
-              <p className="text-slate-500 text-sm">No activity yet</p>
+              <p className="text-slate-500 text-sm">{t("adminDash.noActivity")}</p>
             ) : (
               <div className="space-y-3">
                 {stats.recentActions.slice(0, 8).map((a: any) => (

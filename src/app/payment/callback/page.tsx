@@ -4,9 +4,11 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { useI18n } from "@/i18n";
 
 function PaymentCallbackContent() {
   const searchParams = useSearchParams();
+  const { t } = useI18n();
   const reference = searchParams.get("reference") || searchParams.get("tx_ref") || "";
   const status = searchParams.get("status") || "";
   const [verifying, setVerifying] = useState(true);
@@ -46,49 +48,49 @@ function PaymentCallbackContent() {
   };
 
   const getTitle = () => {
-    if (verifying) return "Verifying Payment...";
-    if (isSuccessful) return "Payment Successful";
-    if (isFailed) return "Payment Failed";
-    return "Payment Pending";
+    if (verifying) return t("payment.verifying");
+    if (isSuccessful) return t("payment.success");
+    if (isFailed) return t("payment.failed");
+    return t("payment.pending");
   };
 
   const renderContent = () => {
     if (verifying) {
       return (
         <p className="text-slate-600">
-          We&apos;re verifying your payment. Please wait a moment...
+          {t("payment.verifyingDesc")}
         </p>
       );
     }
     if (isSuccessful) {
       return (
         <div>
-          <h3 className="text-semibold text-slate-900 mb-3">Your membership is now active!</h3>
+          <h3 className="text-semibold text-slate-900 mb-3">{t("payment.successHeading")}</h3>
           <p className="text-slate-600">
-            Thank you for your payment. Your membership has been activated and you can now access all features on Igura.
+            {t("payment.successDesc")}
           </p>
-          <a href="/dashboard" className="text-emerald-600 font-medium hover:underline">Go to Dashboard →</a>
+          <a href="/dashboard" className="text-emerald-600 font-medium hover:underline">{t("payment.goDashboard")}</a>
         </div>
       );
     }
     if (isFailed) {
       return (
         <div>
-          <h3 className="text-semibold text-slate-900 mb-3">Payment could not be completed</h3>
+          <h3 className="text-semibold text-slate-900 mb-3">{t("payment.failedHeading")}</h3>
           <p className="text-slate-600">
-            There was an issue with your payment. Please try again or contact support at support@igura.rw if the issue persists.
+            {t("payment.failedDesc")}
           </p>
-          <a href="/dashboard/memberships" className="text-blue-600 font-medium hover:underline">Go back to memberships →</a>
+          <a href="/dashboard/memberships" className="text-blue-600 font-medium hover:underline">{t("payment.goBack")}</a>
         </div>
       );
     }
     return (
       <div>
-        <h3 className="text-semibold text-slate-900 mb-3">Payment is being processed</h3>
+        <h3 className="text-semibold text-slate-900 mb-3">{t("payment.pendingHeading")}</h3>
         <p className="text-slate-600">
-          Your payment is still being processed. It may take a few minutes to complete. Check back later.
+          {t("payment.pendingDesc")}
         </p>
-        <a href="/dashboard" className="text-blue-600 font-medium hover:underline">Go to Dashboard →</a>
+        <a href="/dashboard" className="text-blue-600 font-medium hover:underline">{t("payment.goDashboard")}</a>
       </div>
     );
   };
@@ -99,7 +101,7 @@ function PaymentCallbackContent() {
         <div className="p-8 rounded-2xl bg-white shadow-lg">
           <div className="mx-auto mb-6">{getIcon()}</div>
           <h2 className="text-2xl font-bold text-slate-900 mb-4">{getTitle()}</h2>
-          {reference && <p className="text-slate-500 text-sm mb-6">Reference: {reference}</p>}
+          {reference && <p className="text-slate-500 text-sm mb-6">{t("payment.reference")} {reference}</p>}
           {renderContent()}
         </div>
       </div>

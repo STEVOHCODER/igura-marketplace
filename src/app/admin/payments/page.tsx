@@ -4,12 +4,14 @@ import { Search, DollarSign, TrendingUp, CheckCircle, XCircle, Clock } from "luc
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice, formatDate } from "@/lib/utils";
+import { useI18n } from "@/i18n";
 
 export default function AdminPaymentsPage() {
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const { t } = useI18n();
 
   useEffect(() => {
     fetch("/api/admin/payments")
@@ -34,17 +36,17 @@ export default function AdminPaymentsPage() {
   const failedCount = payments.filter(p => p.status === "FAILED").length;
 
   const summaryCards = [
-    { label: "Total Revenue", value: formatPrice(totalRevenue), icon: DollarSign, color: "bg-emerald-100 text-emerald-600" },
-    { label: "Successful", value: successfulCount, icon: CheckCircle, color: "bg-green-100 text-green-600" },
-    { label: "Pending", value: pendingCount, icon: Clock, color: "bg-amber-100 text-amber-600" },
-    { label: "Failed", value: failedCount, icon: XCircle, color: "bg-red-100 text-red-600" },
+    { label: t("adminPayments.totalRevenue"), value: formatPrice(totalRevenue), icon: DollarSign, color: "bg-emerald-100 text-emerald-600" },
+    { label: t("adminPayments.successful"), value: successfulCount, icon: CheckCircle, color: "bg-green-100 text-green-600" },
+    { label: t("adminPayments.pending"), value: pendingCount, icon: Clock, color: "bg-amber-100 text-amber-600" },
+    { label: t("adminPayments.failed"), value: failedCount, icon: XCircle, color: "bg-red-100 text-red-600" },
   ];
 
   return (
     <div className="max-w-7xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Payment Transactions</h1>
-        <p className="text-slate-500 text-sm mt-1">{payments.length} total transactions</p>
+        <h1 className="text-2xl font-bold text-slate-900">{t("adminPayments.title")}</h1>
+        <p className="text-slate-500 text-sm mt-1">{payments.length} {t("adminPayments.totalTransactions")}</p>
       </div>
 
       {/* Summary Cards */}
@@ -70,12 +72,12 @@ export default function AdminPaymentsPage() {
       <div className="flex gap-3 mb-6">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <input type="text" placeholder="Search by reference, user name, or email..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 text-sm" />
+          <input type="text" placeholder={t("adminPayments.searchPlaceholder")} value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 text-sm" />
         </div>
         <div className="flex gap-2">
           {["all", "successful", "pending", "failed"].map((f) => (
             <button key={f} onClick={() => setFilter(f)} className={`px-4 py-2 rounded-lg text-sm font-medium capitalize ${filter === f ? "bg-emerald-600 text-white" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
-              {f}
+              {t(`adminPayments.${f}`)}
             </button>
           ))}
         </div>
@@ -87,21 +89,21 @@ export default function AdminPaymentsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">Reference</th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">User</th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">Marketplace</th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">Plan</th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">Amount</th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">Method</th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">Status</th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">Date</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">{t("adminPayments.reference")}</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">{t("adminPayments.user")}</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">{t("adminPayments.marketplace")}</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">{t("adminPayments.plan")}</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">{t("adminPayments.amount")}</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">{t("adminPayments.method")}</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">{t("adminPayments.status")}</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">{t("adminPayments.date")}</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-500">Loading...</td></tr>
+                  <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-500">{t("adminPayments.loading")}</td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-500">No transactions found</td></tr>
+                  <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-500">{t("adminPayments.noTransactions")}</td></tr>
                 ) : filtered.map((p) => (
                   <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50">
                     <td className="px-4 py-3 font-mono text-xs">{p.reference || p.providerTransactionId || "—"}</td>

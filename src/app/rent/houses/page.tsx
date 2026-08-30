@@ -7,6 +7,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/i18n";
 
 const RWANDA_DISTRICTS = [
   "Gasabo","Kicukiro","Nyarugenge","Huye","Rubavu","Musanze","Nyagatare",
@@ -16,6 +17,7 @@ const RWANDA_DISTRICTS = [
 ];
 
 export default function HouseSearchPage() {
+  const { t } = useI18n();
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -85,12 +87,12 @@ export default function HouseSearchPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">Houses for Rent</h1>
-              <p className="text-sm text-slate-500 mt-1">{total} properties available</p>
+              <h1 className="text-2xl font-bold text-slate-900">{t("houses.title")}</h1>
+              <p className="text-sm text-slate-500 mt-1">{total} {t("houses.available")}</p>
             </div>
             <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)}>
               <SlidersHorizontal className="h-4 w-4 mr-1.5" />
-              Filters
+              {t("houses.filters")}
             </Button>
           </div>
 
@@ -99,44 +101,44 @@ export default function HouseSearchPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
                 type="text"
-                placeholder='Search "house near ULK", "room in Kicukiro"...'
+                placeholder={t("houses.searchPlaceholder")}
                 value={filters.q}
                 onChange={(e) => setFilters({ ...filters, q: e.target.value })}
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               />
             </div>
-            <Button type="submit" size="lg">Search</Button>
+            <Button type="submit" size="lg">{t("houses.search")}</Button>
           </form>
 
           {showFilters && (
             <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 <select value={filters.district} onChange={(e) => setFilters({ ...filters, district: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white">
-                  <option value="">All Districts</option>
+                  <option value="">{t("houses.allDistricts")}</option>
                   {RWANDA_DISTRICTS.filter((d, i, a) => a.indexOf(d) === i).map((d) => (
                     <option key={d} value={d}>{d}</option>
                   ))}
                 </select>
-                <input type="text" placeholder="Sector" value={filters.sector} onChange={(e) => setFilters({ ...filters, sector: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                <input type="text" placeholder={t("plots.sector")} value={filters.sector} onChange={(e) => setFilters({ ...filters, sector: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
                 <select value={filters.propertyType} onChange={(e) => setFilters({ ...filters, propertyType: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white">
-                  <option value="">All Types</option>
+                  <option value="">{t("houses.allTypes")}</option>
                   <option value="shambrette">Shambrette</option>
                   <option value="room_salon">Room + Salon</option>
                   <option value="2_room_salon">2 Rooms + Salon</option>
                   <option value="3_room_salon">3 Rooms + Salon</option>
                   <option value="other">Other</option>
                 </select>
-                <input type="number" placeholder="Min Price" value={filters.minPrice} onChange={(e) => setFilters({ ...filters, minPrice: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-                <input type="number" placeholder="Max Price" value={filters.maxPrice} onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                <input type="number" placeholder={t("houses.minPrice")} value={filters.minPrice} onChange={(e) => setFilters({ ...filters, minPrice: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                <input type="number" placeholder={t("houses.maxPrice")} value={filters.maxPrice} onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
                 <select value={filters.availability} onChange={(e) => setFilters({ ...filters, availability: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white">
-                  <option value="">Any Availability</option>
-                  <option value="AVAILABLE">Available Now</option>
-                  <option value="UPCOMING">Coming Soon</option>
+                  <option value="">{t("houses.anyAvailability")}</option>
+                  <option value="AVAILABLE">{t("houses.availableNow")}</option>
+                  <option value="UPCOMING">{t("houses.comingSoon")}</option>
                 </select>
               </div>
               {hasActiveFilters && (
                 <button onClick={clearFilters} className="mt-3 text-sm text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
-                  <X className="h-3 w-3" /> Clear all filters
+                  <X className="h-3 w-3" /> {t("houses.clearFilters")}
                 </button>
               )}
             </div>
@@ -151,26 +153,24 @@ export default function HouseSearchPage() {
               <Lock className="h-8 w-8 text-amber-600" />
             </div>
             <h2 className="text-2xl font-bold text-slate-900 mb-2">
-              {needsAuth ? "Sign in to search houses" : "Membership required"}
+              {needsAuth ? t("houses.signInTitle") : t("houses.membershipTitle")}
             </h2>
             <p className="text-slate-600 mb-6 max-w-md mx-auto">
-              {needsAuth
-                ? "Create an account or sign in to browse house listings in your area."
-                : "You need an active House Rental membership to search and view full listings. Plans start at 2,000 RWF."}
+              {needsAuth ? t("houses.signInDesc") : t("houses.membershipDesc")}
             </p>
             <div className="flex items-center justify-center gap-3">
               {needsAuth ? (
                 <>
                   <a href="/login" className="inline-flex items-center gap-2 bg-emerald-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-emerald-700 transition-colors">
-                    <LogIn className="h-4 w-4" /> Sign In
+                    <LogIn className="h-4 w-4" /> {t("houses.signIn")}
                   </a>
                   <a href="/register" className="inline-flex items-center gap-2 border border-slate-300 text-slate-700 px-6 py-3 rounded-xl font-medium hover:bg-slate-50 transition-colors">
-                    Create Account
+                    {t("houses.createAccount")}
                   </a>
                 </>
               ) : (
                 <a href="/dashboard/memberships" className="inline-flex items-center gap-2 bg-emerald-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-emerald-700 transition-colors">
-                  Get Membership — From 2,000 RWF
+                  {t("houses.getMembership")}
                 </a>
               )}
             </div>
@@ -191,9 +191,9 @@ export default function HouseSearchPage() {
         ) : properties.length === 0 ? (
           <EmptyState
             icon={<Home className="h-12 w-12" />}
-            title="No houses found"
-            description="Try adjusting your search filters or check back later for new listings."
-            action={hasActiveFilters ? <Button variant="outline" onClick={clearFilters}>Clear Filters</Button> : undefined}
+            title={t("houses.noResults")}
+            description={t("houses.noResultsDesc")}
+            action={hasActiveFilters ? <Button variant="outline" onClick={clearFilters}>{t("houses.clearFiltersBtn")}</Button> : undefined}
           />
         ) : (
           <>

@@ -6,10 +6,12 @@ import { UserPlus, Eye, EyeOff, ArrowRight, Home, MapPin, Briefcase, Search } fr
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
+import { useI18n } from "@/i18n";
 
 type Step = "role" | "account";
 
 export default function RegisterPage() {
+  const { t } = useI18n();
   const router = useRouter();
   const { toast } = useToast();
   const [step, setStep] = useState<Step>("role");
@@ -37,12 +39,12 @@ export default function RegisterPage() {
     setErrors({});
 
     if (!role || !marketplace) {
-      setErrors({ general: "Please select role and marketplace" });
+      setErrors({ general: t("register.selectRole") });
       return;
     }
 
     if (form.password !== form.confirmPassword) {
-      setErrors({ confirmPassword: "Passwords do not match" });
+      setErrors({ confirmPassword: t("register.passwordMismatch") });
       return;
     }
 
@@ -67,14 +69,14 @@ export default function RegisterPage() {
 
       if (!res.ok) {
         if (data.errors) setErrors(data.errors);
-        else toast(data.error || "Registration failed", "error");
+        else toast(data.error || t("register.error"), "error");
         return;
       }
 
-      toast("Account created! Please purchase your membership to continue.", "success");
+      toast(t("register.success"), "success");
       router.push("/dashboard/memberships");
     } catch {
-      toast("Something went wrong", "error");
+      toast(t("register.wrong"), "error");
     } finally {
       setLoading(false);
     }
@@ -107,13 +109,13 @@ export default function RegisterPage() {
             <text x="50" y="33" fontFamily="Inter, system-ui, sans-serif" fontSize="26" fontWeight="700" fill="#0f172a">Igura</text>
           </svg>
         </Link>
-        <h1 className="text-2xl font-bold text-slate-900">Create your account</h1>
-        <p className="text-sm text-slate-500 mt-1.5">Join Rwanda&apos;s real estate marketplace</p>
+        <h1 className="text-2xl font-bold text-slate-900">{t("register.createAccount")}</h1>
+        <p className="text-sm text-slate-500 mt-1.5">{t("register.subtitle")}</p>
       </div>
 
       {step === "role" && (
         <div className="space-y-4">
-          <p className="text-sm text-slate-600 text-center mb-6">How do you want to use Igura?</p>
+          <p className="text-sm text-slate-600 text-center mb-6">{t("register.howUse")}</p>
 
           <button
             onClick={() => handleRoleSelect("COMMISSIONAIRE")}
@@ -124,8 +126,8 @@ export default function RegisterPage() {
                 <Briefcase className="h-6 w-6 text-emerald-600" />
               </div>
               <div>
-                <h3 className="font-semibold text-slate-900">Commissionaire</h3>
-                <p className="text-sm text-slate-500">List and sell properties. Create up to 10 listings.</p>
+                <h3 className="font-semibold text-slate-900">{t("register.commissionaire")}</h3>
+                <p className="text-sm text-slate-500">{t("register.commissionaireDesc")}</p>
               </div>
             </div>
           </button>
@@ -139,8 +141,8 @@ export default function RegisterPage() {
                 <Search className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <h3 className="font-semibold text-slate-900">Client</h3>
-                <p className="text-sm text-slate-500">Search and find properties. Browse listings.</p>
+                <h3 className="font-semibold text-slate-900">{t("register.client")}</h3>
+                <p className="text-sm text-slate-500">{t("register.clientDesc")}</p>
               </div>
             </div>
           </button>
@@ -149,20 +151,17 @@ export default function RegisterPage() {
 
       {step === "account" && (
         <>
-          {/* Back button */}
           <button onClick={() => setStep("role")} className="text-sm text-slate-500 hover:text-slate-700 mb-4 flex items-center gap-1">
-            &larr; Change role
+            &larr; {t("register.changeRole")}
           </button>
 
-          {/* Role badge */}
           <div className="mb-4 p-3 rounded-lg bg-slate-50 border border-slate-200">
-            <p className="text-xs text-slate-500">Signing up as</p>
-            <p className="font-semibold text-slate-900">{role === "COMMISSIONAIRE" ? "Commissionaire" : "Client"}</p>
+            <p className="text-xs text-slate-500">{t("register.signingUpAs")}</p>
+            <p className="font-semibold text-slate-900">{role === "COMMISSIONAIRE" ? t("register.commissionaire") : t("register.client")}</p>
           </div>
 
-          {/* Marketplace selection */}
           <div className="mb-6">
-            <p className="text-sm font-medium text-slate-700 mb-3">Choose your marketplace:</p>
+            <p className="text-sm font-medium text-slate-700 mb-3">{t("register.chooseMarketplace")}</p>
             <div className="grid grid-cols-2 gap-3">
               {(role === "COMMISSIONAIRE" ? commissionairePlans : clientPlans).map((plan) => (
                 <button
@@ -181,7 +180,7 @@ export default function RegisterPage() {
                       <MapPin className="h-4 w-4 text-amber-600" />
                     )}
                     <span className="text-sm font-medium text-slate-900">
-                      {plan.marketplace === "House Rental" ? "House Rental" : "Plot Selling"}
+                      {plan.marketplace === "House Rental" ? t("register.houseRental") : t("register.plotSelling")}
                     </span>
                   </div>
                   <p className="text-lg font-bold text-slate-900">{plan.price.toLocaleString()} RWF</p>
@@ -202,8 +201,8 @@ export default function RegisterPage() {
               <div className="grid grid-cols-2 gap-4">
                 <Input
                   id="firstName"
-                  label="First Name"
-                  placeholder="John"
+                  label={t("register.firstName")}
+                  placeholder={t("register.firstNamePlaceholder")}
                   value={form.firstName}
                   onChange={(e) => setForm({ ...form, firstName: e.target.value })}
                   error={errors.firstName}
@@ -211,8 +210,8 @@ export default function RegisterPage() {
                 />
                 <Input
                   id="lastName"
-                  label="Last Name"
-                  placeholder="Doe"
+                  label={t("register.lastName")}
+                  placeholder={t("register.lastNamePlaceholder")}
                   value={form.lastName}
                   onChange={(e) => setForm({ ...form, lastName: e.target.value })}
                   error={errors.lastName}
@@ -221,9 +220,9 @@ export default function RegisterPage() {
               </div>
               <Input
                 id="email"
-                label="Email address"
+                label={t("register.email")}
                 type="email"
-                placeholder="you@example.com"
+                placeholder={t("register.emailPlaceholder")}
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 error={errors.email}
@@ -231,9 +230,9 @@ export default function RegisterPage() {
               />
               <Input
                 id="phone"
-                label="Phone Number"
+                label={t("register.phone")}
                 type="tel"
-                placeholder="07XXXXXXXX"
+                placeholder={t("register.phonePlaceholder")}
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 error={errors.phone}
@@ -242,9 +241,9 @@ export default function RegisterPage() {
               <div className="relative">
                 <Input
                   id="password"
-                  label="Password"
+                  label={t("register.password")}
                   type={showPassword ? "text" : "password"}
-                  placeholder="Min 8 characters"
+                  placeholder={t("register.passwordPlaceholder")}
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
                   error={errors.password}
@@ -260,9 +259,9 @@ export default function RegisterPage() {
               </div>
               <Input
                 id="confirmPassword"
-                label="Confirm Password"
+                label={t("register.confirmPassword")}
                 type="password"
-                placeholder="Re-enter password"
+                placeholder={t("register.confirmPasswordPlaceholder")}
                 value={form.confirmPassword}
                 onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
                 error={errors.confirmPassword}
@@ -271,7 +270,7 @@ export default function RegisterPage() {
 
               <Button type="submit" loading={loading} className="w-full" size="lg">
                 <UserPlus className="h-4 w-4 mr-1.5" />
-                Create Account & Pay
+                {t("register.createPay")}
                 <ArrowRight className="h-4 w-4 ml-1.5" />
               </Button>
             </form>
@@ -281,9 +280,9 @@ export default function RegisterPage() {
 
       <div className="mt-6 pt-6 border-t border-slate-100 text-center">
         <p className="text-sm text-slate-500">
-          Already have an account?{" "}
+          {t("register.hasAccount")}{" "}
           <Link href="/login" className="text-emerald-600 font-semibold hover:text-emerald-700 transition-colors">
-            Sign in
+            {t("register.signIn")}
           </Link>
         </p>
       </div>

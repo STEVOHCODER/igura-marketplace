@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { usePathname } from "next/navigation";
+import { useI18n } from "@/i18n";
 
 export default function DashboardPage() {
   const pathname = usePathname();
+  const { t } = useI18n();
   const [user, setUser] = useState<any>(null);
   const [memberships, setMemberships] = useState<any[]>([]);
   const [stats, setStats] = useState({ active: 0, draft: 0, unavailable: 0, total: 0 });
@@ -28,20 +30,20 @@ export default function DashboardPage() {
       <div className="mb-8 glass-card p-6 rounded-xl" style={{ backdropFilter: "blur(20px)" }}>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Welcome, {user?.firstName || "..."}!</h1>
-            <p className="text-slate-500 mt-1 text-sm">Your marketplace dashboard</p>
+            <h1 className="text-2xl font-bold text-slate-900">{t("dash.welcome")} {user?.firstName || "..."}!</h1>
+            <p className="text-slate-500 mt-1 text-sm">{t("dash.subtitle")}</p>
           </div>
           <div className="flex items-center gap-3">
             {user?.role === "COMMISSIONAIRE" && (
               <Link href="/dashboard/listings/new">
                 <Button variant="outline" className="px-4 py-2">
-                  <Plus className="h-4 w-4 mr-2" /> New Listing
+                  <Plus className="h-4 w-4 mr-2" /> {t("dash.newListing")}
                 </Button>
               </Link>
             )}
             <Link href="/">
               <Button variant="outline">
-                <LogOut className="h-4 w-4 mr-2" /> Sign Out
+                <LogOut className="h-4 w-4 mr-2" /> {t("dash.logout")}
               </Button>
             </Link>
           </div>
@@ -58,7 +60,7 @@ export default function DashboardPage() {
                     <p className="text-sm text-slate-500">{m.plan?.marketplace?.displayName}</p>
                     <p className="font-medium">{m.plan?.displayName}</p>
                   </div>
-                  <Badge variant="success">ACTIVE</Badge>
+                  <Badge variant="success">{t("dash.active")}</Badge>
                 </div>
               </CardContent>
             </Card>
@@ -75,7 +77,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-slate-900">{stats.active}</p>
-                <p className="text-xs text-slate-500">Active Listings</p>
+                <p className="text-xs text-slate-500">{t("dash.activeListings")}</p>
               </div>
             </div>
           </CardContent>
@@ -88,7 +90,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-slate-900">{stats.draft}</p>
-                <p className="text-xs text-slate-500">Drafts</p>
+                <p className="text-xs text-slate-500">{t("dash.drafts")}</p>
               </div>
             </div>
           </CardContent>
@@ -101,7 +103,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-slate-900">{stats.unavailable}</p>
-                <p className="text-xs text-slate-500">Unavailable</p>
+                <p className="text-xs text-slate-500">{t("dash.unavailable")}</p>
               </div>
             </div>
           </CardContent>
@@ -114,7 +116,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-slate-900">{memberships.filter((m: any) => m.status === "ACTIVE").length}</p>
-                <p className="text-xs text-slate-500">Active Memberships</p>
+                <p className="text-xs text-slate-500">{t("dash.activeMemberships")}</p>
               </div>
             </div>
           </CardContent>
@@ -126,13 +128,13 @@ export default function DashboardPage() {
           <>
             <Link href="/dashboard/listings" className="block p-6 bg-white rounded-xl border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all">
               <Home className="h-8 w-8 text-emerald-600 mb-3" />
-              <h3 className="font-semibold text-slate-900">Manage Listings</h3>
-              <p className="text-sm text-slate-500 mt-1">View, edit, and manage your property listings.</p>
+              <h3 className="font-semibold text-slate-900">{t("dash.manageListings")}</h3>
+              <p className="text-sm text-slate-500 mt-1">{t("dash.manageListingsDesc")}</p>
             </Link>
             <Link href="/dashboard/listings/new" className="block p-6 bg-white rounded-xl border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all">
               <Plus className="h-8 w-8 text-emerald-600 mb-3" />
-              <h3 className="font-semibold text-slate-900">New Listing</h3>
-              <p className="text-sm text-slate-500 mt-1">Create a new property listing.</p>
+              <h3 className="font-semibold text-slate-900">{t("dash.newListingCard")}</h3>
+              <p className="text-sm text-slate-500 mt-1">{t("dash.newListingDesc")}</p>
             </Link>
           </>
         )}
@@ -140,20 +142,20 @@ export default function DashboardPage() {
           <>
             <Link href="/rent/houses" className="block p-6 bg-white rounded-xl border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all">
               <Home className="h-8 w-8 text-emerald-600 mb-3" />
-              <h3 className="font-semibold text-slate-900">Search Houses</h3>
-              <p className="text-sm text-slate-500 mt-1">Browse houses and apartments for rent.</p>
+              <h3 className="font-semibold text-slate-900">{t("dash.searchHousesCard")}</h3>
+              <p className="text-sm text-slate-500 mt-1">{t("dash.searchHousesDesc")}</p>
             </Link>
             <Link href="/plots" className="block p-6 bg-white rounded-xl border border-slate-200 hover:border-amber-300 hover:shadow-md transition-all">
               <MapPin className="h-8 w-8 text-amber-600 mb-3" />
-              <h3 className="font-semibold text-slate-900">Search Plots</h3>
-              <p className="text-sm text-slate-500 mt-1">Browse plots and land for sale.</p>
+              <h3 className="font-semibold text-slate-900">{t("dash.searchPlotsCard")}</h3>
+              <p className="text-sm text-slate-500 mt-1">{t("dash.searchPlotsDesc")}</p>
             </Link>
           </>
         )}
         <Link href="/dashboard/memberships" className="block p-6 bg-white rounded-xl border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all">
           <CreditCard className="h-8 w-8 text-emerald-600 mb-3" />
-          <h3 className="font-semibold text-slate-900">Memberships</h3>
-          <p className="text-sm text-slate-500 mt-1">View your marketplace memberships and upgrade.</p>
+          <h3 className="font-semibold text-slate-900">{t("dash.membershipsCard")}</h3>
+          <p className="text-sm text-slate-500 mt-1">{t("dash.membershipsDesc")}</p>
         </Link>
       </div>
     </div>

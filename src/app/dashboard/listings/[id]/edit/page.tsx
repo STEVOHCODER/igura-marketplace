@@ -7,12 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
 import { formatPrice } from "@/lib/utils";
+import { useI18n } from "@/i18n";
 
 export default function EditListingPage() {
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
   const { toast } = useToast();
+  const { t } = useI18n();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
@@ -135,47 +137,47 @@ export default function EditListingPage() {
   return (
     <div className="max-w-3xl mx-auto">
       <button onClick={() => router.back()} className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 mb-4">
-        <ArrowLeft className="h-4 w-4" /> Back to listings
+        <ArrowLeft className="h-4 w-4" /> {t("edit.backToListings")}
       </button>
-      <h1 className="text-2xl font-bold text-slate-900 mb-6">Edit Listing</h1>
+      <h1 className="text-2xl font-bold text-slate-900 mb-6">{t("edit.title")}</h1>
 
       <div className="space-y-6">
         <Card><CardContent className="p-6 space-y-4">
-          <h2 className="text-lg font-semibold">Basic Details</h2>
-          <Input label="Title" value={form.title} onChange={(e) => updateForm("title", e.target.value)} />
-          <div><label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+          <h2 className="text-lg font-semibold">{t("edit.basicDetails")}</h2>
+          <Input label={t("edit.title_")} value={form.title} onChange={(e) => updateForm("title", e.target.value)} />
+          <div><label className="block text-sm font-medium text-slate-700 mb-1">{t("edit.description_")}</label>
             <textarea value={form.description} onChange={(e) => updateForm("description", e.target.value)} rows={4} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" /></div>
           <div className="grid grid-cols-2 gap-4">
-            <Input label="Price (RWF/month)" type="number" value={form.price} onChange={(e) => updateForm("price", e.target.value)} />
-            <div><label className="block text-sm font-medium text-slate-700 mb-1">Negotiable</label>
+            <Input label={t("edit.priceMonth")} type="number" value={form.price} onChange={(e) => updateForm("price", e.target.value)} />
+            <div><label className="block text-sm font-medium text-slate-700 mb-1">{t("edit.negotiable")}</label>
               <div className="flex gap-2 mt-2">
-                <button onClick={() => updateForm("negotiable", true)} className={`px-4 py-2 rounded-lg text-sm ${form.negotiable ? "bg-emerald-600 text-white" : "bg-slate-100"}`}>Yes</button>
-                <button onClick={() => updateForm("negotiable", false)} className={`px-4 py-2 rounded-lg text-sm ${!form.negotiable ? "bg-emerald-600 text-white" : "bg-slate-100"}`}>No</button>
+                <button onClick={() => updateForm("negotiable", true)} className={`px-4 py-2 rounded-lg text-sm ${form.negotiable ? "bg-emerald-600 text-white" : "bg-slate-100"}`}>{t("detail.yes")}</button>
+                <button onClick={() => updateForm("negotiable", false)} className={`px-4 py-2 rounded-lg text-sm ${!form.negotiable ? "bg-emerald-600 text-white" : "bg-slate-100"}`}>{t("detail.no")}</button>
               </div></div>
           </div>
           <div className="grid grid-cols-3 gap-4">
-            <Input label="Bedrooms" type="number" value={form.bedrooms} onChange={(e) => updateForm("bedrooms", e.target.value)} />
-            <Input label="Bathrooms" type="number" value={form.bathrooms} onChange={(e) => updateForm("bathrooms", e.target.value)} />
-            <Input label="Area (m²)" type="number" value={form.areaValue} onChange={(e) => updateForm("areaValue", e.target.value)} />
+            <Input label={t("edit.bedrooms_")} type="number" value={form.bedrooms} onChange={(e) => updateForm("bedrooms", e.target.value)} />
+            <Input label={t("edit.bathrooms_")} type="number" value={form.bathrooms} onChange={(e) => updateForm("bathrooms", e.target.value)} />
+            <Input label={t("edit.areaM2")} type="number" value={form.areaValue} onChange={(e) => updateForm("areaValue", e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <Input label="Contact Name" value={form.contactName} onChange={(e) => updateForm("contactName", e.target.value)} />
-            <Input label="Contact Phone" value={form.contactPhone} onChange={(e) => updateForm("contactPhone", e.target.value)} />
+            <Input label={t("edit.contactName")} value={form.contactName} onChange={(e) => updateForm("contactName", e.target.value)} />
+            <Input label={t("edit.contactPhone")} value={form.contactPhone} onChange={(e) => updateForm("contactPhone", e.target.value)} />
           </div>
         </CardContent></Card>
 
         <Card><CardContent className="p-6 space-y-4">
-          <h2 className="text-lg font-semibold">Availability</h2>
+          <h2 className="text-lg font-semibold">{t("edit.availability_")}</h2>
           <select value={form.availabilityStatus} onChange={(e) => updateForm("availabilityStatus", e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm">
-            <option value="AVAILABLE">Available Now</option>
-            <option value="UPCOMING">Coming Soon</option>
-            <option value="UNAVAILABLE">Unavailable</option>
+            <option value="AVAILABLE">{t("edit.availableNow")}</option>
+            <option value="UPCOMING">{t("edit.comingSoon")}</option>
+            <option value="UNAVAILABLE">{t("edit.unavailable")}</option>
           </select>
-          {form.availabilityStatus === "UPCOMING" && <Input label="Available From" type="date" value={form.availabilityDate} onChange={(e) => updateForm("availabilityDate", e.target.value)} />}
+          {form.availabilityStatus === "UPCOMING" && <Input label={t("edit.availableFrom")} type="date" value={form.availabilityDate} onChange={(e) => updateForm("availabilityDate", e.target.value)} />}
         </CardContent></Card>
 
         <Card><CardContent className="p-6 space-y-4">
-          <h2 className="text-lg font-semibold">Images</h2>
+          <h2 className="text-lg font-semibold">{t("edit.images")}</h2>
           <div className="grid grid-cols-3 gap-3">
             {existingImages.map((img: any) => (
               <div key={img.id} className="relative aspect-square rounded-lg overflow-hidden border">
@@ -191,7 +193,7 @@ export default function EditListingPage() {
             ))}
             {existingImages.length + newImages.length < 3 && (
               <label className="aspect-square rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center cursor-pointer hover:border-emerald-400">
-                <Upload className="h-6 w-6 text-slate-400" /><span className="text-xs text-slate-400 mt-1">Add</span>
+                <Upload className="h-6 w-6 text-slate-400" /><span className="text-xs text-slate-400 mt-1">{t("edit.add")}</span>
                 <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={handleNewImages} className="hidden" />
               </label>
             )}
@@ -199,23 +201,23 @@ export default function EditListingPage() {
         </CardContent></Card>
 
         <Card><CardContent className="p-6 space-y-4">
-          <h2 className="text-lg font-semibold">Location</h2>
+          <h2 className="text-lg font-semibold">{t("edit.location_")}</h2>
           <select value={form.locationDistrict} onChange={(e) => updateForm("locationDistrict", e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm">
-            <option value="">Select district</option>
+            <option value="">{t("edit.selectDistrict")}</option>
             {districts.map(d => <option key={d} value={d}>{d}</option>)}
           </select>
           <div className="grid grid-cols-3 gap-4">
-            <Input label="Sector" value={form.locationSector} onChange={(e) => updateForm("locationSector", e.target.value)} />
-            <Input label="Cell" value={form.locationCell} onChange={(e) => updateForm("locationCell", e.target.value)} />
-            <Input label="Village" value={form.locationVillage} onChange={(e) => updateForm("locationVillage", e.target.value)} />
+            <Input label={t("edit.sector_")} value={form.locationSector} onChange={(e) => updateForm("locationSector", e.target.value)} />
+            <Input label={t("edit.cell_")} value={form.locationCell} onChange={(e) => updateForm("locationCell", e.target.value)} />
+            <Input label={t("edit.village_")} value={form.locationVillage} onChange={(e) => updateForm("locationVillage", e.target.value)} />
           </div>
         </CardContent></Card>
 
         <Card><CardContent className="p-6 space-y-4">
-          <h2 className="text-lg font-semibold">Keywords</h2>
+          <h2 className="text-lg font-semibold">{t("edit.keywords")}</h2>
           <div className="flex gap-2">
-            <Input value={form.keywordInput} onChange={(e) => updateForm("keywordInput", e.target.value)} placeholder="Add keyword..." onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addKeyword())} />
-            <Button onClick={addKeyword} type="button" size="sm">Add</Button>
+            <Input value={form.keywordInput} onChange={(e) => updateForm("keywordInput", e.target.value)} placeholder={t("edit.addKeyword")} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addKeyword())} />
+            <Button onClick={addKeyword} type="button" size="sm">{t("edit.add")}</Button>
           </div>
           <div className="flex flex-wrap gap-2">
             {form.keywords.map(kw => (
@@ -225,8 +227,8 @@ export default function EditListingPage() {
         </CardContent></Card>
 
         <div className="flex gap-3 justify-end pb-8">
-          <Button variant="outline" onClick={() => router.push("/dashboard/listings")}>Cancel</Button>
-          <Button onClick={handleSave} loading={saving}><Save className="h-4 w-4 mr-2" />Save Changes</Button>
+          <Button variant="outline" onClick={() => router.push("/dashboard/listings")}>{t("edit.cancel")}</Button>
+          <Button onClick={handleSave} loading={saving}><Save className="h-4 w-4 mr-2" />{t("edit.saveChanges")}</Button>
         </div>
       </div>
     </div>
