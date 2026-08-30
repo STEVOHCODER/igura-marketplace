@@ -1,11 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Home, MapPin, Shield, Users, Heart, CreditCard, FolderPlus, Clipboard, TrendingUp, MessageCircle, Settings, LogOut } from "lucide-react";
+import { Home, MapPin, Plus, CreditCard, TrendingUp, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatPrice } from "@/lib/utils";
 import { usePathname } from "next/navigation";
 
 export default function DashboardPage() {
@@ -26,8 +25,7 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-6xl mx-auto">
-      {/* Header with glassmorphism */}
-      <div className="mb-8 glass-card" style={{ backdropFilter: "blur(20px)" }}>
+      <div className="mb-8 glass-card p-6 rounded-xl" style={{ backdropFilter: "blur(20px)" }}>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Welcome, {user?.firstName || "..."}!</h1>
@@ -38,16 +36,18 @@ export default function DashboardPage() {
               <Link href="/dashboard/listings/new">
                 <Button variant="outline" className="px-4 py-2">
                   <Plus className="h-4 w-4 mr-2" /> New Listing
+                </Button>
               </Link>
             )}
-            <Button variant="outline" onClick={() => window.location.href = "/login?action=logout"}>
-              <LogOut className="h-4 w-4 mr-2" /> Sign Out
-          </Button>
+            <Link href="/">
+              <Button variant="outline">
+                <LogOut className="h-4 w-4 mr-2" /> Sign Out
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
 
-      {/* Commissionaire specific section */}
       {user?.role === "COMMISSIONAIRE" && commissionaireMemberships.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {commissionaireMemberships.map((m: any) => (
@@ -66,29 +66,6 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* User memberships / plans section */}
-      {user?.role !== "COMMISSIONAIRE" || commissionaireMemberships.length === 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-          {memberships.map((m: any) => (
-            <Card key={m.id} className="border rounded-xl p-5 hover:border-emerald-300 hover:shadow-sm transition-all">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="text-sm text-slate-500">{m.plan?.marketplace?.displayName}</p>
-                  <p className="font-medium text-slate-900">{m.plan?.displayName}</p>
-                </div>
-                <Badge variant={m.status === "ACTIVE" ? "success" : m.status === "PENDING" ? "warning" : "danger"}>
-                  {m.status}
-              </Badge>
-              </div>
-              <div className="mt-3 text-sm text-slate-600">
-                <p>{m.benefits?.map((b: any) => b.replace(/\\r?\\n/g, ' ')) || "No benefits listed"}</p>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {/* Stats section */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <Card>
           <CardContent className="p-4">
@@ -144,23 +121,22 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <Link href="/dashboard/listings" className="block glass-card p-6 rounded-xl border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all">
+        <Link href="/dashboard/listings" className="block p-6 bg-white rounded-xl border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all">
           <Home className="h-8 w-8 text-emerald-600 mb-3" />
           <h3 className="font-semibold text-slate-900">Manage Listings</h3>
           <p className="text-sm text-slate-500 mt-1">View, edit, and manage your property listings.</p>
-      </Link>
-        <Link href="/dashboard/memberships" className="block glass-card p-6 rounded-xl border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all">
+        </Link>
+        <Link href="/dashboard/memberships" className="block p-6 bg-white rounded-xl border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all">
           <CreditCard className="h-8 w-8 text-emerald-600 mb-3" />
           <h3 className="font-semibold text-slate-900">Memberships</h3>
           <p className="text-sm text-slate-500 mt-1">View your marketplace memberships and upgrade.</p>
-      </Link>
-        <Link href="/dashboard/listings/new" className="block glass-card p-6 rounded-xl border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all">
+        </Link>
+        <Link href="/dashboard/listings/new" className="block p-6 bg-white rounded-xl border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all">
           <Plus className="h-8 w-8 text-emerald-600 mb-3" />
           <h3 className="font-semibold text-slate-900">New Listing</h3>
           <p className="text-sm text-slate-500 mt-1">Create a new property listing.</p>
-      </Link>
+        </Link>
       </div>
     </div>
   );
