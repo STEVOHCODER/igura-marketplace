@@ -56,12 +56,15 @@ export default function HomePage() {
             <div className="hidden lg:block animate-fade-in-up delay-200">
               <div className="relative">
                 <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl">
-                  <div className="aspect-[4/3] rounded-2xl bg-gradient-to-br from-emerald-600/20 to-emerald-800/20 flex items-center justify-center">
-                    <div className="text-center p-8">
-                      <div className="h-20 w-20 rounded-2xl bg-emerald-500/20 flex items-center justify-center mx-auto mb-4">
-                        <Home className="h-10 w-10 text-emerald-400" />
-                      </div>
-                      <p className="text-white/60 text-sm">Your perfect property awaits</p>
+                  <div className="aspect-[4/3] rounded-2xl overflow-hidden relative">
+                    <img
+                      src="https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&h=600&fit=crop&auto=format"
+                      alt="Modern luxury house in Rwanda"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                    <div className="absolute bottom-4 left-4 right-4">
+                      <p className="text-white/90 text-sm font-medium">Your perfect property awaits</p>
                     </div>
                   </div>
                 </div>
