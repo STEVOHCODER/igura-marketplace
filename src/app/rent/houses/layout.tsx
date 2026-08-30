@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Houses for Rent in Kigali, Rwanda | Igura",
+  title: "Houses for Rent in Kigali, Rwanda",
   description: "Browse houses and apartments for rent across Rwanda. Find homes in Kigali, Gasabo, Kicukiro, Nyarugenge and more with verified listings on Igura.",
   openGraph: {
     title: "Houses for Rent in Rwanda | Igura",
