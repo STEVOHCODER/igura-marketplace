@@ -1,7 +1,6 @@
 import Link from "next/link";
-import Image from "next/image";
 import { MapPin, Bed, Bath, Maximize } from "lucide-react";
-import { formatPrice, availabilityLabel, truncate } from "@/lib/utils";
+import { formatPrice, availabilityLabel } from "@/lib/utils";
 import { Badge } from "./badge";
 
 interface PropertyCardProps {
@@ -37,12 +36,10 @@ export function PropertyCard({ property, marketplace }: PropertyCardProps) {
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden transition-shadow hover:shadow-md">
         <div className="relative aspect-[4/3] bg-slate-100 overflow-hidden">
           {property.images && property.images.length > 0 ? (
-            <Image
+            <img
               src={property.images[0].url}
               alt={property.images[0].altText || property.title}
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
             />
           ) : (
             <div className="flex items-center justify-center h-full text-slate-400">
