@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { MapPin, Home, Shield } from "lucide-react";
+import { MapPin, Home, Shield, Crown } from "lucide-react";
 import { useI18n } from "@/i18n";
 
 export function Footer() {
@@ -44,6 +44,11 @@ export function Footer() {
               <li>
                 <Link href="/plots" className="hover:text-white transition-colors inline-flex items-center gap-1.5">
                   <MapPin className="h-3.5 w-3.5 text-emerald-500" /> {t("footer.findPlot")}
+                </Link>
+              </li>
+              <li>
+                <Link href="/sell/houses" className="hover:text-white transition-colors inline-flex items-center gap-1.5">
+                  <Crown className="h-3.5 w-3.5 text-violet-500" /> {t("footer.sellHouse")}
                 </Link>
               </li>
               <li>

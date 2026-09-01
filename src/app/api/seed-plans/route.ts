@@ -23,7 +23,14 @@ export async function POST() {
       });
     }
 
-    // Create the 4 correct plans
+    let houseSelling = await prisma.marketplace.findFirst({ where: { name: "House Selling VVIP" } });
+    if (!houseSelling) {
+      houseSelling = await prisma.marketplace.create({
+        data: { name: "House Selling VVIP", displayName: "House Selling VVIP", description: "Premium houses for sale", status: "ACTIVE" },
+      });
+    }
+
+    // Create the 6 plans (3 marketplaces × 2 roles)
     const plans = [
       {
         name: "House Client",
@@ -69,6 +76,28 @@ export async function POST() {
         features: ["10 active listings", "3 images per listing", "Manage plots", "Premium placement"],
         status: "ACTIVE",
       },
+      {
+        name: "House Selling VVIP Client",
+        displayName: "House Selling VVIP Client",
+        marketplaceId: houseSelling.id,
+        role: "CLIENT",
+        price: 10000,
+        maxActiveListings: 0,
+        maxImagesPerListing: 0,
+        features: ["Search all houses for sale", "View full listings", "Contact owners directly", "Save favorites"],
+        status: "ACTIVE",
+      },
+      {
+        name: "House Selling VVIP Commissionaire",
+        displayName: "House Selling VVIP Commissionaire",
+        marketplaceId: houseSelling.id,
+        role: "COMMISSIONAIRE",
+        price: 25000,
+        maxActiveListings: 10,
+        maxImagesPerListing: 3,
+        features: ["10 active listings", "3 images per listing", "Manage house sales", "VVIP placement"],
+        status: "ACTIVE",
+      },
     ];
 
     for (const plan of plans) {
@@ -77,8 +106,8 @@ export async function POST() {
 
     return NextResponse.json({
       success: true,
-      message: "4 plans seeded successfully (House/Plot × Client/Commissionaire)",
-      plans: plans.map((p) => ({ name: p.displayName, price: p.price, role: p.role, marketplace: p.marketplaceId })),
+      message: "6 plans seeded successfully (3 marketplaces × 2 roles)",
+      plans: plans.map((p) => ({ name: p.displayName, price: p.price, role: p.role })),
     });
   } catch (error: any) {
     console.error("Seed plans error:", error);

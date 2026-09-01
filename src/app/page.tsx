@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Home, MapPin, Shield, Users, ArrowRight, Search, Star, CheckCircle, ChevronRight, Building2, TrendingUp, Heart } from "lucide-react";
+import { Home, MapPin, Shield, Users, ArrowRight, Search, Star, CheckCircle, ChevronRight, Building2, TrendingUp, Heart, Crown } from "lucide-react";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { useI18n } from "@/i18n";
 
@@ -49,6 +49,9 @@ export default function HomePage() {
                 </Link>
                 <Link href="/plots" className="group inline-flex items-center justify-center gap-2 bg-white/10 text-white px-7 py-4 rounded-xl text-base font-semibold hover:bg-white/15 transition-all border border-white/15 hover:border-white/25 hover:-translate-y-0.5">
                   <MapPin className="h-5 w-5" />{t("hero.findPlot")}
+                </Link>
+                <Link href="/sell/houses" className="group inline-flex items-center justify-center gap-2 bg-violet-600 text-white px-7 py-4 rounded-xl text-base font-semibold hover:bg-violet-500 transition-all shadow-lg shadow-violet-600/25 hover:shadow-violet-500/30 hover:-translate-y-0.5">
+                  <Crown className="h-5 w-5" />{t("hero.sellHouse")}
                 </Link>
               </div>
               <div className="mt-8 flex flex-wrap items-center gap-4 sm:gap-6 text-sm text-slate-400">
@@ -150,7 +153,7 @@ export default function HomePage() {
             <h2 className="mt-3 text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">{t("marketplace.title")}</h2>
             <p className="mt-4 text-lg text-slate-500 max-w-2xl mx-auto">{t("marketplace.desc")}</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <Link href="/rent/houses" className="group">
               <div className="relative bg-white rounded-3xl p-8 sm:p-10 border border-slate-200 hover:border-emerald-300 hover:shadow-2xl hover:shadow-emerald-100/50 transition-all duration-300 overflow-hidden">
                 <div className="absolute top-0 right-0 w-40 h-40 bg-emerald-50 rounded-full -translate-y-1/2 translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -174,6 +177,19 @@ export default function HomePage() {
                   <h3 className="text-2xl font-bold text-slate-900 mb-3">{t("marketplace.plotSelling")} <span className="text-sm font-semibold text-amber-600 ml-2 bg-amber-50 px-2 py-0.5 rounded-full">VIP</span></h3>
                   <p className="text-slate-500 leading-relaxed mb-6">{t("marketplace.plotSellingDesc")}</p>
                   <div className="flex items-center gap-2 text-amber-600 font-semibold group-hover:gap-3 transition-all">{t("marketplace.browsePlots")} <ArrowRight className="h-5 w-5" /></div>
+                </div>
+              </div>
+            </Link>
+            <Link href="/sell/houses" className="group">
+              <div className="relative bg-white rounded-3xl p-8 sm:p-10 border border-slate-200 hover:border-violet-300 hover:shadow-2xl hover:shadow-violet-100/50 transition-all duration-300 overflow-hidden">
+                <div className="absolute top-0 right-0 w-40 h-40 bg-violet-50 rounded-full -translate-y-1/2 translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="relative">
+                  <div className="h-14 w-14 rounded-2xl bg-violet-100 flex items-center justify-center mb-6 group-hover:bg-violet-600 transition-colors duration-300">
+                    <Crown className="h-7 w-7 text-violet-600 group-hover:text-white transition-colors" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-slate-900 mb-3">{t("marketplace.houseSellingVvip")} <span className="text-sm font-semibold text-violet-600 ml-2 bg-violet-50 px-2 py-0.5 rounded-full">VVIP</span></h3>
+                  <p className="text-slate-500 leading-relaxed mb-6">{t("marketplace.houseSellingVvipDesc")}</p>
+                  <div className="flex items-center gap-2 text-violet-600 font-semibold group-hover:gap-3 transition-all">{t("marketplace.browseHousesSale")} <ArrowRight className="h-5 w-5" /></div>
                 </div>
               </div>
             </Link>

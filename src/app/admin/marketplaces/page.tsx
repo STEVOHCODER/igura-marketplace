@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { formatPrice } from "@/lib/utils";
-import { Home, MapPin, Edit2, Save, X, DollarSign, Settings } from "lucide-react";
+import { Home, MapPin, Crown, Edit2, Save, X, DollarSign, Settings } from "lucide-react";
 import { useI18n } from "@/i18n";
 
 export default function AdminMarketplacesPage() {
@@ -100,8 +100,8 @@ export default function AdminMarketplacesPage() {
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${m.name.includes("House") ? "bg-emerald-100" : "bg-amber-100"}`}>
-                      {m.name.includes("House") ? <Home className="h-5 w-5 text-emerald-600" /> : <MapPin className="h-5 w-5 text-amber-600" />}
+                    <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${m.name.includes("Selling") ? "bg-violet-100" : m.name.includes("House") ? "bg-emerald-100" : "bg-amber-100"}`}>
+                      {m.name.includes("Selling") ? <Crown className="h-5 w-5 text-violet-600" /> : m.name.includes("House") ? <Home className="h-5 w-5 text-emerald-600" /> : <MapPin className="h-5 w-5 text-amber-600" />}
                     </div>
                     <div>
                       {editing === m.id ? (

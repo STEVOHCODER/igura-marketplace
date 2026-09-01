@@ -12,7 +12,7 @@ export const registerSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(50),
   lastName: z.string().min(1, "Last name is required").max(50),
   role: z.enum(["COMMISSIONAIRE", "CLIENT"], { required_error: "Role is required" }),
-  marketplace: z.enum(["House Rental", "Plot Selling VIP"], { required_error: "Marketplace is required" }),
+  marketplace: z.enum(["House Rental", "Plot Selling VIP", "House Selling VVIP"], { required_error: "Marketplace is required" }),
 });
 
 export const loginSchema = z.object({

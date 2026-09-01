@@ -1,0 +1,198 @@
+npm warn cli npm v12.0.2 does not support Node.js v24.11.1. This version of npm supports the following node versions: `^22.22.2 || ^24.15.0 || >=26.0.0`. You can find the latest version at https://nodejs.org/.
+npm notice run igura-marketplace@1.0.0 npx
+npm notice run next build
+   Γû▓ Next.js 15.5.24
+   - Environments: .env
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully in 7.6s
+   Linting and checking validity of types ...
+
+./src/app/admin/audit/page.tsx
+7:30  Warning: 'CreditCard' is defined but never used.  @typescript-eslint/no-unused-vars
+7:57  Warning: 'Filter' is defined but never used.  @typescript-eslint/no-unused-vars
+39:41  Warning: React Hook useEffect has a missing dependency: 'fetchAuditLog'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/app/admin/layout.tsx
+5:93  Warning: 'BarChart3' is defined but never used.  @typescript-eslint/no-unused-vars
+10:10  Warning: 'user' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/admin/listings/page.tsx
+3:39  Warning: 'XCircle' is defined but never used.  @typescript-eslint/no-unused-vars
+3:48  Warning: 'Eye' is defined but never used.  @typescript-eslint/no-unused-vars
+3:53  Warning: 'Clock' is defined but never used.  @typescript-eslint/no-unused-vars
+3:60  Warning: 'AlertTriangle' is defined but never used.  @typescript-eslint/no-unused-vars
+3:80  Warning: 'Star' is defined but never used.  @typescript-eslint/no-unused-vars
+3:86  Warning: 'Filter' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/admin/locations/page.tsx
+3:29  Warning: 'CardHeader' is defined but never used.  @typescript-eslint/no-unused-vars
+3:41  Warning: 'CardTitle' is defined but never used.  @typescript-eslint/no-unused-vars
+4:10  Warning: 'MapPin' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/admin/marketplaces/page.tsx
+8:40  Warning: 'DollarSign' is defined but never used.  @typescript-eslint/no-unused-vars
+8:52  Warning: 'Settings' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/admin/page.tsx
+4:55  Warning: 'TrendingDown' is defined but never used.  @typescript-eslint/no-unused-vars
+4:81  Warning: 'AlertTriangle' is defined but never used.  @typescript-eslint/no-unused-vars
+4:108  Warning: 'ArrowUpRight' is defined but never used.  @typescript-eslint/no-unused-vars
+6:10  Warning: 'Badge' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/admin/payments/page.tsx
+3:30  Warning: 'TrendingUp' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/admin/reports/page.tsx
+3:29  Warning: 'CardHeader' is defined but never used.  @typescript-eslint/no-unused-vars
+3:41  Warning: 'CardTitle' is defined but never used.  @typescript-eslint/no-unused-vars
+8:25  Warning: 'Eye' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/admin/users/page.tsx
+3:44  Warning: 'MoreVertical' is defined but never used.  @typescript-eslint/no-unused-vars
+3:58  Warning: 'ChevronDown' is defined but never used.  @typescript-eslint/no-unused-vars
+16:10  Warning: 'granting' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+89:9  Warning: 'revokeAccess' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/api/admin/users/[id]/route.ts
+60:13  Warning: 'passwordHash' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/api/auth/login/route.ts
+47:27  Warning: '_' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/api/auth/me/route.ts
+33:27  Warning: '_' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/api/auth/register/route.ts
+62:27  Warning: '_' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/api/seed/route.ts
+38:11  Warning: 'rentalClientPlan' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+41:11  Warning: 'plotCommissionairePlan' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+43:11  Warning: 'plotClientPlan' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/dashboard/layout.tsx
+5:53  Warning: 'Settings' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/dashboard/listings/new/page.tsx
+4:44  Warning: 'MapPin' is defined but never used.  @typescript-eslint/no-unused-vars
+4:52  Warning: 'Search' is defined but never used.  @typescript-eslint/no-unused-vars
+7:29  Warning: 'CardHeader' is defined but never used.  @typescript-eslint/no-unused-vars
+7:41  Warning: 'CardTitle' is defined but never used.  @typescript-eslint/no-unused-vars
+17:10  Warning: 'marketplaces' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+17:24  Warning: 'setMarketplaces' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+186:21  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+319:50  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/app/dashboard/listings/page.tsx
+4:49  Warning: 'MoreVertical' is defined but never used.  @typescript-eslint/no-unused-vars
+94:19  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/app/dashboard/listings/[id]/edit/page.tsx
+4:27  Warning: 'Trash2' is defined but never used.  @typescript-eslint/no-unused-vars
+9:10  Warning: 'formatPrice' is defined but never used.  @typescript-eslint/no-unused-vars
+57:6  Warning: React Hook useEffect has a missing dependency: 'toast'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+182:17  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+188:17  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/app/page.tsx
+64:21  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/app/plots/[slug]/page.tsx
+3:35  Warning: 'User' is defined but never used.  @typescript-eslint/no-unused-vars
+96:21  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/app/rent/houses/[slug]/page.tsx
+3:46  Warning: 'User' is defined but never used.  @typescript-eslint/no-unused-vars
+94:21  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/ui/property-card.tsx
+39:13  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/lib/payment-provider.ts
+132:31  Warning: 'signature' is defined but never used. Allowed unused args must match /^_/u.  @typescript-eslint/no-unused-vars
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+   Collecting page data ...
+   Generating static pages (0/53) ...
+ ΓÜá metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+ ΓÜá metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+   Generating static pages (13/53) 
+   Generating static pages (26/53) 
+   Generating static pages (39/53) 
+ Γ£ô Generating static pages (53/53)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+Γöî Γùï /                                    4.15 kB         141 kB
+Γö£ Γùï /_not-found                             1 kB         104 kB
+Γö£ Γùï /about                                 195 B         137 kB
+Γö£ Γùï /admin                               3.86 kB         119 kB
+Γö£ Γùï /admin/audit                         4.16 kB         115 kB
+Γö£ Γùï /admin/listings                      2.42 kB         117 kB
+Γö£ Γùï /admin/locations                     1.43 kB         113 kB
+Γö£ Γùï /admin/marketplaces                  4.93 kB         116 kB
+Γö£ Γùï /admin/payments                      3.54 kB         115 kB
+Γö£ Γùï /admin/reports                       2.39 kB         117 kB
+Γö£ Γùï /admin/users                         5.37 kB         117 kB
+Γö£ ╞Æ /api/admin/audit                       217 B         103 kB
+Γö£ ╞Æ /api/admin/grant-access                217 B         103 kB
+Γö£ ╞Æ /api/admin/listings                    217 B         103 kB
+Γö£ ╞Æ /api/admin/listings/[id]               217 B         103 kB
+Γö£ ╞Æ /api/admin/marketplaces                217 B         103 kB
+Γö£ ╞Æ /api/admin/payments                    217 B         103 kB
+Γö£ ╞Æ /api/admin/plans                       217 B         103 kB
+Γö£ ╞Æ /api/admin/reports                     217 B         103 kB
+Γö£ ╞Æ /api/admin/reports/[id]                217 B         103 kB
+Γö£ ╞Æ /api/admin/stats                       217 B         103 kB
+Γö£ ╞Æ /api/admin/users                       217 B         103 kB
+Γö£ ╞Æ /api/admin/users/[id]                  217 B         103 kB
+Γö£ ╞Æ /api/ai                                217 B         103 kB
+Γö£ ╞Æ /api/auth/change-password              217 B         103 kB
+Γö£ ╞Æ /api/auth/login                        217 B         103 kB
+Γö£ ╞Æ /api/auth/logout                       217 B         103 kB
+Γö£ ╞Æ /api/auth/me                           217 B         103 kB
+Γö£ ╞Æ /api/auth/register                     217 B         103 kB
+Γö£ ╞Æ /api/locations                         217 B         103 kB
+Γö£ ╞Æ /api/memberships                       217 B         103 kB
+Γö£ ╞Æ /api/payments/verify/[reference]       217 B         103 kB
+Γö£ ╞Æ /api/payments/webhook                  217 B         103 kB
+Γö£ ╞Æ /api/plans                             217 B         103 kB
+Γö£ ╞Æ /api/properties                        217 B         103 kB
+Γö£ ╞Æ /api/properties/[id]                   217 B         103 kB
+Γö£ ╞Æ /api/properties/[id]/images            217 B         103 kB
+Γö£ ╞Æ /api/property-types                    217 B         103 kB
+Γö£ ╞Æ /api/reports                           217 B         103 kB
+Γö£ ╞Æ /api/seed                              217 B         103 kB
+Γö£ ╞Æ /api/seed-plans                        217 B         103 kB
+Γö£ Γùï /contact                               195 B         137 kB
+Γö£ Γùï /dashboard                           3.68 kB         119 kB
+Γö£ Γùï /dashboard/listings                  4.28 kB         119 kB
+Γö£ ╞Æ /dashboard/listings/[id]/edit        3.45 kB         118 kB
+Γö£ Γùï /dashboard/listings/new              4.17 kB         119 kB
+Γö£ Γùï /dashboard/memberships               4.86 kB         116 kB
+Γö£ Γùï /help                                  195 B         137 kB
+Γö£ Γùï /how-it-works                          195 B         137 kB
+Γö£ Γùï /login                               3.42 kB         136 kB
+Γö£ Γùï /payment/callback                    1.61 kB         138 kB
+Γö£ Γùï /plots                               2.55 kB         142 kB
+Γö£ ╞Æ /plots/[slug]                          204 B         137 kB
+Γö£ Γùï /privacy                               186 B         137 kB
+Γö£ Γùï /register                            4.86 kB         138 kB
+Γö£ Γùï /rent/houses                          2.5 kB         142 kB
+Γö£ ╞Æ /rent/houses/[slug]                    204 B         137 kB
+Γö£ Γùï /robots.txt                            217 B         103 kB
+Γö£ Γùï /sitemap.xml                           217 B         103 kB
+Γöö Γùï /terms                                 186 B         137 kB
++ First Load JS shared by all             103 kB
+  Γö£ chunks/1255-fc6c00ab2f765339.js      46.4 kB
+  Γö£ chunks/4bd1b696-f785427dddbba9fb.js  54.2 kB
+  Γöö other shared chunks (total)             2 kB
+
+
+╞Æ Middleware                             39.1 kB
+
+Γùï  (Static)   prerendered as static content
+╞Æ  (Dynamic)  server-rendered on demand
+

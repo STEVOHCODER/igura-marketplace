@@ -92,22 +92,24 @@ export default function MembershipsPage() {
 
   const rentalPlans = plans.filter(p => p.marketplace?.name === "House Rental");
   const plotPlans = plans.filter(p => p.marketplace?.name === "Plot Selling VIP");
+  const houseSalePlans = plans.filter(p => p.marketplace?.name === "House Selling VVIP");
 
   const renderPlanCard = (plan: any) => {
     const active = hasActiveMembership(plan.marketplace?.name, plan.role);
     const pending = isPending(plan.marketplace?.name, plan.role);
     const isCommissionaire = plan.role === "COMMISSIONAIRE";
     const isPlot = plan.marketplace?.name === "Plot Selling VIP";
+    const isHouseSale = plan.marketplace?.name === "House Selling VVIP";
 
     return (
       <Card key={plan.id} className={active ? "border-emerald-300 bg-emerald-50/50" : ""}>
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className={`h-10 w-10 rounded-lg ${isPlot ? "bg-amber-100" : "bg-emerald-100"} flex items-center justify-center`}>
+            <div className={`h-10 w-10 rounded-lg ${isHouseSale ? "bg-violet-100" : isPlot ? "bg-amber-100" : "bg-emerald-100"} flex items-center justify-center`}>
               {isCommissionaire ? (
-                <Crown className={`h-5 w-5 ${isPlot ? "text-amber-600" : "text-emerald-600"}`} />
+                <Crown className={`h-5 w-5 ${isHouseSale ? "text-violet-600" : isPlot ? "text-amber-600" : "text-emerald-600"}`} />
               ) : (
-                <Check className={`h-5 w-5 ${isPlot ? "text-amber-600" : "text-emerald-600"}`} />
+                <Check className={`h-5 w-5 ${isHouseSale ? "text-violet-600" : isPlot ? "text-amber-600" : "text-emerald-600"}`} />
               )}
             </div>
             <div>
@@ -192,6 +194,19 @@ export default function MembershipsPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {plotPlans.map(renderPlanCard)}
+          </div>
+        </div>
+      )}
+
+      {/* House Selling VVIP Plans */}
+      {houseSalePlans.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Crown className="h-5 w-5 text-violet-600" />
+            <h2 className="text-lg font-semibold text-slate-900">{t("memberships.houseSellingVvip")}</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {houseSalePlans.map(renderPlanCard)}
           </div>
         </div>
       )}

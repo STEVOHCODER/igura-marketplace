@@ -31,16 +31,19 @@ export async function POST() {
 
     const rental = await prisma.marketplace.create({ data: { name: "House Rental", displayName: "House Rental", description: "Find houses and apartments for rent", status: "ACTIVE" } });
     const plot = await prisma.marketplace.create({ data: { name: "Plot Selling VIP", displayName: "Plot Selling VIP", description: "Premium plots and land for sale", status: "ACTIVE" } });
+    const houseSelling = await prisma.marketplace.create({ data: { name: "House Selling VVIP", displayName: "House Selling VVIP", description: "Premium houses for sale", status: "ACTIVE" } });
 
-    // House Rental plans - Commissionaire
+    // House Rental plans
     const rentalCommissionairePlan = await prisma.plan.create({ data: { name: "House Commissionaire", displayName: "House Commissionaire", marketplaceId: rental.id, role: "COMMISSIONAIRE", price: 5000, maxActiveListings: 10, maxImagesPerListing: 3, features: ["10 active listings", "3 images per listing", "Manage properties", "Contact leads"], status: "ACTIVE" } });
-    // House Rental plans - Client
     const rentalClientPlan = await prisma.plan.create({ data: { name: "House Client", displayName: "House Client", marketplaceId: rental.id, role: "CLIENT", price: 2000, maxActiveListings: 0, maxImagesPerListing: 0, features: ["Search all houses", "View full listings", "Contact owners directly", "Save favorites"], status: "ACTIVE" } });
 
-    // Plot Selling plans - Commissionaire
+    // Plot Selling plans
     const plotCommissionairePlan = await prisma.plan.create({ data: { name: "Plot Commissionaire", displayName: "Plot Commissionaire", marketplaceId: plot.id, role: "COMMISSIONAIRE", price: 20000, maxActiveListings: 10, maxImagesPerListing: 3, features: ["10 active listings", "3 images per listing", "Manage plots", "Premium placement"], status: "ACTIVE" } });
-    // Plot Selling plans - Client
     const plotClientPlan = await prisma.plan.create({ data: { name: "Plot Client", displayName: "Plot Client", marketplaceId: plot.id, role: "CLIENT", price: 15000, maxActiveListings: 0, maxImagesPerListing: 0, features: ["Search all plots", "View full listings", "Contact owners directly", "Save favorites"], status: "ACTIVE" } });
+
+    // House Selling VVIP plans
+    const houseSellingCommissionairePlan = await prisma.plan.create({ data: { name: "House Selling VVIP Commissionaire", displayName: "House Selling VVIP Commissionaire", marketplaceId: houseSelling.id, role: "COMMISSIONAIRE", price: 25000, maxActiveListings: 10, maxImagesPerListing: 3, features: ["10 active listings", "3 images per listing", "Manage house sales", "VVIP placement"], status: "ACTIVE" } });
+    const houseSellingClientPlan = await prisma.plan.create({ data: { name: "House Selling VVIP Client", displayName: "House Selling VVIP Client", marketplaceId: houseSelling.id, role: "CLIENT", price: 10000, maxActiveListings: 0, maxImagesPerListing: 0, features: ["Search all houses for sale", "View full listings", "Contact owners directly", "Save favorites"], status: "ACTIVE" } });
 
     const now = new Date();
     await prisma.membership.create({ data: { userId: agent.id, planId: rentalCommissionairePlan.id, status: "ACTIVE", activatedAt: now, expiresAt: new Date(now.getTime() + 30 * 86400000) } });
@@ -73,6 +76,7 @@ export async function POST() {
 
     const houseTypeNames = ["Villa", "Apartment", "Studio", "Townhouse", "Duplex", "Bungalow", "Room"];
     const plotTypeNames = ["Residential Plot", "Commercial Plot", "Agricultural Land", "Industrial Land"];
+    const houseSellingTypeNames = ["Villa", "Apartment", "Townhouse", "Duplex", "Bungalow", "Mansion", "Penthouse"];
     const rentalTypes = [];
     for (let i = 0; i < houseTypeNames.length; i++) {
       const t = await prisma.propertyType.create({ data: { marketplaceId: rental.id, name: houseTypeNames[i], slug: houseTypeNames[i].toLowerCase().replace(/\s+/g, "-"), displayName: houseTypeNames[i], sortOrder: i, status: "ACTIVE" } });
@@ -82,6 +86,11 @@ export async function POST() {
     for (let i = 0; i < plotTypeNames.length; i++) {
       const t = await prisma.propertyType.create({ data: { marketplaceId: plot.id, name: plotTypeNames[i], slug: plotTypeNames[i].toLowerCase().replace(/\s+/g, "-"), displayName: plotTypeNames[i], sortOrder: i, status: "ACTIVE" } });
       plotTypes.push(t);
+    }
+    const houseSellingTypes = [];
+    for (let i = 0; i < houseSellingTypeNames.length; i++) {
+      const t = await prisma.propertyType.create({ data: { marketplaceId: houseSelling.id, name: houseSellingTypeNames[i], slug: houseSellingTypeNames[i].toLowerCase().replace(/\s+/g, "-"), displayName: houseSellingTypeNames[i], sortOrder: i, status: "ACTIVE" } });
+      houseSellingTypes.push(t);
     }
 
     const rentalPropsData = [
@@ -114,7 +123,21 @@ export async function POST() {
       plotProps.push(prop);
     }
 
-    const allProps = [...rentalProps, ...plotProps];
+    const houseSellingPropsData = [
+      { ownerId: agent.id, marketplaceId: houseSelling.id, propertyTypeId: houseSellingTypes[0].id, title: "Luxury 5-Bedroom Villa in Nyarutarama", slug: "luxury-5bedroom-villa-nyarutarama", description: "Exquisite luxury villa with modern amenities, private pool, and stunning views of Kigali hills.", price: 250000000, bedrooms: 5, bathrooms: 4, areaValue: 500, areaUnit: "SQM", locationDistrict: "Kigali City", locationSector: "Gasabo", locationCell: "Nyarutarama", latitude: -1.9350, longitude: 29.9500, contactPhone: "+250788111111", contactName: "Jean Hakizimana", status: "ACTIVE", viewCount: 567 },
+      { ownerId: agent.id, marketplaceId: houseSelling.id, propertyTypeId: houseSellingTypes[1].id, title: "Modern 3-Bedroom Apartment in Kimihurura", slug: "modern-3bedroom-apartment-kimihurura", description: "Sleek modern apartment in diplomatic zone with smart home features.", price: 120000000, bedrooms: 3, bathrooms: 3, areaValue: 200, areaUnit: "SQM", locationDistrict: "Kigali City", locationSector: "Gasabo", locationCell: "Kimihurura", latitude: -1.9480, longitude: 29.9350, contactPhone: "+250788111111", contactName: "Jean Hakizimana", status: "ACTIVE", viewCount: 423 },
+      { ownerId: client.id, marketplaceId: houseSelling.id, propertyTypeId: houseSellingTypes[2].id, title: "Elegant Townhouse in Kagugu", slug: "elegant-townhouse-kagugu", description: "Beautiful 4-bedroom townhouse with compound and servant quarters.", price: 85000000, bedrooms: 4, bathrooms: 3, areaValue: 350, areaUnit: "SQM", locationDistrict: "Kigali City", locationSector: "Gasabo", locationCell: "Kagugu", latitude: -1.9420, longitude: 29.9550, contactPhone: "+250788222222", contactName: "Marie Uwimana", status: "ACTIVE", viewCount: 312 },
+      { ownerId: agent.id, marketplaceId: houseSelling.id, propertyTypeId: houseSellingTypes[3].id, title: "Premium Duplex in Kibagabaga", slug: "premium-duplex-kibagabaga", description: "Stunning duplex with panoramic city views and premium finishes.", price: 150000000, bedrooms: 4, bathrooms: 3, areaValue: 380, areaUnit: "SQM", locationDistrict: "Kigali City", locationSector: "Gasabo", locationCell: "Kibagabaga", latitude: -1.9380, longitude: 29.9620, contactPhone: "+250788111111", contactName: "Jean Hakizimana", status: "ACTIVE", viewCount: 289 },
+      { ownerId: agent.id, marketplaceId: houseSelling.id, propertyTypeId: houseSellingTypes[4].id, title: "Family Bungalow in Kabuga", slug: "family-bungalow-kabuga", description: "Spacious single-story home with large compound, perfect for families.", price: 65000000, bedrooms: 4, bathrooms: 2, areaValue: 300, areaUnit: "SQM", locationDistrict: "Kigali City", locationSector: "Gasabo", locationCell: "Kabuga", latitude: -1.9460, longitude: 29.9580, contactPhone: "+250788111111", contactName: "Jean Hakizimana", status: "ACTIVE", viewCount: 198 },
+    ];
+
+    const houseSellingProps = [];
+    for (const p of houseSellingPropsData) {
+      const prop = await prisma.property.create({ data: p as any });
+      houseSellingProps.push(prop);
+    }
+
+    const allProps = [...rentalProps, ...plotProps, ...houseSellingProps];
     for (const prop of allProps) {
       for (let i = 0; i < 3; i++) {
         await prisma.propertyImage.create({ data: { propertyId: prop.id, url: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop&auto=format", sortOrder: i, altText: `${prop.title} - Image ${i + 1}` } });

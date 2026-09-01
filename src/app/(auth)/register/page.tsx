@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { UserPlus, Eye, EyeOff, ArrowRight, Home, MapPin, Briefcase, Search } from "lucide-react";
+import { UserPlus, Eye, EyeOff, ArrowRight, Home, MapPin, Briefcase, Search, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
@@ -18,7 +18,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<"COMMISSIONAIRE" | "CLIENT" | null>(null);
-  const [marketplace, setMarketplace] = useState<"House Rental" | "Plot Selling VIP" | null>(null);
+  const [marketplace, setMarketplace] = useState<"House Rental" | "Plot Selling VIP" | "House Selling VVIP" | null>(null);
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -85,11 +85,13 @@ export default function RegisterPage() {
   const commissionairePlans = [
     { marketplace: "House Rental" as const, price: 5000, features: ["10 active listings", "3 images per listing", "Manage properties", "Contact leads"] },
     { marketplace: "Plot Selling VIP" as const, price: 20000, features: ["10 active listings", "3 images per listing", "Manage plots", "Premium placement"] },
+    { marketplace: "House Selling VVIP" as const, price: 25000, features: ["10 active listings", "3 images per listing", "Manage house sales", "VVIP placement"] },
   ];
 
   const clientPlans = [
     { marketplace: "House Rental" as const, price: 2000, features: ["Search all houses", "View full listings", "Contact owners directly", "Save favorites"] },
     { marketplace: "Plot Selling VIP" as const, price: 15000, features: ["Search all plots", "View full listings", "Contact owners directly", "Save favorites"] },
+    { marketplace: "House Selling VVIP" as const, price: 10000, features: ["Search all houses for sale", "View full listings", "Contact owners directly", "Save favorites"] },
   ];
 
   return (
@@ -162,7 +164,7 @@ export default function RegisterPage() {
 
           <div className="mb-6">
             <p className="text-sm font-medium text-slate-700 mb-3">{t("register.chooseMarketplace")}</p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {(role === "COMMISSIONAIRE" ? commissionairePlans : clientPlans).map((plan) => (
                 <button
                   key={plan.marketplace}
@@ -174,13 +176,15 @@ export default function RegisterPage() {
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
-                    {plan.marketplace === "House Rental" ? (
+                    {plan.marketplace.includes("House") ? (
                       <Home className="h-4 w-4 text-emerald-600" />
-                    ) : (
+                    ) : plan.marketplace.includes("Plot") ? (
                       <MapPin className="h-4 w-4 text-amber-600" />
+                    ) : (
+                      <Crown className="h-4 w-4 text-violet-600" />
                     )}
                     <span className="text-sm font-medium text-slate-900">
-                      {plan.marketplace === "House Rental" ? t("register.houseRental") : t("register.plotSelling")}
+                      {plan.marketplace === "House Rental" ? t("register.houseRental") : plan.marketplace === "Plot Selling VIP" ? t("register.plotSelling") : t("register.houseSellingVvip")}
                     </span>
                   </div>
                   <p className="text-lg font-bold text-slate-900">{plan.price.toLocaleString()} RWF</p>
