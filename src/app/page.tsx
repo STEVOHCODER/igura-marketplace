@@ -37,7 +37,8 @@ export default function HomePage() {
               </div>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.1]">
                 {t("hero.title1")}<br />{t("hero.titleHome")}<br />
-                <span className="text-emerald-400">{t("hero.title2")}</span> {t("hero.titleFuture")}
+                <span className="text-emerald-400">{t("hero.title2")}</span> {t("hero.titleFuture")}<br />
+                <span className="text-violet-400">{t("hero.title3")}</span> {t("hero.titleVvip")}
               </h1>
               <p className="mt-6 text-lg sm:text-xl text-slate-300 max-w-lg leading-relaxed">
                 {t("hero.desc")}
