@@ -4,6 +4,7 @@ import { MapPin, Bed, Bath, Maximize, Phone, User, Eye, Share2, Home, Heart, Arr
 import Link from "next/link";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { Badge } from "@/components/ui/badge";
+import { ContactRevealCard } from "@/components/ui/contact-reveal-card";
 import { formatPrice, availabilityLabel } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
 import { en } from "@/i18n/en";
@@ -236,42 +237,16 @@ export default async function HouseDetailPage({ params }: Props) {
           {/* Right: Sidebar */}
           <div className="space-y-6">
             {/* Contact Card */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 sticky top-24 shadow-sm">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">{t("detail.contactOwner")}</h2>
-              <div className="flex items-center gap-3 mb-5">
-                <div className="h-12 w-12 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-sm shadow-emerald-200">
-                  <span className="text-sm font-bold text-white">
-                    {property.owner.firstName[0]}{property.owner.lastName[0]}
-                  </span>
-                </div>
-                <div>
-                  <div className="font-semibold text-slate-900">
-                    {property.owner.firstName} {property.owner.lastName}
-                  </div>
-                  <div className="text-sm text-slate-500">{t("detail.propertyOwner")}</div>
-                </div>
-              </div>
-              {property.contactPhone && (
-                <a
-                  href={`tel:${property.contactPhone}`}
-                  className="flex items-center justify-center gap-2 w-full bg-emerald-600 text-white py-3.5 rounded-xl font-semibold hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-600/20 hover:shadow-emerald-500/30"
-                >
-                  <Phone className="h-5 w-5" />
-                  {t("detail.call")} {property.contactPhone}
-                </a>
-              )}
-              {property.contactName && (
-                <p className="mt-3 text-sm text-slate-500 text-center">{t("detail.askFor")} <span className="font-medium text-slate-700">{property.contactName}</span></p>
-              )}
-              <div className="flex gap-2 mt-4">
-                <button className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">
-                  <Heart className="h-4 w-4" /> {t("detail.save")}
-                </button>
-                <button className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">
-                  <Share2 className="h-4 w-4" /> {t("detail.share")}
-                </button>
-              </div>
-            </div>
+            <ContactRevealCard
+              propertyId={property.id}
+              contactPhone={property.contactPhone}
+              contactName={property.contactName}
+              contactRevealed={(property as any).contactRevealed}
+              ownerInitials={`${property.owner.firstName[0]}${property.owner.lastName[0]}`}
+              ownerName={`${property.owner.firstName} ${property.owner.lastName}`}
+              ownerRole={t("detail.propertyOwner")}
+              accentColor="emerald"
+            />
 
             {/* Summary */}
             <div className="bg-white rounded-2xl border border-slate-200 p-6">

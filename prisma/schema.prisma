@@ -145,6 +145,7 @@ model Property {
   latitude            Float?
   longitude           Float?
   coordinatesRevealed Boolean   @default(false)
+  contactRevealed    Boolean   @default(false)
   locationCountry     String?   @default("Rwanda")
   locationDistrict    String?
   locationSector      String?

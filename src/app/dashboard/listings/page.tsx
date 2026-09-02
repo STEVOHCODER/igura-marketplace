@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Home, Plus, Edit, Trash2, Eye, EyeOff, MoreVertical } from "lucide-react";
+import { Home, Plus, Edit, Trash2, Eye, EyeOff, MoreVertical, Phone, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -49,6 +49,29 @@ export default function ListingsPage() {
       if (res.ok) {
         toast("Status updated", "success");
         fetchListings();
+      }
+    } catch {
+      toast("Something went wrong", "error");
+    }
+  };
+
+  const handleRevealContact = async (propertyId: string) => {
+    try {
+      const res = await fetch("/api/payments/reveal-contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ propertyId, method: "mobile_money" }),
+      });
+      const data = await res.json();
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+        return;
+      }
+      if (data.revealed || data.success) {
+        toast("Contact revealed!", "success");
+        fetchListings();
+      } else {
+        toast(data.error || "Payment failed", "error");
       }
     } catch {
       toast("Something went wrong", "error");
@@ -111,6 +134,19 @@ export default function ListingsPage() {
                 <p className="text-xs text-slate-400 mt-1">{listing.locationDistrict}, {listing.locationSector}</p>
               </div>
               <div className="flex items-center gap-2">
+                {listing.contactRevealed ? (
+                  <span className="inline-flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
+                    <Phone className="h-3 w-3" /> Contact Visible
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => handleRevealContact(listing.id)}
+                    className="inline-flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full hover:bg-amber-100 transition-colors cursor-pointer"
+                    title="Pay 2,000 RWF to reveal your contact number"
+                  >
+                    <Lock className="h-3 w-3" /> Reveal Contact
+                  </button>
+                )}
                 <Link href={`/dashboard/listings/${listing.id}/edit`}>
                   <Button variant="outline" size="sm"><Edit className="h-4 w-4" /></Button>
                 </Link>
