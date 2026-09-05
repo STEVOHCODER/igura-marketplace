@@ -23,6 +23,7 @@ export const loginSchema = z.object({
 export const propertySchema = z.object({
   title: z.string().min(5).max(200),
   description: z.string().min(20).max(5000),
+  marketplace: z.enum(["House Rental", "Plot Selling VIP", "House Selling VVIP"]),
   propertyTypeId: z.string().min(1),
   price: z.number().int().positive().max(100_000_000),
   negotiable: z.boolean().default(true),

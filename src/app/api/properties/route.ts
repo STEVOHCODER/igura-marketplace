@@ -11,59 +11,8 @@ export async function GET(request: NextRequest) {
 
     const filters = searchSchema.parse(query);
 
-    // Check access: unauthenticated users and clients without membership are blocked
-    const session = await getSession();
-    let hasAccess = true;
-    let needsAuth = false;
-    let needsMembership = false;
-
-    if (filters.marketplace) {
-      if (!session) {
-        // Unauthenticated: block completely
-        hasAccess = false;
-        needsAuth = true;
-      } else {
-        // Check user role and membership
-        const user = await prisma.user.findUnique({ where: { id: session.userId } });
-        if (user?.role === "ADMIN" || user?.role === "SUPER_ADMIN") {
-          hasAccess = true;
-        } else if (user?.role === "COMMISSIONAIRE") {
-          hasAccess = true;
-        } else {
-          // CLIENT: check if they have active membership for this marketplace
-          const marketplaceName = filters.marketplace.toLowerCase().replace(/_/g, " ");
-          const membership = await prisma.membership.findFirst({
-            where: {
-              userId: session.userId,
-              status: "ACTIVE",
-              plan: {
-                marketplace: {
-                  name: { contains: marketplaceName, mode: "insensitive" },
-                },
-                role: "CLIENT",
-              },
-            },
-          });
-          if (!membership) {
-            hasAccess = false;
-            needsMembership = true;
-          }
-        }
-      }
-    }
-
-    // If no access, return empty results with paywall flags
-    if (!hasAccess) {
-      return NextResponse.json({
-        properties: [],
-        total: 0,
-        page: filters.page,
-        totalPages: 0,
-        hasAccess: false,
-        needsAuth,
-        needsMembership,
-      });
-    }
+    // Everyone can browse listings freely — no membership required
+    // Phone numbers are hidden behind a 2,000 RWF paywall on detail pages
 
     const where: any = {
       status: "ACTIVE",
@@ -179,9 +128,6 @@ export async function GET(request: NextRequest) {
       total,
       page: filters.page,
       totalPages: Math.ceil(total / filters.limit),
-      hasAccess: true,
-      needsAuth: false,
-      needsMembership: false,
     });
   } catch (error) {
     if (error instanceof Error && error.name === "ZodError") {
@@ -202,42 +148,71 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const data = propertySchema.parse(body);
 
-    const membership = await prisma.membership.findFirst({
-      where: {
-        userId: session.userId,
-        status: "ACTIVE",
-        plan: { role: "COMMISSIONAIRE" },
-      },
-      include: { plan: true },
-    });
-
-    if (!membership) {
-      return NextResponse.json(
-        { error: "You need an active COMMISSIONAIRE membership to create listings" },
-        { status: 403 }
-      );
+    // Allow commissionaires to list freely for 1 month after registration
+    const user = await prisma.user.findUnique({ where: { id: session.userId } });
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const activeListingsCount = await prisma.property.count({
-      where: {
-        ownerId: session.userId,
-        status: { in: ["ACTIVE", "DRAFT", "UPCOMING"] },
-      },
-    });
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+    const isFreePeriod = user.createdAt > oneMonthAgo;
 
-    if (activeListingsCount >= membership.plan.maxActiveListings) {
-      return NextResponse.json(
-        { error: `Listing limit reached. Your plan allows ${membership.plan.maxActiveListings} active listings.` },
-        { status: 403 }
-      );
+    if (!isFreePeriod) {
+      // After 1 month, require active COMMISSIONAIRE membership
+      const membership = await prisma.membership.findFirst({
+        where: {
+          userId: session.userId,
+          status: "ACTIVE",
+          plan: { role: "COMMISSIONAIRE" },
+        },
+        include: { plan: true },
+      });
+
+      if (!membership) {
+        return NextResponse.json(
+          { error: "Your free listing period has ended. Please purchase a membership to continue listing." },
+          { status: 403 }
+        );
+      }
+
+      const activeListingsCount = await prisma.property.count({
+        where: {
+          ownerId: session.userId,
+          status: { in: ["ACTIVE", "DRAFT", "UPCOMING"] },
+        },
+      });
+
+      if (activeListingsCount >= membership.plan.maxActiveListings) {
+        return NextResponse.json(
+          { error: `Listing limit reached. Your plan allows ${membership.plan.maxActiveListings} active listings.` },
+          { status: 403 }
+        );
+      }
+    } else {
+      // Free period: limit to 10 active listings
+      const activeListingsCount = await prisma.property.count({
+        where: {
+          ownerId: session.userId,
+          status: { in: ["ACTIVE", "DRAFT", "UPCOMING"] },
+        },
+      });
+
+      if (activeListingsCount >= 10) {
+        return NextResponse.json(
+          { error: "Free listing limit reached (10). Upgrade to a membership for more listings." },
+          { status: 403 }
+        );
+      }
     }
 
+    // Find marketplace by name from the submitted data
     const marketplace = await prisma.marketplace.findFirst({
-      where: { plans: { some: { id: membership.planId } } },
+      where: { name: data.marketplace },
     });
 
     if (!marketplace) {
-      return NextResponse.json({ error: "Marketplace not found for this membership" }, { status: 400 });
+      return NextResponse.json({ error: "Marketplace not found" }, { status: 400 });
     }
 
     const tempProperty = await prisma.property.create({
