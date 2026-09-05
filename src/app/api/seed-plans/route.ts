@@ -3,9 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST() {
   try {
-    // Delete existing memberships first (they reference plans)
+    // Delete in order: payments → memberships → plans (foreign key chain)
+    await prisma.paymentEvent.deleteMany();
+    await prisma.payment.deleteMany();
     await prisma.membership.deleteMany();
-    // Delete existing plans
     await prisma.plan.deleteMany();
 
     // Find or create marketplaces
