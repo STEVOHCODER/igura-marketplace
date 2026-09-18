@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "fallback-secret-change-in-production"
-);
+// No fallback secret here either — if JWT_SECRET is unset, every token fails
+// to verify and the middleware fails closed (redirect to login) rather than
+// trusting sessions signed with a key that is published in the source.
+const RAW_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = RAW_SECRET ? new TextEncoder().encode(RAW_SECRET) : null;
 
 const protectedRoutes = ["/dashboard", "/admin"];
 const authRoutes = ["/login", "/register"];
@@ -13,7 +15,7 @@ export async function middleware(request: NextRequest) {
   const token = request.cookies.get("igura_session")?.value;
 
   let payload: any = null;
-  if (token) {
+  if (token && JWT_SECRET) {
     try {
       const result = await jwtVerify(token, JWT_SECRET);
       payload = result.payload;

@@ -57,3 +57,41 @@ export async function deletePropertyImage(path: string): Promise<void> {
     .remove([path]);
   if (error) console.error("Image deletion error:", error.message);
 }
+
+/**
+ * Separate bucket from images so video moderation/size limits (bucket-level
+ * file size cap and MIME allowlist, configured in the Supabase dashboard) can
+ * be tuned independently. Create a public "property-videos" bucket before
+ * this is used in production — it does not exist automatically.
+ */
+const VIDEO_BUCKET_NAME = "property-videos";
+
+export async function uploadPropertyVideo(
+  file: File,
+  propertyId: string
+): Promise<UploadResult> {
+  const ext = file.name.split(".").pop() || "mp4";
+  const path = `properties/${propertyId}/video-${Date.now()}.${ext}`;
+
+  const { error } = await supabaseAdmin.storage
+    .from(VIDEO_BUCKET_NAME)
+    .upload(path, file, {
+      contentType: file.type,
+      upsert: false,
+    });
+
+  if (error) throw new Error(`Upload failed: ${error.message}`);
+
+  const {
+    data: { publicUrl },
+  } = supabaseAdmin.storage.from(VIDEO_BUCKET_NAME).getPublicUrl(path);
+
+  return { url: publicUrl, path };
+}
+
+export async function deletePropertyVideo(path: string): Promise<void> {
+  const { error } = await supabaseAdmin.storage
+    .from(VIDEO_BUCKET_NAME)
+    .remove([path]);
+  if (error) console.error("Video deletion error:", error.message);
+}

@@ -30,6 +30,14 @@ export default function EditListingPage() {
   const [existingImages, setExistingImages] = useState<any[]>([]);
   const [newImages, setNewImages] = useState<File[]>([]);
   const [newPreviews, setNewPreviews] = useState<string[]>([]);
+  const [existingVideo, setExistingVideo] = useState<{ url: string; durationSeconds: number | null } | null>(null);
+  const [newVideo, setNewVideo] = useState<File | null>(null);
+  const [newVideoPreview, setNewVideoPreview] = useState<string>("");
+  const [newVideoDuration, setNewVideoDuration] = useState<number | null>(null);
+
+  const MAX_VIDEO_SECONDS = 40;
+  const MAX_VIDEO_SIZE = 25 * 1024 * 1024;
+  const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 
   useEffect(() => {
     fetch(`/api/properties/${id}`)
@@ -53,6 +61,7 @@ export default function EditListingPage() {
           keywordInput: "", status: p.status || "ACTIVE",
         });
         setExistingImages(p.images || []);
+        setExistingVideo(p.videoUrl ? { url: p.videoUrl, durationSeconds: p.videoDurationSeconds ?? null } : null);
       })
       .catch(() => toast("Failed to load listing", "error"))
       .finally(() => setLoading(false));
@@ -103,6 +112,14 @@ export default function EditListingPage() {
         await fetch(`/api/properties/${id}/images`, { method: "POST", body: fd });
       }
 
+      if (newVideo) {
+        const fd = new FormData();
+        fd.append("file", newVideo);
+        if (newVideoDuration != null) fd.append("duration", String(newVideoDuration));
+        const vRes = await fetch(`/api/properties/${id}/video`, { method: "POST", body: fd });
+        if (!vRes.ok) toast(t("edit.videoUploadFailed"), "error");
+      }
+
       toast("Listing updated!", "success");
       router.push("/dashboard/listings");
     } catch { toast("Something went wrong", "error"); }
@@ -128,6 +145,41 @@ export default function EditListingPage() {
   const removeNewImage = (idx: number) => {
     setNewImages(prev => prev.filter((_, i) => i !== idx));
     setNewPreviews(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const deleteExistingVideo = async () => {
+    try {
+      const res = await fetch(`/api/properties/${id}/video`, { method: "DELETE" });
+      if (res.ok) { setExistingVideo(null); toast(t("edit.videoRemoved"), "success"); }
+    } catch { toast(t("edit.videoUploadFailed"), "error"); }
+  };
+
+  const handleNewVideo = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!VIDEO_TYPES.includes(file.type)) { toast(t("edit.videoUnsupported"), "error"); return; }
+    if (file.size > MAX_VIDEO_SIZE) { toast(t("edit.videoTooLarge"), "error"); return; }
+    const url = URL.createObjectURL(file);
+    const probe = document.createElement("video");
+    probe.preload = "metadata";
+    probe.onloadedmetadata = () => {
+      if (probe.duration > MAX_VIDEO_SECONDS + 1) {
+        toast(t("edit.videoTooLong"), "error");
+        URL.revokeObjectURL(url);
+        return;
+      }
+      setNewVideo(file);
+      setNewVideoPreview(url);
+      setNewVideoDuration(Math.round(probe.duration));
+    };
+    probe.src = url;
+  };
+
+  const removeNewVideo = () => {
+    if (newVideoPreview) URL.revokeObjectURL(newVideoPreview);
+    setNewVideo(null);
+    setNewVideoPreview("");
+    setNewVideoDuration(null);
   };
 
   const districts = ["Gasabo","Kicukiro","Nyarugenge","Huye","Rubavu","Musanze","Nyagatare","Rwamagana","Muhanga","Kayonza","Gicumbi","Nyanza","Bugesera"];
@@ -198,6 +250,27 @@ export default function EditListingPage() {
               </label>
             )}
           </div>
+        </CardContent></Card>
+
+        <Card><CardContent className="p-6 space-y-4">
+          <h2 className="text-lg font-semibold">{t("edit.video")}</h2>
+          <p className="text-sm text-slate-500">{t("edit.videoDesc")}</p>
+          {existingVideo ? (
+            <div className="relative rounded-lg overflow-hidden border max-w-sm">
+              <video src={existingVideo.url} controls className="w-full aspect-video bg-black" />
+              <button onClick={deleteExistingVideo} className="absolute top-1 right-1 h-6 w-6 rounded-full bg-red-600 text-white flex items-center justify-center"><X className="h-3 w-3" /></button>
+            </div>
+          ) : newVideoPreview ? (
+            <div className="relative rounded-lg overflow-hidden border max-w-sm">
+              <video src={newVideoPreview} controls className="w-full aspect-video bg-black" />
+              <button onClick={removeNewVideo} className="absolute top-1 right-1 h-6 w-6 rounded-full bg-red-600 text-white flex items-center justify-center"><X className="h-3 w-3" /></button>
+            </div>
+          ) : (
+            <label className="flex flex-col items-center justify-center w-full max-w-sm aspect-video rounded-lg border-2 border-dashed border-slate-300 cursor-pointer hover:border-emerald-400">
+              <Upload className="h-6 w-6 text-slate-400" /><span className="text-xs text-slate-400 mt-1">{t("edit.addVideo")}</span>
+              <input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={handleNewVideo} className="hidden" />
+            </label>
+          )}
         </CardContent></Card>
 
         <Card><CardContent className="p-6 space-y-4">

@@ -117,6 +117,14 @@ export default async function HouseDetailPage({ params }: Props) {
               </div>
             )}
 
+            {/* Video */}
+            {property.videoUrl && (
+              <div className="bg-white rounded-2xl border border-slate-200 p-6">
+                <h2 className="text-lg font-semibold text-slate-900 mb-4">{t("detail.propertyVideo")}</h2>
+                <video src={property.videoUrl} controls className="w-full aspect-video rounded-xl bg-black" />
+              </div>
+            )}
+
             {/* Title & Price */}
             <div className="bg-white rounded-2xl border border-slate-200 p-6">
               <div className="flex items-start justify-between gap-4">

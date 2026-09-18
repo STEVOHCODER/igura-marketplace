@@ -36,6 +36,37 @@ export function generateUniqueSlug(title: string, id: string): string {
   return `${base}-${shortId}`;
 }
 
+interface SearchTextInput {
+  title: string;
+  description?: string | null;
+  keywords?: string[] | null;
+  district?: string | null;
+  sector?: string | null;
+  cell?: string | null;
+  village?: string | null;
+}
+
+/**
+ * Builds the lowercased "title description keywords district sector" blob
+ * stored in `Property.searchText`, so free-text search can hit an index
+ * instead of scanning every document. Keep this in sync with the shape
+ * described in prisma/schema.prisma.
+ */
+export function buildSearchText(input: SearchTextInput): string {
+  return [
+    input.title,
+    input.description,
+    ...(input.keywords || []),
+    input.district,
+    input.sector,
+    input.cell,
+    input.village,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
 export function truncate(text: string, length: number): string {
   if (text.length <= length) return text;
   return text.slice(0, length).trimEnd() + "...";

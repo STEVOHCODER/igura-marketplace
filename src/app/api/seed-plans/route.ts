@@ -1,9 +1,16 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardSeedRoute } from "@/lib/seed-guard";
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  // Wipes every payment, membership and plan — gated behind SEED_ENABLED and
+  // the x-seed-secret header rather than being open to the internet.
+  const blocked = guardSeedRoute(request);
+  if (blocked) return blocked;
+
   try {
     // Delete in order: payments → memberships → plans (foreign key chain)
+    await prisma.contactReveal.deleteMany();
     await prisma.paymentEvent.deleteMany();
     await prisma.payment.deleteMany();
     await prisma.membership.deleteMany();

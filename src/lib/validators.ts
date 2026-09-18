@@ -47,6 +47,51 @@ export const propertySchema = z.object({
   plotPurpose: z.string().optional(),
 });
 
+/// Statuses an owner is allowed to set on their own listing. DELETED is
+/// intentionally excluded (use DELETE), as is any admin-only moderation state.
+export const OWNER_SETTABLE_STATUSES = ["DRAFT", "ACTIVE", "UNAVAILABLE"] as const;
+
+/// Body schema for PUT /api/properties/[id].
+///
+/// This is deliberately NOT `propertySchema.partial()`. That schema has no
+/// `status` key, so Zod silently stripped it and the dashboard publish toggle
+/// was a no-op — every listing stayed DRAFT forever and never appeared in
+/// search, which only returns ACTIVE.
+export const propertyUpdateSchema = propertySchema.partial().extend({
+  status: z.enum(OWNER_SETTABLE_STATUSES).optional(),
+});
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().email("Invalid email address"),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(16, "Invalid or expired reset link"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
+});
+
+export const profileSchema = z.object({
+  firstName: z.string().min(1).max(50).optional(),
+  lastName: z.string().min(1).max(50).optional(),
+  phone: z.string().min(10).max(15).optional(),
+  bio: z.string().max(500).optional().nullable(),
+  address: z.string().max(200).optional().nullable(),
+  district: z.string().max(100).optional().nullable(),
+  avatarUrl: z.string().url().optional().nullable(),
+});
+
+export const savedSearchSchema = z.object({
+  name: z.string().min(1).max(100),
+  marketplace: z.string().optional(),
+  query: z.record(z.string()).default({}),
+  alertsOn: z.boolean().default(true),
+});
+
 export const searchSchema = z.object({
   q: z.string().optional(),
   marketplace: z.string().optional(),
@@ -62,9 +107,17 @@ export const searchSchema = z.object({
   areaMin: z.coerce.number().optional(),
   areaMax: z.coerce.number().optional(),
   purpose: z.string().optional(),
+  bedroomsMin: z.coerce.number().int().min(0).max(20).optional(),
+  bathroomsMin: z.coerce.number().int().min(0).max(20).optional(),
+  // Radius search: all three must be present for it to apply.
+  lat: z.coerce.number().min(-90).max(90).optional(),
+  lng: z.coerce.number().min(-180).max(180).optional(),
+  radiusKm: z.coerce.number().positive().max(500).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(50).default(12),
-  sort: z.enum(["newest", "price_asc", "price_desc", "popular"]).default("newest"),
+  sort: z
+    .enum(["newest", "price_asc", "price_desc", "popular", "relevance", "distance"])
+    .default("newest"),
 });
 
 export const reportSchema = z.object({

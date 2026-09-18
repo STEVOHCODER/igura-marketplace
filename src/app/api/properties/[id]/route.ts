@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { propertySchema } from "@/lib/validators";
-import { deletePropertyImages } from "@/lib/supabase";
+import { deletePropertyImages, deletePropertyVideo } from "@/lib/supabase";
 
 export async function GET(
   request: NextRequest,
@@ -181,6 +181,10 @@ export async function DELETE(
 
     if (storagePaths.length > 0) {
       await deletePropertyImages(storagePaths);
+    }
+
+    if (existing.videoStoragePath) {
+      await deletePropertyVideo(existing.videoStoragePath);
     }
 
     await prisma.property.delete({ where: { id } });

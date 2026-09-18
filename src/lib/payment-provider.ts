@@ -1,3 +1,13 @@
+import { timingSafeEqual } from "crypto";
+
+/** Constant-time compare that tolerates length mismatch without throwing. */
+function safeCompare(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return timingSafeEqual(bufA, bufB);
+}
+
 export interface PaymentInitiation {
   amount: number;
   currency: string;
@@ -16,6 +26,10 @@ export interface PaymentResult {
   checkoutUrl?: string;
   status: "PENDING" | "SUCCESSFUL" | "FAILED" | "CANCELLED";
   message?: string;
+  /** Amount the provider actually settled — callers must check this against
+   *  the amount they expected before granting anything. */
+  amount?: number;
+  currency?: string;
 }
 
 export interface WebhookEvent {
@@ -118,6 +132,8 @@ class FlutterwaveProvider implements PaymentProvider {
         reference,
         status,
         transactionId: result.data.id?.toString(),
+        amount: typeof result.data.amount === "number" ? result.data.amount : Number(result.data.amount),
+        currency: result.data.currency,
       };
     }
 
@@ -130,6 +146,25 @@ class FlutterwaveProvider implements PaymentProvider {
   }
 
   handleWebhook(payload: any, signature: string): WebhookEvent | null {
+    // The signature argument used to be accepted and ignored, so anyone who
+    // could reach the endpoint could POST {status:"successful"} and activate a
+    // membership or unlock a phone number for free. Flutterwave sends the
+    // configured secret hash verbatim in `verif-hash`, so compare it in
+    // constant time and reject anything that does not match.
+    const expected = process.env.FLUTTERWAVE_WEBHOOK_HASH || "";
+
+    if (!expected) {
+      console.error(
+        "[payments] FLUTTERWAVE_WEBHOOK_HASH is not set — rejecting webhook. Set it to the secret hash configured in the Flutterwave dashboard."
+      );
+      return null;
+    }
+
+    if (!signature || !safeCompare(signature, expected)) {
+      console.warn("[payments] Rejected webhook with invalid signature.");
+      return null;
+    }
+
     if (!payload || payload.status !== "successful" && payload.status !== "failed" && payload.status !== "cancelled" && payload.status !== "pending") {
       return null;
     }

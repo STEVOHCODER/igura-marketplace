@@ -45,6 +45,13 @@ export default function NewListingPage() {
   });
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [video, setVideo] = useState<File | null>(null);
+  const [videoPreview, setVideoPreview] = useState<string>("");
+  const [videoDuration, setVideoDuration] = useState<number | null>(null);
+
+  const MAX_VIDEO_SECONDS = 40;
+  const MAX_VIDEO_SIZE = 25 * 1024 * 1024;
+  const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 
   useEffect(() => {
     fetch("/api/property-types").then(r => r.json()).then(d => setPropertyTypes(d?.types || []));
@@ -85,6 +92,34 @@ export default function NewListingPage() {
     setImagePreviews(newImages.map(f => URL.createObjectURL(f)));
   };
 
+  const handleVideoAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!VIDEO_TYPES.includes(file.type)) { toast(t("create.videoUnsupported"), "error"); return; }
+    if (file.size > MAX_VIDEO_SIZE) { toast(t("create.videoTooLarge"), "error"); return; }
+    const url = URL.createObjectURL(file);
+    const probe = document.createElement("video");
+    probe.preload = "metadata";
+    probe.onloadedmetadata = () => {
+      if (probe.duration > MAX_VIDEO_SECONDS + 1) {
+        toast(t("create.videoTooLong"), "error");
+        URL.revokeObjectURL(url);
+        return;
+      }
+      setVideo(file);
+      setVideoPreview(url);
+      setVideoDuration(Math.round(probe.duration));
+    };
+    probe.src = url;
+  };
+
+  const removeVideo = () => {
+    if (videoPreview) URL.revokeObjectURL(videoPreview);
+    setVideo(null);
+    setVideoPreview("");
+    setVideoDuration(null);
+  };
+
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
@@ -114,6 +149,14 @@ export default function NewListingPage() {
         fd.append("file", images[i]);
         fd.append("sortOrder", i.toString());
         await fetch(`/api/properties/${data.property.id}/images`, { method: "POST", body: fd });
+      }
+
+      if (video) {
+        const fd = new FormData();
+        fd.append("file", video);
+        if (videoDuration != null) fd.append("duration", String(videoDuration));
+        const vRes = await fetch(`/api/properties/${data.property.id}/video`, { method: "POST", body: fd });
+        if (!vRes.ok) toast(t("create.videoUploadFailed"), "error");
       }
 
       toast(t("create.successCreate"), "success");
@@ -196,6 +239,25 @@ export default function NewListingPage() {
                     <Upload className="h-8 w-8 text-slate-400 mb-2" />
                     <span className="text-sm text-slate-500">{t("create.addImage")}</span>
                     <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={handleImageAdd} className="hidden" />
+                  </label>
+                )}
+              </div>
+
+              <div className="pt-4 border-t border-slate-100">
+                <h3 className="text-sm font-semibold text-slate-900">{t("create.propertyVideo")}</h3>
+                <p className="text-sm text-slate-500 mb-3">{t("create.videoDesc")}</p>
+                {videoPreview ? (
+                  <div className="relative rounded-xl overflow-hidden border border-slate-200 max-w-sm">
+                    <video src={videoPreview} controls className="w-full aspect-video bg-black" />
+                    <button onClick={removeVideo} className="absolute top-2 right-2 h-6 w-6 rounded-full bg-red-600 text-white flex items-center justify-center">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center w-full max-w-sm aspect-video rounded-xl border-2 border-dashed border-slate-300 cursor-pointer hover:border-emerald-400 transition-colors">
+                    <Upload className="h-8 w-8 text-slate-400 mb-2" />
+                    <span className="text-sm text-slate-500">{t("create.addVideo")}</span>
+                    <input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={handleVideoAdd} className="hidden" />
                   </label>
                 )}
               </div>
@@ -320,6 +382,9 @@ export default function NewListingPage() {
                   <div className="grid grid-cols-3 gap-2 rounded-lg overflow-hidden">
                     {imagePreviews.map((p, i) => <img key={i} src={p} alt="" className="aspect-square object-cover" />)}
                   </div>
+                )}
+                {videoPreview && (
+                  <video src={videoPreview} controls className="w-full aspect-video rounded-lg bg-black" />
                 )}
                 <h3 className="text-lg font-semibold">{form.title || t("create.untitled")}</h3>
                 <p className="text-emerald-600 text-xl font-bold">{form.price ? `${parseInt(form.price).toLocaleString()} RWF` : t("create.noPrice")}/month</p>

@@ -1,9 +1,20 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
+import { guardSeedRoute } from "@/lib/seed-guard";
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  // This endpoint drops the entire database. It is unreachable unless
+  // SEED_ENABLED=true and a valid x-seed-secret header is supplied.
+  const blocked = guardSeedRoute(request);
+  if (blocked) return blocked;
+
   try {
+    await prisma.contactReveal.deleteMany();
+    await prisma.favorite.deleteMany();
+    await prisma.savedSearch.deleteMany();
+    await prisma.propertyView.deleteMany();
+    await prisma.verificationToken.deleteMany();
     await prisma.notification.deleteMany();
     await prisma.propertyKeyword.deleteMany();
     await prisma.propertyImage.deleteMany();
@@ -165,6 +176,8 @@ export async function POST() {
     });
   } catch (error: any) {
     console.error("Seed error:", error);
-    return NextResponse.json({ success: false, error: error.message, stack: error.stack }, { status: 500 });
+    // Stack traces are not returned to the caller — they leak file paths and
+    // internal structure to anyone who can trigger an error.
+    return NextResponse.json({ success: false, error: "Seed failed. Check server logs." }, { status: 500 });
   }
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MapPin, Bed, Bath, Maximize } from "lucide-react";
+import { MapPin, Bed, Bath, Maximize, PlayCircle } from "lucide-react";
 import { formatPrice, availabilityLabel } from "@/lib/utils";
 import { Badge } from "./badge";
 
@@ -21,6 +21,7 @@ interface PropertyCardProps {
     marketplace?: { name: string; displayName: string };
     propertyType?: { displayName: string } | null;
     images?: { url: string; altText?: string | null }[];
+    videoUrl?: string | null;
   };
   marketplace?: string;
 }
@@ -52,6 +53,11 @@ export function PropertyCard({ property, marketplace }: PropertyCardProps) {
             <Badge variant="success">{property.propertyType?.displayName || "Property"}</Badge>
             {property.negotiable && <Badge variant="outline">Negotiable</Badge>}
           </div>
+          {property.videoUrl && (
+            <div className="absolute bottom-3 right-3 h-8 w-8 rounded-full bg-black/60 flex items-center justify-center">
+              <PlayCircle className="h-5 w-5 text-white" />
+            </div>
+          )}
         </div>
         <div className="p-4">
           <h3 className="font-semibold text-slate-900 group-hover:text-emerald-600 transition-colors line-clamp-1">

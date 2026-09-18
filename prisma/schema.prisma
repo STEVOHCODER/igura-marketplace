@@ -29,6 +29,29 @@ model User {
   reports           Report[]       @relation("ReportReporter")
   adminActions      AdminAction[]
   notifications     Notification[]
+  contactReveals    ContactReveal[]
+  favorites         Favorite[]
+  savedSearches     SavedSearch[]
+  verificationTokens VerificationToken[]
+
+  @@index([role])
+  @@index([createdAt])
+}
+
+/// Single-use tokens for password reset, email verification and phone OTP.
+model VerificationToken {
+  id        String   @map("_id") @id @default(auto()) @db.ObjectId
+  userId    String   @db.ObjectId
+  tokenHash String   @unique
+  type      String   // PASSWORD_RESET, EMAIL_VERIFY, PHONE_OTP
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@index([expiresAt])
 }
 
 model Profile {
@@ -145,7 +168,20 @@ model Property {
   latitude            Float?
   longitude           Float?
   coordinatesRevealed Boolean   @default(false)
-  contactRevealed    Boolean   @default(false)
+  /// DEPRECATED: kept only so existing documents still parse. Reveal access is
+  /// now per-user via the ContactReveal model — never read this to gate a phone.
+  contactRevealed     Boolean   @default(false)
+  /// Short walkthrough clip (<=40s), uploaded separately from images via
+  /// POST /api/properties/[id]/video. Duration is enforced client-side plus a
+  /// generous server-side file-size cap — there is no video decoder in this
+  /// stack to re-verify exact duration server-side.
+  videoUrl             String?
+  videoStoragePath     String?
+  videoDurationSeconds Int?
+  /// Lowercased "title description keywords district sector" blob, maintained on
+  /// write so free-text search can hit an index instead of scanning every doc.
+  searchText          String?
+  publishedAt         DateTime?
   locationCountry     String?   @default("Rwanda")
   locationDistrict    String?
   locationSector      String?
@@ -168,6 +204,76 @@ model Property {
   keywords     PropertyKeyword[]
   features     PropertyFeature[]
   reports      Report[]
+  reveals      ContactReveal[]
+  favorites    Favorite[]
+  views        PropertyView[]
+
+  @@index([status, marketplaceId, createdAt])
+  @@index([status, locationDistrict])
+  @@index([status, price])
+  @@index([ownerId])
+  @@index([searchText])
+}
+
+/// One row per (user, property) that has paid the contact-reveal fee.
+/// Replaces the old global `Property.contactRevealed` flag, which leaked a
+/// paid-for number to every visitor as soon as one person paid.
+model ContactReveal {
+  id         String   @map("_id") @id @default(auto()) @db.ObjectId
+  userId     String   @db.ObjectId
+  propertyId String   @db.ObjectId
+  paymentId  String?  @db.ObjectId
+  amount     Int      @default(2000)
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, propertyId])
+  @@index([userId])
+  @@index([propertyId])
+}
+
+model Favorite {
+  id         String   @map("_id") @id @default(auto()) @db.ObjectId
+  userId     String   @db.ObjectId
+  propertyId String   @db.ObjectId
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, propertyId])
+  @@index([userId])
+}
+
+model SavedSearch {
+  id          String   @map("_id") @id @default(auto()) @db.ObjectId
+  userId      String   @db.ObjectId
+  name        String
+  marketplace String?
+  query       Json
+  alertsOn    Boolean  @default(true)
+  lastRunAt   DateTime?
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// De-duplicates view counting. One row per viewer fingerprint per property
+/// per rolling window, so a refresh loop can no longer inflate `viewCount`.
+model PropertyView {
+  id          String   @map("_id") @id @default(auto()) @db.ObjectId
+  propertyId  String   @db.ObjectId
+  fingerprint String
+  createdAt   DateTime @default(now())
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([propertyId, fingerprint])
+  @@index([createdAt])
 }
 
 model PropertyType {
