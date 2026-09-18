@@ -151,11 +151,11 @@ class FlutterwaveProvider implements PaymentProvider {
     // membership or unlock a phone number for free. Flutterwave sends the
     // configured secret hash verbatim in `verif-hash`, so compare it in
     // constant time and reject anything that does not match.
-    const expected = process.env.FLUTTERWAVE_WEBHOOK_HASH || "";
+    const expected = process.env.FLUTTERWAVE_WEBHOOK_SECRET || "";
 
     if (!expected) {
       console.error(
-        "[payments] FLUTTERWAVE_WEBHOOK_HASH is not set — rejecting webhook. Set it to the secret hash configured in the Flutterwave dashboard."
+        "[payments] FLUTTERWAVE_WEBHOOK_SECRET is not set — rejecting webhook. Set it to the secret hash configured in the Flutterwave dashboard."
       );
       return null;
     }
