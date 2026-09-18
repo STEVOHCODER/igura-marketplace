@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { propertySchema } from "@/lib/validators";
-import { deletePropertyImages, deletePropertyVideo } from "@/lib/supabase";
+import { deletePropertyImages, deletePropertyVideo } from "@/lib/cloudinary";
 
 export async function GET(
   request: NextRequest,

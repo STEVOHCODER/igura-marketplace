@@ -172,9 +172,10 @@ model Property {
   /// now per-user via the ContactReveal model — never read this to gate a phone.
   contactRevealed     Boolean   @default(false)
   /// Short walkthrough clip (<=40s), uploaded separately from images via
-  /// POST /api/properties/[id]/video. Duration is enforced client-side plus a
-  /// generous server-side file-size cap — there is no video decoder in this
-  /// stack to re-verify exact duration server-side.
+  /// POST /api/properties/[id]/video. Stored in Cloudinary; videoStoragePath
+  /// holds the Cloudinary public_id (needed to delete the asset later), and
+  /// videoDurationSeconds is the duration Cloudinary measured from the
+  /// decoded file itself — authoritative, not the client-reported value.
   videoUrl             String?
   videoStoragePath     String?
   videoDurationSeconds Int?

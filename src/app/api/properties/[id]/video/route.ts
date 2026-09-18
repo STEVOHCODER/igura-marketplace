@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { uploadPropertyVideo, deletePropertyVideo } from "@/lib/supabase";
+import { uploadPropertyVideo, deletePropertyVideo } from "@/lib/cloudinary";
 import { enforceRateLimit, LIMITS } from "@/lib/rate-limit";
 
 const ALLOWED_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
@@ -36,7 +36,7 @@ export async function POST(
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const durationRaw = formData.get("duration");
-    const duration = durationRaw != null ? Number(durationRaw) : null;
+    const clientDuration = durationRaw != null ? Number(durationRaw) : null;
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -56,31 +56,49 @@ export async function POST(
       );
     }
 
-    // Duration is measured client-side before upload (there is no video
-    // decoder in this stack to re-check it server-side). Re-validated here so
-    // a request crafted outside the UI can't skip the check entirely. Allow a
-    // 1s tolerance for encoder/container rounding.
-    if (duration != null && Number.isFinite(duration) && duration > MAX_DURATION_SECONDS + 1) {
+    // Fast-fail on the client-reported duration before spending an upload —
+    // but this is only a courtesy check. It's a <video>.duration value the
+    // caller supplied, so it can't be trusted; a crafted request could omit
+    // or lie about it. Allow a 1s tolerance for encoder/container rounding.
+    if (
+      clientDuration != null &&
+      Number.isFinite(clientDuration) &&
+      clientDuration > MAX_DURATION_SECONDS + 1
+    ) {
       return NextResponse.json(
         { error: `Video must be ${MAX_DURATION_SECONDS} seconds or shorter` },
         { status: 400 }
       );
     }
 
-    // Replacing an existing video — delete the old file so storage doesn't leak.
+    const { url, publicId, durationSeconds } = await uploadPropertyVideo(file, id);
+
+    // Authoritative check: Cloudinary decodes the uploaded file and reports
+    // its real duration, so this cannot be spoofed the way the client-side
+    // value above can. Reject and clean up immediately if it's still over.
+    if (
+      durationSeconds != null &&
+      Number.isFinite(durationSeconds) &&
+      durationSeconds > MAX_DURATION_SECONDS + 1
+    ) {
+      await deletePropertyVideo(publicId);
+      return NextResponse.json(
+        { error: `Video must be ${MAX_DURATION_SECONDS} seconds or shorter` },
+        { status: 400 }
+      );
+    }
+
+    // Replacing an existing video — delete the old asset so storage doesn't leak.
     if (property.videoStoragePath) {
       await deletePropertyVideo(property.videoStoragePath);
     }
-
-    const { url, path } = await uploadPropertyVideo(file, id);
 
     const updated = await prisma.property.update({
       where: { id },
       data: {
         videoUrl: url,
-        videoStoragePath: path,
-        videoDurationSeconds:
-          duration != null && Number.isFinite(duration) ? Math.round(duration) : null,
+        videoStoragePath: publicId,
+        videoDurationSeconds: durationSeconds,
       },
       select: { videoUrl: true, videoDurationSeconds: true },
     });

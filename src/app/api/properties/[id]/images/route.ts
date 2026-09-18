@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { uploadPropertyImage, deletePropertyImage } from "@/lib/supabase";
+import { uploadPropertyImage, deletePropertyImage } from "@/lib/cloudinary";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
@@ -73,13 +73,13 @@ export async function POST(
     }
 
     const sortOrder = property.images.length;
-    const { url, path } = await uploadPropertyImage(file, id, sortOrder);
+    const { url, publicId } = await uploadPropertyImage(file, id, sortOrder);
 
     const image = await prisma.propertyImage.create({
       data: {
         propertyId: id,
         url,
-        storagePath: path,
+        storagePath: publicId,
         sortOrder,
       },
     });
