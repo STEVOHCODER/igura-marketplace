@@ -93,12 +93,24 @@ async function main() {
   console.log("Property types seeded.");
 
   // 4. Admin User
-  const existingAdmin = await prisma.user.findUnique({ where: { email: "admin@igura.rw" } });
+  // Credentials come from the environment so a real password never sits in
+  // source control. Set SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD before running
+  // `npm run db:seed` (SEED_ADMIN_EMAIL defaults to admin@igura.rw if unset).
+  const adminEmail = process.env.SEED_ADMIN_EMAIL || "admin@igura.rw";
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+
+  const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
   if (!existingAdmin) {
-    const hashedPassword = await hash("Admin123!", 12);
+    if (!adminPassword || adminPassword.length < 8) {
+      throw new Error(
+        "SEED_ADMIN_PASSWORD is not set (or is shorter than 8 characters). " +
+          'Add it to your .env, e.g. SEED_ADMIN_PASSWORD="YourStrongPass123!", then re-run `npm run db:seed`.'
+      );
+    }
+    const hashedPassword = await hash(adminPassword, 12);
     await prisma.user.create({
       data: {
-        email: "admin@igura.rw",
+        email: adminEmail,
         phone: "0700000000",
         passwordHash: hashedPassword,
         firstName: "Admin",
@@ -107,7 +119,7 @@ async function main() {
         emailVerified: true,
       },
     });
-    console.log("Admin user seeded (admin@igura.rw / Admin123!).");
+    console.log(`Admin user seeded (${adminEmail}). Password is whatever you set in SEED_ADMIN_PASSWORD.`);
   } else {
     console.log("Admin user already exists, skipping.");
   }
