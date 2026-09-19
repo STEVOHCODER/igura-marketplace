@@ -100,9 +100,15 @@ export default function MembershipsPage() {
     const isCommissionaire = plan.role === "COMMISSIONAIRE";
     const isPlot = plan.marketplace?.name === "Plot Selling VIP";
     const isHouseSale = plan.marketplace?.name === "House Selling VVIP";
+    const isRecommended = plan.displayName === "Professional";
 
     return (
-      <Card key={plan.id} className={active ? "border-emerald-300 bg-emerald-50/50" : ""}>
+      <Card key={plan.id} className={`${active ? "border-emerald-300 bg-emerald-50/50" : ""} ${isRecommended ? "border-emerald-500 shadow-lg relative" : ""}`}>
+        {isRecommended && (
+          <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+            <span className="bg-emerald-600 text-white text-xs font-semibold px-3 py-1 rounded-full">Recommended</span>
+          </div>
+        )}
         <CardHeader>
           <div className="flex items-center gap-3">
             <div className={`h-10 w-10 rounded-lg ${isHouseSale ? "bg-violet-100" : isPlot ? "bg-amber-100" : "bg-emerald-100"} flex items-center justify-center`}>
@@ -121,7 +127,7 @@ export default function MembershipsPage() {
         <CardContent>
           <div className="text-3xl font-bold text-slate-900 mb-4">
             {formatPrice(plan.price)}
-            <span className="text-sm font-normal text-slate-500"> {t("memberships.oneTime")}</span>
+            <span className="text-sm font-normal text-slate-500"> /month</span>
           </div>
           <ul className="space-y-2 mb-6">
             {(plan.features || []).map((f: string, i: number) => (
@@ -179,7 +185,7 @@ export default function MembershipsPage() {
             <Home className="h-5 w-5 text-emerald-600" />
             <h2 className="text-lg font-semibold text-slate-900">{t("memberships.houseRental")}</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {rentalPlans.map(renderPlanCard)}
           </div>
         </div>
@@ -192,7 +198,7 @@ export default function MembershipsPage() {
             <MapPin className="h-5 w-5 text-amber-600" />
             <h2 className="text-lg font-semibold text-slate-900">{t("memberships.plotSelling")}</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {plotPlans.map(renderPlanCard)}
           </div>
         </div>
@@ -205,7 +211,7 @@ export default function MembershipsPage() {
             <Crown className="h-5 w-5 text-violet-600" />
             <h2 className="text-lg font-semibold text-slate-900">{t("memberships.houseSellingVvip")}</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {houseSalePlans.map(renderPlanCard)}
           </div>
         </div>
