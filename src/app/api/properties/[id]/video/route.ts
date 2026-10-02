@@ -4,6 +4,7 @@ import { getSessionVerified } from "@/lib/auth";
 import { uploadPropertyVideo, deletePropertyVideo } from "@/lib/cloudinary";
 import { enforceRateLimit, LIMITS } from "@/lib/rate-limit";
 import { checkVideoAccess } from "@/lib/access";
+import { detectVideoMimeType } from "@/lib/video-validation";
 
 const ALLOWED_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 const MAX_SIZE = 25 * 1024 * 1024;
@@ -14,19 +15,6 @@ const MAX_SIZE = 25 * 1024 * 1024;
  * variants all carry `ftyp` at offset 4; WEBM is EBML/Matroska; MOV is
  * QuickTime `moov`/`wide`/`mdat`.
  */
-function detectMimeType(bytes: Uint8Array): string | null {
-  const ascii = (i: number, n: number) =>
-    Array.from(bytes.slice(i, i + n))
-      .map((b) => String.fromCharCode(b))
-      .join("");
-
-  if (bytes.length >= 12 && ascii(4, 4) === "ftyp") return "video/mp4";
-  if (bytes.length >= 4 && ascii(0, 4) === "\u001aEÁ\u0093") return "video/webm";
-  if (bytes.length >= 8 && ["moov", "wide", "mdat", "free"].includes(ascii(4, 4)))
-    return "video/quicktime";
-  return null;
-}
-
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -74,7 +62,7 @@ export async function POST(
     // The declared MIME type is client-controlled. Read the leading bytes and
     // confirm the file really is what it claims; a renamed .exe fails here.
     const head = new Uint8Array(await file.slice(0, 64).arrayBuffer());
-    const detected = detectMimeType(head);
+    const detected = detectVideoMimeType(head);
     if (!detected || detected !== file.type) {
       return NextResponse.json(
         { error: "File content does not match the declared type" },

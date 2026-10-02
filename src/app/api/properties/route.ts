@@ -58,8 +58,10 @@ export async function GET(request: NextRequest) {
     // Everyone can browse listings freely — no membership required.
     // Phone numbers are hidden behind a 2,000 RWF paywall on detail pages.
 
-    // Determine status filter: public always shows ACTIVE, owner dashboard uses requested status
-    const isOwnerView = query.myListings === "true" && query.statusFilter;
+    // Public browsing always shows ACTIVE listings. The owner dashboard may
+    // request every non-deleted status so newly created DRAFT listings remain
+    // visible before they are published.
+    const isOwnerView = query.myListings === "true";
     let statusFilter = "ACTIVE";
     let session = null;
 
@@ -70,12 +72,16 @@ export async function GET(request: NextRequest) {
       }
       // Owner view: filter by status and ownerId
       statusFilter = query.statusFilter || "ACTIVE";
-      if (!["ACTIVE", "DRAFT", "UPCOMING", "UNAVAILABLE"].includes(statusFilter)) {
+      if (!["ACTIVE", "DRAFT", "UPCOMING", "UNAVAILABLE", "ALL"].includes(statusFilter)) {
         statusFilter = "ACTIVE";
       }
     }
 
-    const where: any = { status: statusFilter };
+    const where: any = {
+      status: statusFilter === "ALL"
+        ? { in: ["ACTIVE", "DRAFT", "UPCOMING", "UNAVAILABLE"] }
+        : statusFilter,
+    };
 
     if (filters.marketplace) {
       const allMarketplaces = await prisma.marketplace.findMany({ select: { id: true, name: true } });

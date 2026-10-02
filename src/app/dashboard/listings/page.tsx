@@ -18,7 +18,7 @@ export default function ListingsPage() {
   const { toast } = useToast();
 
   const fetchListings = () => {
-    fetch("/api/properties?limit=100&myListings=true")
+    fetch("/api/properties?limit=100&myListings=true&statusFilter=ALL")
       .then(r => r.json())
       .then(d => setListings(d?.properties || []))
       .finally(() => setLoading(false));

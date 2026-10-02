@@ -185,7 +185,10 @@ export default function NewListingPage() {
         fd.append("file", video);
         if (videoDuration != null) fd.append("duration", String(videoDuration));
         const vRes = await fetch(`/api/properties/${data.property.id}/video`, { method: "POST", body: fd });
-        if (!vRes.ok) toast(t("create.videoUploadFailed"), "error");
+        if (!vRes.ok) {
+          const videoError = await vRes.json().catch(() => ({}));
+          toast(videoError.error || t("create.videoUploadFailed"), "error");
+        }
       }
 
       toast(t("create.successCreate"), "success");
