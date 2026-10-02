@@ -9,14 +9,17 @@ import { prisma } from "@/lib/prisma";
 
 export const REVEAL_FEE_RWF = 2000;
 
-/** Days a commissionaire may list for free after registering. */
-export const FREE_LISTING_DAYS = 30;
+/** Free launch allowance for every authenticated commissionaire. */
+export const FREE_LISTING_QUOTA = 5;
 
-/** Active listings allowed during the free period. */
-export const FREE_LISTING_QUOTA = 10;
-
-/** Images allowed per listing during the free period. */
+/** Images allowed per listing during the free launch. */
 export const FREE_IMAGES_PER_LISTING = 3;
+
+/** One total walkthrough video across the free five listings. */
+export const FREE_TOTAL_VIDEOS = 1;
+
+/** Maximum duration of the free walkthrough video. */
+export const FREE_VIDEO_LENGTH_SECONDS = 20;
 
 /**
  * True when this specific user has paid to see this specific property's phone.
@@ -72,6 +75,8 @@ export interface ListingAllowance {
   reason?: string;
   maxActiveListings: number;
   maxImagesPerListing: number;
+  maxVideoLengthSeconds: number;
+  maxTotalVideos: number;
   isFreePeriod: boolean;
   freePeriodEndsAt?: Date;
   activeListings: number;
@@ -86,11 +91,14 @@ export interface ListingAllowance {
 export async function getListingAllowance(userId: string): Promise<ListingAllowance> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { createdAt: true },
+    select: { role: true },
   });
 
+  // Only LIVE listings occupy a slot. Drafts (and upcoming) are preparation,
+  // not publication — counting them punished users for writing a listing
+  // before publishing it, while the message promises "active listings".
   const activeListings = await prisma.property.count({
-    where: { ownerId: userId, status: { in: ["ACTIVE", "DRAFT", "UPCOMING"] } },
+    where: { ownerId: userId, status: "ACTIVE" },
   });
 
   if (!user) {
@@ -99,6 +107,21 @@ export async function getListingAllowance(userId: string): Promise<ListingAllowa
       reason: "User not found",
       maxActiveListings: 0,
       maxImagesPerListing: 0,
+      maxVideoLengthSeconds: 0,
+      maxTotalVideos: 0,
+      isFreePeriod: false,
+      activeListings,
+    };
+  }
+
+  if (user.role !== "COMMISSIONAIRE") {
+    return {
+      allowed: false,
+      reason: "Only commissionaires can publish listings.",
+      maxActiveListings: 0,
+      maxImagesPerListing: 0,
+      maxVideoLengthSeconds: 0,
+      maxTotalVideos: 0,
       isFreePeriod: false,
       activeListings,
     };
@@ -115,23 +138,9 @@ export async function getListingAllowance(userId: string): Promise<ListingAllowa
           : undefined,
       maxActiveListings: membership.plan.maxActiveListings,
       maxImagesPerListing: membership.plan.maxImagesPerListing,
+      maxVideoLengthSeconds: membership.plan.maxVideoLengthSeconds,
+      maxTotalVideos: membership.plan.maxTotalVideos,
       isFreePeriod: false,
-      activeListings,
-    };
-  }
-
-  const freePeriodEndsAt = new Date(user.createdAt);
-  freePeriodEndsAt.setDate(freePeriodEndsAt.getDate() + FREE_LISTING_DAYS);
-  const isFreePeriod = freePeriodEndsAt > new Date();
-
-  if (!isFreePeriod) {
-    return {
-      allowed: false,
-      reason: "Your free listing period has ended. Please purchase a membership to continue listing.",
-      maxActiveListings: 0,
-      maxImagesPerListing: 0,
-      isFreePeriod: false,
-      freePeriodEndsAt,
       activeListings,
     };
   }
@@ -140,12 +149,13 @@ export async function getListingAllowance(userId: string): Promise<ListingAllowa
     allowed: activeListings < FREE_LISTING_QUOTA,
     reason:
       activeListings >= FREE_LISTING_QUOTA
-        ? `Free listing limit reached (${FREE_LISTING_QUOTA}). Upgrade to a membership for more listings.`
+        ? `Free launch limit reached (${FREE_LISTING_QUOTA}). Paid plans will be available later.`
         : undefined,
     maxActiveListings: FREE_LISTING_QUOTA,
     maxImagesPerListing: FREE_IMAGES_PER_LISTING,
+    maxVideoLengthSeconds: FREE_VIDEO_LENGTH_SECONDS,
+    maxTotalVideos: FREE_TOTAL_VIDEOS,
     isFreePeriod: true,
-    freePeriodEndsAt,
     activeListings,
   };
 }
@@ -173,4 +183,87 @@ export async function getActiveMembership(userId: string) {
   }
 
   return membership;
+}
+
+/**
+ * Whether the user may START a listing (which always begins as DRAFT).
+ * Drafts are free and unbounded — the slot is only taken at publish time
+ * (see the PUT guard), so this ignores the active count and only asks:
+ * member in good standing, or the free launch allowance?
+ */
+export async function canCreateListing(userId: string): Promise<{ allowed: boolean; reason?: string }> {
+  const membership = await getActiveMembership(userId);
+  if (membership) return { allowed: true };
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true },
+  });
+  if (!user) return { allowed: false, reason: "User not found" };
+  if (user.role !== "COMMISSIONAIRE") {
+    return { allowed: false, reason: "Only commissionaires can publish listings." };
+  }
+
+  return { allowed: true };
+}
+
+/**
+ * Checks whether a user can upload a video of the given duration.
+ *
+ * During the free launch, one 20-second video is enabled across the user's
+ * first five free listings. Paid memberships can later override this limit.
+ *
+ * Returns `{ allowed: true }` or `{ allowed: false, reason: string, maxDuration: number }`.
+ */
+export async function checkVideoAccess(
+  userId: string,
+  durationSeconds: number
+): Promise<{ allowed: boolean; reason?: string; maxDuration: number; maxTotalVideos: number; currentVideoCount: number }> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true },
+  });
+
+  if (!user) {
+    return { allowed: false, reason: "User not found", maxDuration: 0, maxTotalVideos: 0, currentVideoCount: 0 };
+  }
+  if (user.role !== "COMMISSIONAIRE") {
+    return { allowed: false, reason: "Only commissionaires can upload listing videos.", maxDuration: 0, maxTotalVideos: 0, currentVideoCount: 0 };
+  }
+
+  // Count total videos across all user's listings (new model + legacy)
+  const newVideoCount = await prisma.propertyVideo.count({
+    where: { property: { ownerId: userId } },
+  });
+  const legacyPropertiesWithVideo = await prisma.property.count({
+    where: { ownerId: userId, videoUrl: { not: null } },
+  });
+  const currentVideoCount = newVideoCount + legacyPropertiesWithVideo;
+
+  // Check membership first
+  const membership = await getActiveMembership(userId);
+  if (membership) {
+    const maxDur = membership.plan.maxVideoLengthSeconds;
+    const maxVids = membership.plan.maxTotalVideos;
+    if (maxDur <= 0) {
+      return { allowed: false, reason: "Your plan does not include video uploads. Upgrade to Professional or Enterprise.", maxDuration: 0, maxTotalVideos: 0, currentVideoCount };
+    }
+    if (currentVideoCount >= maxVids) {
+      return { allowed: false, reason: `You've used all ${maxVids} video slots on your plan. Upgrade for more.`, maxDuration: maxDur, maxTotalVideos: maxVids, currentVideoCount };
+    }
+    if (durationSeconds > maxDur) {
+      return { allowed: false, reason: `Video must be ${maxDur} seconds or shorter on your plan. Upgrade for longer videos.`, maxDuration: maxDur, maxTotalVideos: maxVids, currentVideoCount };
+    }
+    return { allowed: true, maxDuration: maxDur, maxTotalVideos: maxVids, currentVideoCount };
+  }
+
+  if (currentVideoCount >= FREE_TOTAL_VIDEOS) {
+    return { allowed: false, reason: "You've used the one free video slot.", maxDuration: FREE_VIDEO_LENGTH_SECONDS, maxTotalVideos: FREE_TOTAL_VIDEOS, currentVideoCount };
+  }
+
+  if (durationSeconds > FREE_VIDEO_LENGTH_SECONDS) {
+    return { allowed: false, reason: `Video must be ${FREE_VIDEO_LENGTH_SECONDS} seconds or shorter.`, maxDuration: FREE_VIDEO_LENGTH_SECONDS, maxTotalVideos: FREE_TOTAL_VIDEOS, currentVideoCount };
+  }
+
+  return { allowed: true, maxDuration: FREE_VIDEO_LENGTH_SECONDS, maxTotalVideos: FREE_TOTAL_VIDEOS, currentVideoCount };
 }

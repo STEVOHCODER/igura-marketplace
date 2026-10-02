@@ -9,17 +9,41 @@ import { useI18n } from "@/i18n";
 function PaymentCallbackContent() {
   const searchParams = useSearchParams();
   const { t } = useI18n();
-  const reference = searchParams.get("reference") || searchParams.get("tx_ref") || "";
+  const reference = searchParams.get("reference") || searchParams.get("tx_ref") || searchParams.get("ref") || "";
   const status = searchParams.get("status") || "";
+  const type = searchParams.get("type") || "";
+  const propertyId = searchParams.get("propertyId") || "";
   const [verifying, setVerifying] = useState(true);
   const [verified, setVerified] = useState<"success" | "failed" | "pending">("pending");
+  const [revealData, setRevealData] = useState<{ phone?: string; contactName?: string } | null>(null);
 
   const isSuccessful = status === "successful" || status === "SUCCESSFUL" || verified === "success";
   const isFailed = status === "failed" || status === "FAILED" || verified === "failed";
 
   useEffect(() => {
-    if (reference) {
-      // Verify payment server-side
+    if (!reference) {
+      setVerifying(false);
+      return;
+    }
+
+    if (type === "reveal" && propertyId) {
+      // Contact reveal payment — call the reveal-confirm endpoint
+      fetch(`/api/payments/reveal-contact?reference=${reference}&propertyId=${propertyId}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.revealed || data.success) {
+            setVerified("success");
+            setRevealData({ phone: data.phone, contactName: data.contactName });
+          } else {
+            setVerified("failed");
+          }
+        })
+        .catch(() => {
+          setVerified(status === "successful" || status === "SUCCESSFUL" ? "success" : "failed");
+        })
+        .finally(() => setVerifying(false));
+    } else {
+      // Membership payment — verify via standard endpoint
       fetch(`/api/payments/verify/${reference}`)
         .then(r => r.json())
         .then(data => {
@@ -35,10 +59,8 @@ function PaymentCallbackContent() {
           setVerified(status === "successful" || status === "SUCCESSFUL" ? "success" : "failed");
         })
         .finally(() => setVerifying(false));
-    } else {
-      setVerifying(false);
     }
-  }, [reference, status]);
+  }, [reference, status, type, propertyId]);
 
   const getIcon = () => {
     if (verifying) return <Loader2 className="w-12 h-12 text-slate-400 mb-4 animate-spin" />;
@@ -66,10 +88,25 @@ function PaymentCallbackContent() {
       return (
         <div>
           <h3 className="text-semibold text-slate-900 mb-3">{t("payment.successHeading")}</h3>
-          <p className="text-slate-600">
-            {t("payment.successDesc")}
-          </p>
-          <a href="/dashboard" className="text-emerald-600 font-medium hover:underline">{t("payment.goDashboard")}</a>
+          {type === "reveal" && revealData ? (
+            <div>
+              <p className="text-slate-600 mb-4">The owner&apos;s contact has been revealed!</p>
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-4">
+                <p className="text-sm text-emerald-800 font-medium">Phone: {revealData.phone}</p>
+                {revealData.contactName && (
+                  <p className="text-sm text-emerald-600 mt-1">Ask for {revealData.contactName}</p>
+                )}
+              </div>
+              <a href={`/property/${propertyId}`} className="text-emerald-600 font-medium hover:underline">View Listing</a>
+            </div>
+          ) : (
+            <div>
+              <p className="text-slate-600">
+                {t("payment.successDesc")}
+              </p>
+              <a href="/dashboard" className="text-emerald-600 font-medium hover:underline">{t("payment.goDashboard")}</a>
+            </div>
+          )}
         </div>
       );
     }

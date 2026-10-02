@@ -87,6 +87,12 @@ export function enforceRateLimit(
 
   if (result.ok) return null;
 
+  // A trip is worth more than the rejection itself — it is the signal that
+  // someone is hammering this bucket. Log it so 429s become visible.
+  console.warn(
+    `[ratelimit] 429 bucket=${bucket} ip=${clientIp(request)} limit=${limit} retry=${result.retryAfterSeconds}s`
+  );
+
   return NextResponse.json(
     { error: "Too many requests. Please slow down and try again shortly." },
     {
@@ -110,4 +116,5 @@ export const LIMITS = {
   write: { limit: 40, windowMs: 60_000 },
   search: { limit: 120, windowMs: 60_000 },
   ai: { limit: 15, windowMs: 60 * 60_000 },
+  admin: { limit: 30, windowMs: 60_000 },
 } as const;

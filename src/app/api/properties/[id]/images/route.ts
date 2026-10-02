@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { getSessionVerified } from "@/lib/auth";
 import { uploadPropertyImage, deletePropertyImage } from "@/lib/cloudinary";
+import { enforceRateLimit, LIMITS } from "@/lib/rate-limit";
+import { getListingAllowance } from "@/lib/access";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
@@ -11,7 +13,10 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getSession();
+    const limited = enforceRateLimit(request, "upload", LIMITS.write.limit, LIMITS.write.windowMs);
+    if (limited) return limited;
+
+    const session = await getSessionVerified();
     if (!session) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
@@ -31,22 +36,14 @@ export async function POST(
       return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
 
-    const membership = await prisma.membership.findFirst({
-      where: {
-        userId: session.userId,
-        status: "ACTIVE",
-        plan: { role: "COMMISSIONAIRE" },
-      },
-      include: { plan: true },
-    });
-
-    if (!membership) {
-      return NextResponse.json({ error: "No active membership" }, { status: 403 });
+    const allowance = await getListingAllowance(session.userId);
+    if (!allowance.allowed && allowance.activeListings >= allowance.maxActiveListings) {
+      return NextResponse.json({ error: allowance.reason || "Listing limit reached." }, { status: 403 });
     }
 
-    if (property.images.length >= membership.plan.maxImagesPerListing) {
+    if (property.images.length >= allowance.maxImagesPerListing) {
       return NextResponse.json(
-        { error: `Image limit reached. Your plan allows ${membership.plan.maxImagesPerListing} images per listing.` },
+        { error: `Image limit reached. Your allowance permits ${allowance.maxImagesPerListing} images per listing.` },
         { status: 403 }
       );
     }
@@ -93,7 +90,7 @@ export async function POST(
 
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getSessionVerified();
     if (!session) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }

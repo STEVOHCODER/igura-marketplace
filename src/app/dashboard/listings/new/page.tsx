@@ -48,13 +48,22 @@ export default function NewListingPage() {
   const [video, setVideo] = useState<File | null>(null);
   const [videoPreview, setVideoPreview] = useState<string>("");
   const [videoDuration, setVideoDuration] = useState<number | null>(null);
+  const [videoAccess, setVideoAccess] = useState<{ allowed: boolean; maxDuration: number; maxTotalVideos: number; isFreePeriod: boolean }>({ allowed: false, maxDuration: 0, maxTotalVideos: 0, isFreePeriod: false });
 
   const MAX_VIDEO_SECONDS = 40;
   const MAX_VIDEO_SIZE = 25 * 1024 * 1024;
   const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 
   useEffect(() => {
-    fetch("/api/property-types").then(r => r.json()).then(d => setPropertyTypes(d?.types || []));
+    fetch("/api/property-types").then(r => r.json()).then(d => setPropertyTypes(d?.propertyTypes || d?.types || []));
+    fetch("/api/access/video").then(r => r.json()).then(d => {
+      setVideoAccess({
+        allowed: d.videoAllowed || false,
+        maxDuration: d.maxVideoLengthSeconds || 0,
+        maxTotalVideos: d.maxTotalVideos || 0,
+        isFreePeriod: d.isFreePeriod || false,
+      });
+    }).catch(() => {});
   }, []);
 
   const updateForm = (field: string, value: any) => setForm(prev => ({ ...prev, [field]: value }));
@@ -97,30 +106,50 @@ export default function NewListingPage() {
     if (!file) return;
     if (!VIDEO_TYPES.includes(file.type)) { toast(t("create.videoUnsupported"), "error"); return; }
     if (file.size > MAX_VIDEO_SIZE) { toast(t("create.videoTooLarge"), "error"); return; }
-    const url = URL.createObjectURL(file);
+
+    const maxSec = videoAccess.maxDuration || MAX_VIDEO_SECONDS;
     const probe = document.createElement("video");
     probe.preload = "metadata";
     probe.onloadedmetadata = () => {
-      if (probe.duration > MAX_VIDEO_SECONDS + 1) {
+      URL.revokeObjectURL(probe.src);
+      if (probe.duration > maxSec + 1) {
         toast(t("create.videoTooLong"), "error");
-        URL.revokeObjectURL(url);
         return;
       }
+      setVideoDuration(probe.duration);
       setVideo(file);
-      setVideoPreview(url);
-      setVideoDuration(Math.round(probe.duration));
+      setVideoPreview(URL.createObjectURL(file));
     };
-    probe.src = url;
+    probe.src = URL.createObjectURL(file);
   };
 
   const removeVideo = () => {
     if (videoPreview) URL.revokeObjectURL(videoPreview);
     setVideo(null);
     setVideoPreview("");
-    setVideoDuration(null);
+  };
+
+  // The API returns zod details as a JSON string; surface the first field
+  // problem ("contactName: ...") instead of a bare "Validation failed".
+  const serverFieldError = (data: any): string | null => {
+    try {
+      const issues = JSON.parse(data?.details || "[]");
+      const first = Array.isArray(issues) ? issues[0] : null;
+      if (first?.path?.length && first?.message) return `${first.path.join(".")}: ${first.message}`;
+    } catch { /* fall through to the generic message */ }
+    return null;
   };
 
   const handleSubmit = async () => {
+    // Client-side validation (mirrors the server schema minimums so the
+    // user hears about a short title here, not as "Validation failed").
+    if (!form.title.trim() || form.title.trim().length < 5) { toast("Title is required (at least 5 characters)", "error"); return; }
+    if (!form.description.trim() || form.description.trim().length < 20) { toast("Description is required (at least 20 characters)", "error"); return; }
+    if (!form.propertyTypeId) { toast("Property type is required", "error"); return; }
+    if (!form.price || parseInt(form.price) <= 0) { toast("Valid price is required", "error"); return; }
+    if (!form.contactPhone.trim()) { toast("Contact phone is required", "error"); return; }
+    if (!form.locationDistrict) { toast("District is required", "error"); return; }
+
     setSubmitting(true);
     try {
       const body = {
@@ -141,7 +170,7 @@ export default function NewListingPage() {
         body: JSON.stringify(body),
       });
       const data = await res.json();
-      if (!res.ok) { toast(data.error || t("create.failedCreate"), "error"); return; }
+      if (!res.ok) { toast(serverFieldError(data) || data.error || t("create.failedCreate"), "error"); return; }
 
       // Upload images
       for (let i = 0; i < images.length; i++) {
@@ -198,8 +227,8 @@ export default function NewListingPage() {
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">{t("create.marketplace")}</label>
                 <div className="grid grid-cols-2 gap-3">
-                  {["house_rental", "plot_sale"].map((m) => (
-                    <button key={m} onClick={() => updateForm("marketplace", m)} className={`p-4 rounded-xl border-2 text-left transition-all ${form.marketplace === m ? "border-emerald-600 bg-emerald-50" : "border-slate-200 hover:border-slate-300"}`}>
+                  {([["house_rental", "House Rental"], ["plot_sale", "Plot Selling VIP"]] as const).map(([m, name]) => (
+                    <button key={m} onClick={() => { updateForm("marketplace", name); updateForm("propertyTypeId", ""); }} className={`p-4 rounded-xl border-2 text-left transition-all ${form.marketplace === name ? "border-emerald-600 bg-emerald-50" : "border-slate-200 hover:border-slate-300"}`}>
                       <p className="font-medium">{m === "house_rental" ? t("create.houseRental") : t("create.plotSelling")}</p>
                       <p className="text-sm text-slate-500 mt-1">{m === "house_rental" ? t("create.rentHouses") : t("create.sellPlots")}</p>
                     </button>
@@ -211,7 +240,7 @@ export default function NewListingPage() {
                   <label className="block text-sm font-medium text-slate-700 mb-2">{t("create.propertyType")}</label>
                   <select value={form.propertyTypeId} onChange={(e) => updateForm("propertyTypeId", e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm">
                     <option value="">{t("create.selectType")}</option>
-                    {propertyTypes.filter((t: any) => t.marketplaceId === form.marketplace || true).map((t: any) => (
+                    {propertyTypes.filter((t: any) => t.marketplace?.name === form.marketplace).map((t: any) => (
                       <option key={t.id} value={t.id}>{t.displayName}</option>
                     ))}
                   </select>
@@ -228,8 +257,13 @@ export default function NewListingPage() {
               <div className="grid grid-cols-3 gap-4">
                 {imagePreviews.map((preview, i) => (
                   <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-slate-200">
-                    <img src={preview} alt="" className="h-full w-full object-cover" />
-                    <button onClick={() => removeImage(i)} className="absolute top-2 right-2 h-6 w-6 rounded-full bg-red-600 text-white flex items-center justify-center">
+                    <img src={preview} alt={`Preview image ${i + 1}`} className="h-full w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(i)}
+                      aria-label={`Remove image ${i + 1}`}
+                      className="absolute top-2 right-2 h-6 w-6 rounded-full bg-red-600 text-white flex items-center justify-center"
+                    >
                       <X className="h-3 w-3" />
                     </button>
                   </div>
@@ -245,20 +279,44 @@ export default function NewListingPage() {
 
               <div className="pt-4 border-t border-slate-100">
                 <h3 className="text-sm font-semibold text-slate-900">{t("create.propertyVideo")}</h3>
-                <p className="text-sm text-slate-500 mb-3">{t("create.videoDesc")}</p>
-                {videoPreview ? (
-                  <div className="relative rounded-xl overflow-hidden border border-slate-200 max-w-sm">
-                    <video src={videoPreview} controls className="w-full aspect-video bg-black" />
-                    <button onClick={removeVideo} className="absolute top-2 right-2 h-6 w-6 rounded-full bg-red-600 text-white flex items-center justify-center">
-                      <X className="h-3 w-3" />
-                    </button>
+                {!videoAccess.allowed ? (
+                  <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl mt-3">
+                    <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+                      <svg className="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-amber-800">Video upload requires Professional or Enterprise plan</p>
+                      <p className="text-xs text-amber-600 mt-0.5">Upgrade your membership to add video walkthroughs to your listings</p>
+                    </div>
+                    <Button variant="outline" size="sm" className="ml-auto" onClick={() => router.push("/dashboard/memberships")}>
+                      Upgrade
+                    </Button>
                   </div>
                 ) : (
-                  <label className="flex flex-col items-center justify-center w-full max-w-sm aspect-video rounded-xl border-2 border-dashed border-slate-300 cursor-pointer hover:border-emerald-400 transition-colors">
-                    <Upload className="h-8 w-8 text-slate-400 mb-2" />
-                    <span className="text-sm text-slate-500">{t("create.addVideo")}</span>
-                    <input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={handleVideoAdd} className="hidden" />
-                  </label>
+                  <>
+                    <p className="text-sm text-slate-500 mb-3">
+                      {videoAccess.isFreePeriod
+                        ? `Free trial — ${videoAccess.maxDuration}s max, ${videoAccess.maxTotalVideos} video slots remaining`
+                        : `Upload video up to ${videoAccess.maxDuration}s, ${videoAccess.maxTotalVideos} video slots on your plan`
+                      }
+                    </p>
+                    {videoPreview ? (
+                      <div className="relative rounded-xl overflow-hidden border border-slate-200 max-w-sm">
+                        <video src={videoPreview} controls className="w-full aspect-video bg-black" />
+                        <button onClick={removeVideo} className="absolute top-2 right-2 h-6 w-6 rounded-full bg-red-600 text-white flex items-center justify-center">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center w-full max-w-sm aspect-video rounded-xl border-2 border-dashed border-slate-300 cursor-pointer hover:border-emerald-400 transition-colors">
+                        <Upload className="h-8 w-8 text-slate-400 mb-2" />
+                        <span className="text-sm text-slate-500">{t("create.addVideo")}</span>
+                        <input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={handleVideoAdd} className="hidden" />
+                      </label>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -333,7 +391,14 @@ export default function NewListingPage() {
                 <Input label={t("create.longitude")} type="number" step="any" value={form.longitude} onChange={(e) => updateForm("longitude", e.target.value)} placeholder="29.8739" />
               </div>
               <div className="flex items-center gap-3">
-                <button onClick={() => updateForm("coordinatesRevealed", !form.coordinatesRevealed)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.coordinatesRevealed ? "bg-emerald-600" : "bg-slate-300"}`}>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={form.coordinatesRevealed}
+                  aria-label="Reveal GPS coordinates on listing"
+                  onClick={() => updateForm("coordinatesRevealed", !form.coordinatesRevealed)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.coordinatesRevealed ? "bg-emerald-600" : "bg-slate-300"}`}
+                >
                   <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${form.coordinatesRevealed ? "translate-x-6" : "translate-x-1"}`} />
                 </button>
                 <div>

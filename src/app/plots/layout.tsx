@@ -1,12 +1,21 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Plots & Land for Sale in Rwanda | Igura",
-  description: "Browse plots and land for sale in Rwanda. Find agricultural, residential, and commercial plots in Kigali, Gasabo, Bugesera and more on Igura.",
-  openGraph: {
   title: "Plots & Land for Sale in Rwanda",
-    description: "Browse verified plots and land listings across Rwanda. Filter by location, price, area, and plot type.",
+  description:
+    "Residential, commercial and agricultural plots for sale in Rwanda — Kimironko, Remera, Bugesera, Gitega and more. Verified sellers, clear prices in RWF.",
+  keywords: [
+    "plots for sale Rwanda", "land for sale Kigali", "residential plot Kimironko",
+    "commercial plot Remera", "agricultural land Bugesera", "land titles Rwanda",
+    "plot prices Rwanda", "buy land Gasabo",
+  ],
+  alternates: { canonical: "https://igura-rw.vercel.app/plots" },
+  openGraph: {
+    title: "Plots & Land for Sale in Rwanda",
+    description:
+      "Verified plot and land listings across Rwanda. Filter by location, price, area and plot type.",
     type: "website",
+    url: "https://igura-rw.vercel.app/plots",
   },
 };
 

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { getSessionVerified } from "@/lib/auth";
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const session = await getSession();
+    const session = await getSessionVerified();
     if (!session || (session.role !== "ADMIN" && session.role !== "SUPER_ADMIN")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -21,6 +21,16 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     // Prevent admin from demoting themselves
     if (id === session.userId && role && role !== user.role) {
       return NextResponse.json({ error: "Cannot change your own role" }, { status: 400 });
+    }
+
+    // Only SUPER_ADMIN can assign SUPER_ADMIN role
+    if (role === "SUPER_ADMIN" && session.role !== "SUPER_ADMIN") {
+      return NextResponse.json({ error: "Only Super Admin can assign Super Admin role" }, { status: 403 });
+    }
+
+    // Only SUPER_ADMIN can deactivate other admins
+    if (isActive === false && (user.role === "ADMIN" || user.role === "SUPER_ADMIN") && session.role !== "SUPER_ADMIN") {
+      return NextResponse.json({ error: "Only Super Admin can deactivate admins" }, { status: 403 });
     }
 
     const updateData: any = {};
@@ -61,6 +71,55 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ user: userWithoutPassword });
   } catch (error) {
     console.error("Update user error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+/**
+ * Deletes a user (deny/remove path). Guarded: never self, never an admin
+ * unless the caller is SUPER_ADMIN. Prisma cascades wipe the user's
+ * listings, payments, memberships and reveals with the row.
+ */
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const session = await getSessionVerified();
+    if (!session || (session.role !== "ADMIN" && session.role !== "SUPER_ADMIN")) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const { id } = await params;
+    if (!/^[0-9a-fA-F]{24}$/.test(id)) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    if (id === session.userId) {
+      return NextResponse.json({ error: "Cannot delete your own account" }, { status: 400 });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    if ((user.role === "ADMIN" || user.role === "SUPER_ADMIN") && session.role !== "SUPER_ADMIN") {
+      return NextResponse.json({ error: "Only Super Admin can delete admins" }, { status: 403 });
+    }
+
+    await prisma.user.delete({ where: { id } });
+
+    await prisma.adminAction.create({
+      data: {
+        adminId: session.userId,
+        actionType: "USER_DELETED",
+        targetType: "USER",
+        targetId: id,
+        details: { targetEmail: user.email, role: user.role },
+      },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Delete user error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

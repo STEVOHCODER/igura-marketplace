@@ -144,8 +144,66 @@ export default function AdminOverview() {
           </CardContent>
         </Card>
 
-        {/* Top Viewed Listings */}
+        {/* Yearly Revenue */}
         <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Yearly revenue</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {(stats.revenue?.yearly || []).map((y: any, i: number) => {
+                const maxRevenue = Math.max(...(stats.revenue?.yearly || []).map((x: any) => x.revenue), 1);
+                const pct = Math.round((y.revenue / maxRevenue) * 100);
+                return (
+                  <div key={i} className="flex items-center gap-3">
+                    <span className="text-xs text-slate-500 w-16">{y.year}</span>
+                    <div className="flex-1 bg-slate-100 rounded-full h-4 relative">
+                      <div className="bg-violet-500 h-4 rounded-full flex items-center justify-end pr-2" style={{ width: `${Math.max(pct, 5)}%` }}>
+                        {pct > 20 && <span className="text-[10px] font-medium text-white">{formatPrice(y.revenue)}</span>}
+                      </div>
+                    </div>
+                    {pct <= 20 && <span className="text-xs text-slate-600">{formatPrice(y.revenue)}</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Users by Plan */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Members by plan</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {Object.keys(stats.memberships?.byPlan || {}).length === 0 ? (
+              <p className="text-slate-500 text-sm">No memberships yet</p>
+            ) : (
+              <div className="space-y-3">
+                {Object.entries(stats.memberships?.byPlan || {}).map(([name, v]: [string, any]) => (
+                  <div key={name} className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-slate-700">{name}</span>
+                    <span className="text-sm text-slate-500">
+                      <span className="font-semibold text-emerald-600">{v.active} active</span> · {v.total} total
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {stats.users?.byRole && (
+              <div className="mt-4 pt-4 border-t border-slate-100">
+                <p className="text-sm font-medium text-slate-700 mb-2">Users by role</p>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(stats.users.byRole).map(([role, count]: [string, any]) => (
+                    <Badge key={role} variant="default">{role}: {count}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Top Viewed Listings */}        <Card>
           <CardHeader>
             <CardTitle className="text-lg">{t("adminDash.topListings")}</CardTitle>
           </CardHeader>

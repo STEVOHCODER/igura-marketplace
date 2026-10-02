@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { getSessionVerified } from "@/lib/auth";
 import { reportSchema } from "@/lib/validators";
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getSessionVerified();
     if (!session) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }

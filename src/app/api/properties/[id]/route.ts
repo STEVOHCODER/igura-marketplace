@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
-import { propertySchema } from "@/lib/validators";
-import { deletePropertyImages, deletePropertyVideo } from "@/lib/cloudinary";
+import { getSessionVerified } from "@/lib/auth";
+import { propertyUpdateSchema, sanitizePropertyInput } from "@/lib/validators";
+import { buildSearchText } from "@/lib/utils";
+import { getListingAllowance } from "@/lib/access";
+import { redactContact, redactCoordinates, hasRevealedContact } from "@/lib/access";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 export async function GET(
   request: NextRequest,
@@ -23,13 +26,10 @@ export async function GET(
         propertyType: true,
         marketplace: true,
         owner: {
-          include: { profile: true },
           select: {
             id: true,
             firstName: true,
             lastName: true,
-            email: true,
-            phone: true,
             profile: true,
           },
         },
@@ -40,17 +40,37 @@ export async function GET(
       return NextResponse.json({ error: "Property not found" }, { status: 404 });
     }
 
-    await prisma.property.update({
-      where: { id: property.id },
-      data: { viewCount: { increment: 1 } },
-    });
-
-    const response: any = { ...property, viewCount: property.viewCount + 1 };
-
-    if (!property.coordinatesRevealed) {
-      delete response.latitude;
-      delete response.longitude;
+    // Count one view per client IP per 10-minute window, so a seller cannot
+    // inflate `viewCount` (which feeds the search relevance score) by
+    // refreshing their own listing. Best-effort — a counting failure must
+    // never break the page.
+    try {
+      const key = `view:${property.id}:${clientIp(request)}`;
+      const seen = rateLimit(key, 1, 10 * 60 * 1000);
+      if (seen.ok) {
+        await prisma.property.update({
+          where: { id: property.id },
+          data: { viewCount: { increment: 1 } },
+        });
+      }
+    } catch {
+      // Viewing is best-effort; never 500 because counting failed.
     }
+
+    // Check if current user has revealed contact
+    const session = await getSessionVerified();
+    const revealed = await hasRevealedContact(session?.userId, property.id, property.ownerId, session?.role);
+
+    // The only backend state behind a "verified owner" badge.
+    const ownerMembership = await prisma.membership.findFirst({
+      where: { userId: property.ownerId, status: "ACTIVE" },
+      select: { expiresAt: true },
+    });
+    const verifiedOwner = !!ownerMembership && (!ownerMembership.expiresAt || ownerMembership.expiresAt > new Date());
+
+    // Apply redaction to prevent data leaks
+    let response = redactCoordinates({ ...property, viewCount: property.viewCount + 1, verifiedOwner });
+    response = redactContact(response, revealed);
 
     return NextResponse.json({ property: response });
   } catch (error) {
@@ -64,7 +84,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getSession();
+    const session = await getSessionVerified();
     if (!session) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
@@ -81,14 +101,26 @@ export async function PUT(
       return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
 
-    const body = await request.json();
-    const data = propertySchema.partial().parse(body);
+    const rawBody = await request.json();
+    const data = propertyUpdateSchema.parse(sanitizePropertyInput(rawBody));
+
+    // Publishing is the moment a slot is taken: creating a DRAFT is free,
+    // flipping DRAFT/UNAVAILABLE → ACTIVE is not. Without this check the
+    // create-path quota could be bypassed by publishing drafts freely.
+    if (data.status === "ACTIVE" && existing.status !== "ACTIVE") {
+      const allowance = await getListingAllowance(session.userId);
+      if (!allowance.allowed) {
+        return NextResponse.json(
+          { error: allowance.reason || "Listing limit reached." },
+          { status: 403 }
+        );
+      }
+    }
 
     const updateData: any = {};
 
     if (data.title !== undefined) updateData.title = data.title;
     if (data.description !== undefined) updateData.description = data.description;
-    if (data.propertyTypeId !== undefined) updateData.propertyTypeId = data.propertyTypeId;
     if (data.price !== undefined) updateData.price = data.price;
     if (data.negotiable !== undefined) updateData.negotiable = data.negotiable;
     if (data.availabilityStatus !== undefined) updateData.availabilityStatus = data.availabilityStatus;
@@ -109,6 +141,22 @@ export async function PUT(
     if (data.bathrooms !== undefined) updateData.bathrooms = data.bathrooms;
     if (data.areaValue !== undefined) updateData.areaValue = data.areaValue;
     if (data.areaUnit !== undefined) updateData.areaUnit = data.areaUnit;
+    if (data.propertyTypeId !== undefined && data.propertyTypeId !== existing.propertyTypeId) {
+      // Same guard as the create path: a bad id throws inside Prisma and
+      // surfaces as an opaque 500. Only ObjectId-shaped values reach the query.
+      const isObjectId = /^[0-9a-fA-F]{24}$/.test(data.propertyTypeId);
+      const nextType = isObjectId
+        ? await prisma.propertyType.findUnique({ where: { id: data.propertyTypeId } })
+        : null;
+      if (!nextType) {
+        return NextResponse.json(
+          { error: "Property type not found. Please refresh and select a type." },
+          { status: 400 }
+        );
+      }
+      updateData.propertyTypeId = data.propertyTypeId;
+    }
+    if (data.status !== undefined) updateData.status = data.status;
 
     if (data.title !== undefined && data.title !== existing.title) {
       updateData.slug = `${data.title
@@ -140,6 +188,36 @@ export async function PUT(
       }
     }
 
+    // Keep the denormalised search blob in sync: without this, edits to the
+    // title/description/location silently drop the listing out of free-text
+    // search (the seed rows shipped with NULL searchText for the same
+    // reason — see the admin backfill route).
+    const touchesSearch =
+      data.title !== undefined ||
+      data.description !== undefined ||
+      data.keywords !== undefined ||
+      data.locationDistrict !== undefined ||
+      data.locationSector !== undefined ||
+      data.locationCell !== undefined ||
+      data.locationVillage !== undefined;
+    if (touchesSearch) {
+      const kwRows = await prisma.propertyKeyword.findMany({
+        where: { propertyId: id },
+        select: { keyword: true },
+      });
+      const searchText = buildSearchText({
+        title: property.title,
+        description: property.description,
+        keywords: kwRows.map((k) => k.keyword),
+        district: property.locationDistrict,
+        sector: property.locationSector,
+        cell: property.locationCell,
+        village: property.locationVillage,
+      });
+      await prisma.property.update({ where: { id }, data: { searchText } });
+      property.searchText = searchText;
+    }
+
     return NextResponse.json({ property });
   } catch (error) {
     if (error instanceof Error && error.name === "ZodError") {
@@ -155,7 +233,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getSession();
+    const session = await getSessionVerified();
     if (!session) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
@@ -175,19 +253,14 @@ export async function DELETE(
       return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
 
-    const storagePaths = existing.images
-      .map((img) => img.storagePath)
-      .filter((path): path is string => !!path);
-
-    if (storagePaths.length > 0) {
-      await deletePropertyImages(storagePaths);
-    }
-
-    if (existing.videoStoragePath) {
-      await deletePropertyVideo(existing.videoStoragePath);
-    }
-
-    await prisma.property.delete({ where: { id } });
+    // Soft delete: the row and its Cloudinary images stay recoverable. A hard
+    // delete once destroyed 13 listings with no way back; status DELETED hides
+    // the listing from browse and the owner dashboard (which shows ACTIVE
+    // only) while leaving it restorable by an admin or via PUT.
+    await prisma.property.update({
+      where: { id },
+      data: { status: "DELETED" },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

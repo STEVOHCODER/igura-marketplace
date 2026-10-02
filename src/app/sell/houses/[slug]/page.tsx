@@ -1,13 +1,20 @@
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import type { Metadata } from "next";
+import Image from "next/image";
 import { MapPin, Bed, Bath, Maximize, Phone, User, Eye, Share2, Home, Heart, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { Badge } from "@/components/ui/badge";
 import { ContactRevealCard } from "@/components/ui/contact-reveal-card";
+import { TrustPanel } from "@/components/ui/trust-panel";
+import { EstimatePanel } from "@/components/ui/estimate-panel";
+import { ListingJsonLd } from "@/components/ui/listing-json-ld";
 import { formatPrice, availabilityLabel } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
+import { rateLimit } from "@/lib/rate-limit";
 import { en } from "@/i18n/en";
+import { isPaymentsEnabled } from "@/lib/monetization";
 
 const t = (key: string) => en[key as keyof typeof en] || key;
 
@@ -61,16 +68,41 @@ export default async function HouseSaleDetailPage({ params }: Props) {
     notFound();
   }
 
-  await prisma.property.update({
-    where: { id: property.id },
-    data: { viewCount: { increment: 1 } },
+  // Same 10-minute IP window as the API route — never double-count.
+  try {
+    const hdrs = await headers();
+    const forwarded = hdrs.get("x-forwarded-for") || "";
+    const ip = forwarded.split(",")[0].trim() || hdrs.get("x-real-ip") || "unknown";
+    if (rateLimit(`view:${property.id}:${ip}`, 1, 10 * 60 * 1000).ok) {
+      await prisma.property.update({
+        where: { id: property.id },
+        data: { viewCount: { increment: 1 } },
+      });
+      property.viewCount += 1;
+    }
+  } catch {
+    // Counting must never break the page.
+  }
+
+  const ownerMembership = await prisma.membership.findFirst({
+    where: { userId: property.ownerId, status: "ACTIVE" },
+    select: { expiresAt: true },
   });
+  const verifiedOwner =
+    !!ownerMembership && (!ownerMembership.expiresAt || ownerMembership.expiresAt > new Date());
 
   const showCoords = property.coordinatesRevealed && property.latitude && property.longitude;
 
   return (
     <PublicLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+        <ListingJsonLd
+          title={property.title}
+          description={property.description}
+          url={`https://igura-rw.vercel.app/sell/houses/${property.slug}`}
+          image={property.images[0]?.url}
+          price={property.price}
+        />
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-slate-500 mb-6">
           <Link href="/sell/houses" className="flex items-center gap-1 hover:text-violet-600 transition-colors">
@@ -95,9 +127,11 @@ export default async function HouseSaleDetailPage({ params }: Props) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 rounded-2xl overflow-hidden bg-slate-100">
                 {property.images.map((img, i) => (
                   <div key={img.id} className={`relative ${i === 0 ? "sm:col-span-2 aspect-[16/9]" : "aspect-[4/3]"}`}>
-                    <img
+                    <Image
                       src={img.url}
                       alt={img.altText || property.title}
+                      fill
+                      sizes={i === 0 ? "(min-width: 1024px) 66vw, 100vw" : "(min-width: 1024px) 33vw, 50vw"}
                       className="w-full h-full object-cover"
                     />
                     {i === 0 && (
@@ -240,6 +274,14 @@ export default async function HouseSaleDetailPage({ params }: Props) {
                 <p className="mt-3 text-sm text-slate-400 italic">{t("detail.hiddenCoords")}</p>
               )}
             </div>
+
+            <TrustPanel
+              verifiedOwner={verifiedOwner}
+              coordsPublished={!!showCoords}
+              listedAt={property.createdAt}
+              ownerName={`${property.owner.firstName} ${property.owner.lastName}`}
+              viewCount={property.viewCount}
+            />
           </div>
 
           {/* Right: Sidebar */}
@@ -252,8 +294,19 @@ export default async function HouseSaleDetailPage({ params }: Props) {
               contactRevealed={(property as any).contactRevealed}
               ownerInitials={`${property.owner.firstName[0]}${property.owner.lastName[0]}`}
               ownerName={`${property.owner.firstName} ${property.owner.lastName}`}
+              ownerId={property.owner.id}
               ownerRole={t("detail.seller")}
               accentColor="violet"
+              paymentsEnabled={isPaymentsEnabled()}
+            />
+
+            <EstimatePanel
+              marketplace={property.marketplace?.name || "House Selling VVIP"}
+              district={property.locationDistrict}
+              sector={property.locationSector}
+              propertyType={property.propertyType?.slug || property.propertyType?.displayName}
+              bedrooms={property.bedrooms}
+              exclude={property.id}
             />
 
             {/* Summary */}

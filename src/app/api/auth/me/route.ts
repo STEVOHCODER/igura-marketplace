@@ -1,13 +1,19 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { getSessionVerified } from "@/lib/auth";
 
 export async function GET() {
   try {
-    const session = await getSession();
+    // Verified, not just signed: getSessionVerified re-checks tokenVersion
+    // against the DB, so a token minted before a password change is rejected
+    // here even though its signature is still valid.
+    const session = await getSessionVerified();
 
     if (!session) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+      // 200, not 401: "who am I" with no session is a valid question with a
+      // null answer, and every public page asks it on mount. A 401 here only
+      // spams the console without changing any caller behaviour.
+      return NextResponse.json({ user: null });
     }
 
     const user = await prisma.user.findUnique({

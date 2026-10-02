@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
 import { guardSeedRoute } from "@/lib/seed-guard";
+import { buildSearchText } from "@/lib/utils";
 
 export async function POST(request: NextRequest) {
   // This endpoint drops the entire database. It is unreachable unless
@@ -40,24 +41,17 @@ export async function POST(request: NextRequest) {
     await prisma.profile.create({ data: { userId: agent.id, bio: "Licensed real estate commissionaire", address: "Kigali, Rwanda", district: "Kigali City" } });
     await prisma.profile.create({ data: { userId: client.id, bio: "Looking for a house", district: "Kigali City" } });
 
-    const rental = await prisma.marketplace.create({ data: { name: "House Rental", displayName: "House Rental", description: "Find houses and apartments for rent", status: "ACTIVE" } });
-    const plot = await prisma.marketplace.create({ data: { name: "Plot Selling VIP", displayName: "Plot Selling VIP", description: "Premium plots and land for sale", status: "ACTIVE" } });
-    const houseSelling = await prisma.marketplace.create({ data: { name: "House Selling VVIP", displayName: "House Selling VVIP", description: "Premium houses for sale", status: "ACTIVE" } });
+    const rental = await prisma.marketplace.findFirst({ where: { name: "House Rental" } }) || await prisma.marketplace.create({ data: { name: "House Rental", displayName: "House Rental", description: "Find houses and apartments for rent", status: "ACTIVE" } });
+    const plot = await prisma.marketplace.findFirst({ where: { name: "Plot Selling VIP" } }) || await prisma.marketplace.create({ data: { name: "Plot Selling VIP", displayName: "Plot Selling VIP", description: "Premium plots and land for sale", status: "ACTIVE" } });
+    const houseSelling = await prisma.marketplace.findFirst({ where: { name: "House Selling VVIP" } }) || await prisma.marketplace.create({ data: { name: "House Selling VVIP", displayName: "House Selling VVIP", description: "Premium houses for sale", status: "ACTIVE" } });
 
-    // House Rental plans
-    const rentalCommissionairePlan = await prisma.plan.create({ data: { name: "House Commissionaire", displayName: "House Commissionaire", marketplaceId: rental.id, role: "COMMISSIONAIRE", price: 5000, maxActiveListings: 10, maxImagesPerListing: 3, features: ["10 active listings", "3 images per listing", "Manage properties", "Contact leads"], status: "ACTIVE" } });
-    const rentalClientPlan = await prisma.plan.create({ data: { name: "House Client", displayName: "House Client", marketplaceId: rental.id, role: "CLIENT", price: 2000, maxActiveListings: 0, maxImagesPerListing: 0, features: ["Search all houses", "View full listings", "Contact owners directly", "Save favorites"], status: "ACTIVE" } });
-
-    // Plot Selling plans
-    const plotCommissionairePlan = await prisma.plan.create({ data: { name: "Plot Commissionaire", displayName: "Plot Commissionaire", marketplaceId: plot.id, role: "COMMISSIONAIRE", price: 20000, maxActiveListings: 10, maxImagesPerListing: 3, features: ["10 active listings", "3 images per listing", "Manage plots", "Premium placement"], status: "ACTIVE" } });
-    const plotClientPlan = await prisma.plan.create({ data: { name: "Plot Client", displayName: "Plot Client", marketplaceId: plot.id, role: "CLIENT", price: 15000, maxActiveListings: 0, maxImagesPerListing: 0, features: ["Search all plots", "View full listings", "Contact owners directly", "Save favorites"], status: "ACTIVE" } });
-
-    // House Selling VVIP plans
-    const houseSellingCommissionairePlan = await prisma.plan.create({ data: { name: "House Selling VVIP Commissionaire", displayName: "House Selling VVIP Commissionaire", marketplaceId: houseSelling.id, role: "COMMISSIONAIRE", price: 25000, maxActiveListings: 10, maxImagesPerListing: 3, features: ["10 active listings", "3 images per listing", "Manage house sales", "VVIP placement"], status: "ACTIVE" } });
-    const houseSellingClientPlan = await prisma.plan.create({ data: { name: "House Selling VVIP Client", displayName: "House Selling VVIP Client", marketplaceId: houseSelling.id, role: "CLIENT", price: 10000, maxActiveListings: 0, maxImagesPerListing: 0, features: ["Search all houses for sale", "View full listings", "Contact owners directly", "Save favorites"], status: "ACTIVE" } });
+    // Use existing plans from seed-plans endpoint (don't create old plans here)
+    const rentalProfessionalPlan = await prisma.plan.findFirst({ where: { name: "Rental Professional" } });
 
     const now = new Date();
-    await prisma.membership.create({ data: { userId: agent.id, planId: rentalCommissionairePlan.id, status: "ACTIVE", activatedAt: now, expiresAt: new Date(now.getTime() + 30 * 86400000) } });
+    if (rentalProfessionalPlan) {
+      await prisma.membership.create({ data: { userId: agent.id, planId: rentalProfessionalPlan.id, status: "ACTIVE", activatedAt: now, expiresAt: new Date(now.getTime() + 30 * 86400000) } });
+    }
 
     const locs = [
       { id: "rwanda_country", country: "Rwanda", level: "COUNTRY" },
@@ -117,7 +111,7 @@ export async function POST(request: NextRequest) {
 
     const rentalProps = [];
     for (const p of rentalPropsData) {
-      const prop = await prisma.property.create({ data: p as any });
+      const prop = await prisma.property.create({ data: { ...p, searchText: buildSearchText({ title: (p as any).title, description: (p as any).description, district: (p as any).locationDistrict, sector: (p as any).locationSector, cell: (p as any).locationCell }) } as any });
       rentalProps.push(prop);
     }
 
@@ -130,7 +124,7 @@ export async function POST(request: NextRequest) {
 
     const plotProps = [];
     for (const p of plotPropsData) {
-      const prop = await prisma.property.create({ data: p as any });
+      const prop = await prisma.property.create({ data: { ...p, searchText: buildSearchText({ title: (p as any).title, description: (p as any).description, district: (p as any).locationDistrict, sector: (p as any).locationSector, cell: (p as any).locationCell }) } as any });
       plotProps.push(prop);
     }
 
@@ -144,7 +138,7 @@ export async function POST(request: NextRequest) {
 
     const houseSellingProps = [];
     for (const p of houseSellingPropsData) {
-      const prop = await prisma.property.create({ data: p as any });
+      const prop = await prisma.property.create({ data: { ...p, searchText: buildSearchText({ title: (p as any).title, description: (p as any).description, district: (p as any).locationDistrict, sector: (p as any).locationSector, cell: (p as any).locationCell }) } as any });
       houseSellingProps.push(prop);
     }
 

@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Home, MapPin, CreditCard, Settings, LogOut, Menu, X, Plus } from "lucide-react";
+import { LayoutDashboard, Home, MapPin, CreditCard, Settings, LogOut, Menu, X, Plus, BarChart3, Bell, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n";
 
@@ -23,7 +23,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: t("dash.overview"), href: "/dashboard", icon: LayoutDashboard },
     { name: t("dash.myListings"), href: "/dashboard/listings", icon: Home },
     { name: t("dash.newListing"), href: "/dashboard/listings/new", icon: Plus },
+    { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
+    { name: "Leads", href: "/dashboard/leads", icon: Users },
     { name: t("dash.memberships"), href: "/dashboard/memberships", icon: CreditCard },
+    { name: "Notifications", href: "/dashboard/notifications", icon: Bell },
   ];
 
   const clientNav = [
@@ -31,6 +34,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: t("dash.searchHouses"), href: "/rent/houses", icon: Home },
     { name: t("dash.searchPlots"), href: "/plots", icon: MapPin },
     { name: t("dash.memberships"), href: "/dashboard/memberships", icon: CreditCard },
+    { name: "Notifications", href: "/dashboard/notifications", icon: Bell },
   ];
 
   const navigation = user?.role === "COMMISSIONAIRE" ? commissionaireNav : clientNav;

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { chatCompletion, listModels, isConfigured, getModel } from "@/lib/openrouter";
-import { getTokenFromRequest } from "@/lib/auth";
+import { getTokenFromRequestVerified } from "@/lib/auth";
 import { enforceRateLimit, LIMITS } from "@/lib/rate-limit";
 
 export async function GET(request: NextRequest) {
   // Config introspection is admin-only — it reveals which models and keys are wired up.
-  const session = await getTokenFromRequest(request);
+  const session = await getTokenFromRequestVerified(request);
   if (!session || (session.role !== "ADMIN" && session.role !== "SUPER_ADMIN")) {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
   try {
     // This route spends real money against OPENROUTER_API_KEY. It used to be
     // unauthenticated and unmetered — an open proxy anyone could bill to you.
-    const session = await getTokenFromRequest(request);
+    const session = await getTokenFromRequestVerified(request);
     if (!session) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }

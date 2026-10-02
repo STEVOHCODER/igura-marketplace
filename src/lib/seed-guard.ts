@@ -21,6 +21,11 @@ export function guardSeedRoute(request: NextRequest): NextResponse | null {
     );
   }
 
+  // In production, log a warning that seed routes are enabled
+  if (process.env.NODE_ENV === "production") {
+    console.warn("[SEED] WARNING: Seed routes are ENABLED in production. Disable by setting SEED_ENABLED=false");
+  }
+
   const expected = process.env.SEED_SECRET;
 
   if (!expected || expected.length < 16) {

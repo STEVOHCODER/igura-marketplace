@@ -43,13 +43,17 @@ async function main() {
   console.log("Marketplaces seeded.");
 
   // 2. Plans
+  // Client browsing is free. Keep historical client plans inactive rather
+  // than deleting them so existing payment records remain auditable.
+  await prisma.plan.updateMany({
+    where: { role: "CLIENT" },
+    data: { status: "INACTIVE" },
+  });
+
   const plansData = [
-    { marketplaceId: houseRental.id, name: "rental_commissionaire", displayName: "House Rental Commissionaire", role: "COMMISSIONAIRE", price: 5000, maxActiveListings: 10, maxImagesPerListing: 3 },
-    { marketplaceId: houseRental.id, name: "rental_client", displayName: "House Rental Client", role: "CLIENT", price: 2000, maxActiveListings: 0, maxImagesPerListing: 0 },
-    { marketplaceId: plotSale.id, name: "plot_commissionaire", displayName: "Plot Commissionaire (VIP)", role: "COMMISSIONAIRE", price: 20000, maxActiveListings: 10, maxImagesPerListing: 3 },
-    { marketplaceId: plotSale.id, name: "plot_client", displayName: "Plot Client (VIP)", role: "CLIENT", price: 15000, maxActiveListings: 0, maxImagesPerListing: 0 },
-    { marketplaceId: houseSale.id, name: "house_sale_commissionaire", displayName: "House Sale Commissionaire (VVIP)", role: "COMMISSIONAIRE", price: 30000, maxActiveListings: 10, maxImagesPerListing: 3 },
-    { marketplaceId: houseSale.id, name: "house_sale_client", displayName: "House Sale Client (VVIP)", role: "CLIENT", price: 20000, maxActiveListings: 0, maxImagesPerListing: 0 },
+    { marketplaceId: houseRental.id, name: "rental_commissionaire", displayName: "House Rental Commissionaire", role: "COMMISSIONAIRE", price: 5000, maxActiveListings: 5, maxImagesPerListing: 3, maxVideoLengthSeconds: 20, maxTotalVideos: 1 },
+    { marketplaceId: plotSale.id, name: "plot_commissionaire", displayName: "Plot Commissionaire (VIP)", role: "COMMISSIONAIRE", price: 20000, maxActiveListings: 5, maxImagesPerListing: 3, maxVideoLengthSeconds: 20, maxTotalVideos: 1 },
+    { marketplaceId: houseSale.id, name: "house_sale_commissionaire", displayName: "House Sale Commissionaire (VVIP)", role: "COMMISSIONAIRE", price: 30000, maxActiveListings: 5, maxImagesPerListing: 3, maxVideoLengthSeconds: 20, maxTotalVideos: 1 },
   ];
 
   for (const p of plansData) {

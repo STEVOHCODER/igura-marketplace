@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
 import bcrypt from "bcryptjs";
 import { createHash, randomBytes, timingSafeEqual } from "crypto";
+import { prisma } from "@/lib/prisma";
 
 /**
  * The signing secret is required in production. It used to fall back to the
@@ -24,6 +25,9 @@ function resolveSecret(): Uint8Array {
     return new TextEncoder().encode(randomBytes(32).toString("hex"));
   }
 
+  // Well-known weak secrets are blocked by the 32-char minimum above.
+  // To rotate to a strong key: node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+
   return new TextEncoder().encode(secret);
 }
 
@@ -35,6 +39,8 @@ export interface JWTPayload {
   userId: string;
   email: string;
   role: string;
+  /** Version of the user's credentials when this token was minted. */
+  tokenVersion?: number;
 }
 
 export async function hashPassword(password: string): Promise<string> {
@@ -72,6 +78,28 @@ export async function getSession(): Promise<JWTPayload | null> {
   return verifyToken(token);
 }
 
+/**
+ * Session check that also confirms the token's `tokenVersion` still matches
+ * the user's stored one. Use this on routes protecting money or PII.
+ *
+ * A bare `getSession` cannot know a token was revoked: bumping
+ * `tokenVersion` on a password change (or an admin force-logout) invalidates
+ * every token minted before it, without keeping a blacklist.
+ */
+export async function getSessionVerified(): Promise<JWTPayload | null> {
+  const session = await getSession();
+  if (!session) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { tokenVersion: true },
+  });
+  if (!user) return null;
+
+  if (session.tokenVersion !== user.tokenVersion) return null;
+  return session;
+}
+
 export async function setSessionCookie(token: string) {
   const cookieStore = await cookies();
   cookieStore.set(COOKIE_NAME, token, {
@@ -97,6 +125,27 @@ export async function getTokenFromRequest(
 }
 
 /**
+ * Request-token check that also confirms `tokenVersion` against the DB.
+ * Mirrors getSessionVerified for the `getTokenFromRequest` call sites
+ * (AI, reveal-contact) that read the cookie off the request directly.
+ */
+export async function getTokenFromRequestVerified(
+  request: NextRequest
+): Promise<JWTPayload | null> {
+  const session = await getTokenFromRequest(request);
+  if (!session) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { tokenVersion: true },
+  });
+  if (!user) return null;
+
+  if (session.tokenVersion !== user.tokenVersion) return null;
+  return session;
+}
+
+/**
  * Generates a single-use token. The caller emails/SMSes `token`; only
  * `tokenHash` is stored, so a database leak does not hand over live reset links.
  */
@@ -117,15 +166,27 @@ export function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(bufA, bufB);
 }
 
-export function requireAuth(session: JWTPayload | null): JWTPayload {
-  if (!session) throw new Error("Unauthorized");
-  return session;
+/**
+ * Authorization checks that return errors instead of throwing.
+ *
+ * The throwing variants turned a missed `try/catch` into a 500 with a stack
+ * trace in dev. Callers do: `const s = requireAuth(session); if (!s.ok) return
+ * NextResponse.json({ error: s.error }, { status: s.status });`
+ */
+export function requireAuth(
+  session: JWTPayload | null
+): { ok: true; session: JWTPayload } | { ok: false; status: number; error: string } {
+  if (!session) return { ok: false, status: 401, error: "Not authenticated" };
+  return { ok: true, session };
 }
 
-export function requireAdmin(session: JWTPayload | null): JWTPayload {
-  const user = requireAuth(session);
-  if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") {
-    throw new Error("Forbidden");
+export function requireAdmin(
+  session: JWTPayload | null
+): { ok: true; session: JWTPayload } | { ok: false; status: number; error: string } {
+  const authed = requireAuth(session);
+  if (!authed.ok) return authed;
+  if (authed.session.role !== "ADMIN" && authed.session.role !== "SUPER_ADMIN") {
+    return { ok: false, status: 403, error: "Forbidden" };
   }
-  return user;
+  return authed;
 }

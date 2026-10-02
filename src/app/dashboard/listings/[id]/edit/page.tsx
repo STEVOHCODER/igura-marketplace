@@ -34,12 +34,22 @@ export default function EditListingPage() {
   const [newVideo, setNewVideo] = useState<File | null>(null);
   const [newVideoPreview, setNewVideoPreview] = useState<string>("");
   const [newVideoDuration, setNewVideoDuration] = useState<number | null>(null);
+  const [videoAccess, setVideoAccess] = useState<{ allowed: boolean; maxDuration: number; maxTotalVideos: number; isFreePeriod: boolean }>({ allowed: false, maxDuration: 0, maxTotalVideos: 0, isFreePeriod: false });
 
   const MAX_VIDEO_SECONDS = 40;
   const MAX_VIDEO_SIZE = 25 * 1024 * 1024;
   const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 
   useEffect(() => {
+    fetch(`/api/access/video`).then(r => r.json()).then(d => {
+      setVideoAccess({
+        allowed: d.videoAllowed || false,
+        maxDuration: d.maxVideoLengthSeconds || 0,
+        maxTotalVideos: d.maxTotalVideos || 0,
+        isFreePeriod: d.isFreePeriod || false,
+      });
+    }).catch(() => {});
+
     fetch(`/api/properties/${id}`)
       .then(r => r.json())
       .then(d => {
@@ -79,6 +89,14 @@ export default function EditListingPage() {
   const removeKeyword = (kw: string) => updateForm("keywords", form.keywords.filter(k => k !== kw));
 
   const handleSave = async () => {
+    // Client-side validation (mirrors the server schema minimums so the
+    // user hears about a short title here, not as "Validation failed").
+    if (!form.title.trim() || form.title.trim().length < 5) { toast("Title is required (at least 5 characters)", "error"); return; }
+    if (!form.description.trim() || form.description.trim().length < 20) { toast("Description is required (at least 20 characters)", "error"); return; }
+    if (!form.price || parseInt(form.price) <= 0) { toast("Valid price is required", "error"); return; }
+    if (!form.contactPhone.trim()) { toast("Contact phone is required", "error"); return; }
+    if (!form.locationDistrict) { toast("District is required", "error"); return; }
+
     setSaving(true);
     try {
       const body: any = {
@@ -103,7 +121,19 @@ export default function EditListingPage() {
         method: "PUT", headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!res.ok) { const d = await res.json(); toast(d.error || "Failed to save", "error"); return; }
+      if (!res.ok) {
+        let message = "Failed to save";
+        try {
+          const d = await res.json();
+          const issues = JSON.parse(d?.details || "[]");
+          const first = Array.isArray(issues) ? issues[0] : null;
+          message = (first?.path?.length && first?.message)
+            ? `${first.path.join(".")}: ${first.message}`
+            : (d.error || message);
+        } catch { /* keep the generic message */ }
+        toast(message, "error");
+        return;
+      }
 
       for (let i = 0; i < newImages.length; i++) {
         const fd = new FormData();
@@ -163,7 +193,8 @@ export default function EditListingPage() {
     const probe = document.createElement("video");
     probe.preload = "metadata";
     probe.onloadedmetadata = () => {
-      if (probe.duration > MAX_VIDEO_SECONDS + 1) {
+      const maxSec = videoAccess.maxDuration || MAX_VIDEO_SECONDS;
+      if (probe.duration > maxSec + 1) {
         toast(t("edit.videoTooLong"), "error");
         URL.revokeObjectURL(url);
         return;
@@ -254,22 +285,46 @@ export default function EditListingPage() {
 
         <Card><CardContent className="p-6 space-y-4">
           <h2 className="text-lg font-semibold">{t("edit.video")}</h2>
-          <p className="text-sm text-slate-500">{t("edit.videoDesc")}</p>
-          {existingVideo ? (
-            <div className="relative rounded-lg overflow-hidden border max-w-sm">
-              <video src={existingVideo.url} controls className="w-full aspect-video bg-black" />
-              <button onClick={deleteExistingVideo} className="absolute top-1 right-1 h-6 w-6 rounded-full bg-red-600 text-white flex items-center justify-center"><X className="h-3 w-3" /></button>
-            </div>
-          ) : newVideoPreview ? (
-            <div className="relative rounded-lg overflow-hidden border max-w-sm">
-              <video src={newVideoPreview} controls className="w-full aspect-video bg-black" />
-              <button onClick={removeNewVideo} className="absolute top-1 right-1 h-6 w-6 rounded-full bg-red-600 text-white flex items-center justify-center"><X className="h-3 w-3" /></button>
+          {!videoAccess.allowed && !existingVideo ? (
+            <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+              <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+                <svg className="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-amber-800">Video upload requires Professional or Enterprise plan</p>
+                <p className="text-xs text-amber-600 mt-0.5">Upgrade to add video walkthroughs to your listings</p>
+              </div>
+              <Button variant="outline" size="sm" className="ml-auto" onClick={() => router.push("/dashboard/memberships")}>
+                Upgrade
+              </Button>
             </div>
           ) : (
-            <label className="flex flex-col items-center justify-center w-full max-w-sm aspect-video rounded-lg border-2 border-dashed border-slate-300 cursor-pointer hover:border-emerald-400">
-              <Upload className="h-6 w-6 text-slate-400" /><span className="text-xs text-slate-400 mt-1">{t("edit.addVideo")}</span>
-              <input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={handleNewVideo} className="hidden" />
-            </label>
+            <>
+              <p className="text-sm text-slate-500">
+                {videoAccess.isFreePeriod
+                  ? `Free trial — ${videoAccess.maxDuration}s max, ${videoAccess.maxTotalVideos} video slots remaining`
+                  : `Upload video up to ${videoAccess.maxDuration}s, ${videoAccess.maxTotalVideos} video slots on your plan`
+                }
+              </p>
+              {existingVideo ? (
+                <div className="relative rounded-lg overflow-hidden border max-w-sm">
+                  <video src={existingVideo.url} controls className="w-full aspect-video bg-black" />
+                  <button onClick={deleteExistingVideo} className="absolute top-1 right-1 h-6 w-6 rounded-full bg-red-600 text-white flex items-center justify-center"><X className="h-3 w-3" /></button>
+                </div>
+              ) : newVideoPreview ? (
+                <div className="relative rounded-lg overflow-hidden border max-w-sm">
+                  <video src={newVideoPreview} controls className="w-full aspect-video bg-black" />
+                  <button onClick={removeNewVideo} className="absolute top-1 right-1 h-6 w-6 rounded-full bg-red-600 text-white flex items-center justify-center"><X className="h-3 w-3" /></button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center w-full max-w-sm aspect-video rounded-lg border-2 border-dashed border-slate-300 cursor-pointer hover:border-emerald-400">
+                  <Upload className="h-6 w-6 text-slate-400" /><span className="text-xs text-slate-400 mt-1">{t("edit.addVideo")}</span>
+                  <input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={handleNewVideo} className="hidden" />
+                </label>
+              )}
+            </>
           )}
         </CardContent></Card>
 

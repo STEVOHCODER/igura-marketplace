@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, createToken, setSessionCookie } from "@/lib/auth";
 import { registerSchema } from "@/lib/validators";
+import { enforceRateLimit, LIMITS } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = enforceRateLimit(request, "register", LIMITS.register.limit, LIMITS.register.windowMs);
+    if (limited) return limited;
+
     const body = await request.json();
     const data = registerSchema.parse(body);
 
@@ -15,6 +19,18 @@ export async function POST(request: NextRequest) {
     if (existingUser) {
       return NextResponse.json(
         { error: "Email already in use" },
+        { status: 409 }
+      );
+    }
+
+    // Check for duplicate phone number
+    const existingPhone = await prisma.user.findFirst({
+      where: { phone: data.phone },
+    });
+
+    if (existingPhone) {
+      return NextResponse.json(
+        { error: "Phone number already registered" },
         { status: 409 }
       );
     }
@@ -55,13 +71,15 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       email: user.email,
       role: user.role,
+      tokenVersion: user.tokenVersion,
     });
 
     await setSessionCookie(token);
 
     const { passwordHash: _, ...userWithoutPassword } = user;
 
-    return NextResponse.json({ user: userWithoutPassword, token }, { status: 201 });
+    // See login: the token is served only via the httpOnly cookie.
+    return NextResponse.json({ user: userWithoutPassword }, { status: 201 });
   } catch (error: any) {
     if (error?.issues || error?.name === "ZodError" || error?.name === "ZodIssue") {
       const fieldErrors: Record<string, string> = {};

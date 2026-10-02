@@ -19,6 +19,7 @@ model User {
   emailVerified Boolean  @default(false)
   phoneVerified Boolean  @default(false)
   isActive      Boolean  @default(true)
+  tokenVersion  Int      @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -82,18 +83,20 @@ model Marketplace {
 }
 
 model Plan {
-  id                  String   @map("_id") @id @default(auto()) @db.ObjectId
-  marketplaceId       String   @db.ObjectId
-  name                String   @unique
-  displayName         String
-  role                String   // COMMISSIONAIRE, CLIENT
-  price               Int
-  currency            String   @default("RWF")
-  maxActiveListings   Int      @default(10)
-  maxImagesPerListing Int      @default(3)
-  features            Json?
-  status              String   @default("ACTIVE") // ACTIVE, INACTIVE
-  createdAt           DateTime @default(now())
+  id                     String   @map("_id") @id @default(auto()) @db.ObjectId
+  marketplaceId          String   @db.ObjectId
+  name                   String   @unique
+  displayName            String
+  role                   String   // COMMISSIONAIRE, CLIENT
+  price                  Int
+  currency               String   @default("RWF")
+  maxActiveListings      Int      @default(10)
+  maxImagesPerListing    Int      @default(3)
+  maxVideoLengthSeconds  Int      @default(0) // 0 = no video, 20 or 40 = seconds allowed
+  maxTotalVideos         Int      @default(0) // 0 = no video, 2 or 3 = max total video uploads across all listings
+  features               Json?
+  status                 String   @default("ACTIVE") // ACTIVE, INACTIVE
+  createdAt              DateTime @default(now())
 
   marketplace   Marketplace  @relation(fields: [marketplaceId], references: [id], onDelete: Cascade)
   memberships   Membership[]
@@ -202,6 +205,7 @@ model Property {
   marketplace  Marketplace   @relation(fields: [marketplaceId], references: [id])
   propertyType PropertyType? @relation(fields: [propertyTypeId], references: [id])
   images       PropertyImage[]
+  videos       PropertyVideo[]
   keywords     PropertyKeyword[]
   features     PropertyFeature[]
   reports      Report[]
@@ -214,6 +218,20 @@ model Property {
   @@index([status, price])
   @@index([ownerId])
   @@index([searchText])
+}
+
+model PropertyVideo {
+  id              String   @map("_id") @id @default(auto()) @db.ObjectId
+  propertyId      String   @db.ObjectId
+  url             String
+  storagePath     String?  // Cloudinary public_id
+  durationSeconds Int?
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
 }
 
 /// One row per (user, property) that has paid the contact-reveal fee.

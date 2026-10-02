@@ -3,6 +3,8 @@ import { useState, useEffect, useCallback } from "react";
 import { Search, SlidersHorizontal, X, MapPin } from "lucide-react";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { PropertyCard } from "@/components/ui/property-card";
+import { SaveSearchButton } from "@/components/ui/save-search-button";
+import { CompareTray } from "@/components/ui/compare-tray";
 import { Pagination } from "@/components/ui/pagination";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,7 +36,28 @@ export default function PlotSearchPage() {
     areaMin: "",
     areaMax: "",
     purpose: "",
+    sort: "newest",
   });
+  const [favIds, setFavIds] = useState<Set<string>>(new Set());
+
+  // Deep links (homepage search, saved searches, shared URLs) arrive as
+  // query params; adopt them once on mount.
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const patch: Record<string, string> = {};
+    for (const k of ["q", "district", "sector", "minPrice", "maxPrice", "availability", "areaMin", "areaMax", "purpose"]) {
+      const v = sp.get(k);
+      if (v) patch[k] = v;
+    }
+    if (Object.keys(patch).length > 0) setFilters((f) => ({ ...f, ...patch }));
+    fetch("/api/favorites")
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        if (d?.favorites) setFavIds(new Set(d.favorites.map((f: any) => f.id)));
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fetchProperties = useCallback(async () => {
     setLoading(true);
@@ -52,6 +75,7 @@ export default function PlotSearchPage() {
       if (filters.areaMin) params.set("areaMin", filters.areaMin);
       if (filters.areaMax) params.set("areaMax", filters.areaMax);
       if (filters.purpose) params.set("purpose", filters.purpose);
+      if (filters.sort && filters.sort !== "newest") params.set("sort", filters.sort);
 
       const res = await fetch(`/api/properties?${params.toString()}`);
       const data = await res.json();
@@ -73,11 +97,11 @@ export default function PlotSearchPage() {
   };
 
   const clearFilters = () => {
-    setFilters({ q: "", district: "", sector: "", minPrice: "", maxPrice: "", availability: "", areaMin: "", areaMax: "", purpose: "" });
+    setFilters({ q: "", district: "", sector: "", minPrice: "", maxPrice: "", availability: "", areaMin: "", areaMax: "", purpose: "", sort: "newest" });
     setPage(1);
   };
 
-  const hasActiveFilters = Object.values(filters).some((v) => v !== "");
+  const hasActiveFilters = Object.entries(filters).some(([k, v]) => k !== "sort" && v !== "");
 
   return (
     <PublicLayout>
@@ -88,10 +112,24 @@ export default function PlotSearchPage() {
               <h1 className="text-2xl font-bold text-slate-900">{t("plots.title")} <Badge variant="warning" className="ml-2">{t("plots.vip")}</Badge></h1>
               <p className="text-sm text-slate-500 mt-1">{total} {t("plots.available")}</p>
             </div>
-            <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)}>
-              <SlidersHorizontal className="h-4 w-4 mr-1.5" />
-              {t("plots.filters")}
-            </Button>
+            <div className="flex items-center gap-2">
+              <select
+                aria-label="Sort listings"
+                value={filters.sort}
+                onChange={(e) => { setFilters({ ...filters, sort: e.target.value }); setPage(1); }}
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white"
+              >
+                <option value="newest">Newest</option>
+                <option value="price_asc">Price: low to high</option>
+                <option value="price_desc">Price: high to low</option>
+                <option value="popular">Most viewed</option>
+              </select>
+              <SaveSearchButton marketplace="Plot Selling VIP" filters={filters} />
+              <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)}>
+                <SlidersHorizontal className="h-4 w-4 mr-1.5" />
+                {t("plots.filters")}
+              </Button>
+            </div>
           </div>
 
           <form onSubmit={handleSearch} className="flex gap-3">
@@ -172,7 +210,7 @@ export default function PlotSearchPage() {
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {properties.map((p) => (
-                <PropertyCard key={p.id} property={p} marketplace="plot_sale" />
+                <PropertyCard key={p.id} property={p} marketplace="plot_sale" initialSaved={favIds.has(p.id)} />
               ))}
             </div>
             <div className="mt-8">
@@ -181,6 +219,24 @@ export default function PlotSearchPage() {
           </>
         )}
       </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+        <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6 sm:p-8">
+          <h2 className="text-lg font-bold text-slate-900">Buying land in Rwanda</h2>
+          <p className="mt-2 text-sm text-slate-600 leading-relaxed">
+            Compare residential, commercial and agricultural plots for sale across Rwanda —
+            Kimironko, Remera, Gitega and Bugesera, with area in m² and prices in RWF on every
+            listing. Check the location hierarchy (district, sector, cell) and reveal the
+            seller&apos;s verified contact before you visit the site.
+          </p>
+          <p className="mt-2 text-sm text-slate-600 leading-relaxed">
+            Popular searches: residential plot in Kimironko, commercial plot on KN5 Road,
+            agricultural land in Bugesera, plot in Gitega. Save a search to catch new land
+            the day it lists.
+          </p>
+        </div>
+      </div>
+      <CompareTray />
     </PublicLayout>
   );
 }

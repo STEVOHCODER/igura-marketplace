@@ -3,6 +3,8 @@ import { useState, useEffect, useCallback } from "react";
 import { Search, SlidersHorizontal, X, MapPin } from "lucide-react";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { PropertyCard } from "@/components/ui/property-card";
+import { SaveSearchButton } from "@/components/ui/save-search-button";
+import { CompareTray } from "@/components/ui/compare-tray";
 import { Pagination } from "@/components/ui/pagination";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,7 +36,29 @@ export default function HouseSalePage() {
     areaMin: "",
     areaMax: "",
     purpose: "",
+    bedroomsMin: "",
+    sort: "newest",
   });
+  const [favIds, setFavIds] = useState<Set<string>>(new Set());
+
+  // Deep links (homepage search, saved searches, shared URLs) arrive as
+  // query params; adopt them once on mount.
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const patch: Record<string, string> = {};
+    for (const k of ["q", "district", "sector", "minPrice", "maxPrice", "availability", "areaMin", "areaMax", "purpose", "bedroomsMin"]) {
+      const v = sp.get(k);
+      if (v) patch[k] = v;
+    }
+    if (Object.keys(patch).length > 0) setFilters((f) => ({ ...f, ...patch }));
+    fetch("/api/favorites")
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        if (d?.favorites) setFavIds(new Set(d.favorites.map((f: any) => f.id)));
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fetchProperties = useCallback(async () => {
     setLoading(true);
@@ -52,6 +76,8 @@ export default function HouseSalePage() {
       if (filters.areaMin) params.set("areaMin", filters.areaMin);
       if (filters.areaMax) params.set("areaMax", filters.areaMax);
       if (filters.purpose) params.set("purpose", filters.purpose);
+      if (filters.bedroomsMin) params.set("bedroomsMin", filters.bedroomsMin);
+      if (filters.sort && filters.sort !== "newest") params.set("sort", filters.sort);
 
       const res = await fetch(`/api/properties?${params.toString()}`);
       const data = await res.json();
@@ -73,11 +99,11 @@ export default function HouseSalePage() {
   };
 
   const clearFilters = () => {
-    setFilters({ q: "", district: "", sector: "", minPrice: "", maxPrice: "", availability: "", areaMin: "", areaMax: "", purpose: "" });
+    setFilters({ q: "", district: "", sector: "", minPrice: "", maxPrice: "", availability: "", areaMin: "", areaMax: "", purpose: "", bedroomsMin: "", sort: "newest" });
     setPage(1);
   };
 
-  const hasActiveFilters = Object.values(filters).some((v) => v !== "");
+  const hasActiveFilters = Object.entries(filters).some(([k, v]) => k !== "sort" && v !== "");
 
   return (
     <PublicLayout>
@@ -90,10 +116,24 @@ export default function HouseSalePage() {
               </h1>
               <p className="text-sm text-slate-500 mt-1">{total} {t("houseSale.available")}</p>
             </div>
-            <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)}>
-              <SlidersHorizontal className="h-4 w-4 mr-1.5" />
-              {t("houseSale.filters")}
-            </Button>
+            <div className="flex items-center gap-2">
+              <select
+                aria-label="Sort listings"
+                value={filters.sort}
+                onChange={(e) => { setFilters({ ...filters, sort: e.target.value }); setPage(1); }}
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white"
+              >
+                <option value="newest">Newest</option>
+                <option value="price_asc">Price: low to high</option>
+                <option value="price_desc">Price: high to low</option>
+                <option value="popular">Most viewed</option>
+              </select>
+              <SaveSearchButton marketplace="House Selling VVIP" filters={filters} />
+              <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)}>
+                <SlidersHorizontal className="h-4 w-4 mr-1.5" />
+                {t("houseSale.filters")}
+              </Button>
+            </div>
           </div>
 
           <form onSubmit={handleSearch} className="flex gap-3">
@@ -132,6 +172,10 @@ export default function HouseSalePage() {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3">
                 <input type="number" placeholder={t("houseSale.minArea")} value={filters.areaMin} onChange={(e) => setFilters({ ...filters, areaMin: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
                 <input type="number" placeholder={t("houseSale.maxArea")} value={filters.areaMax} onChange={(e) => setFilters({ ...filters, areaMax: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                <select aria-label="Minimum bedrooms" value={filters.bedroomsMin} onChange={(e) => setFilters({ ...filters, bedroomsMin: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white">
+                  <option value="">Bedrooms: any</option>
+                  {[1, 2, 3, 4, 5].map((b) => <option key={b} value={b}>{b}+ beds</option>)}
+                </select>
                 <select value={filters.availability} onChange={(e) => setFilters({ ...filters, availability: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white">
                   <option value="">{t("houseSale.anyAvailability")}</option>
                   <option value="AVAILABLE">{t("houseSale.availableNow")}</option>
@@ -173,7 +217,7 @@ export default function HouseSalePage() {
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {properties.map((p) => (
-                <PropertyCard key={p.id} property={p} marketplace="house_sale" />
+                <PropertyCard key={p.id} property={p} marketplace="house_sale" initialSaved={favIds.has(p.id)} />
               ))}
             </div>
             <div className="mt-8">
@@ -182,6 +226,23 @@ export default function HouseSalePage() {
           </>
         )}
       </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+        <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6 sm:p-8">
+          <h2 className="text-lg font-bold text-slate-900">Buying a house in Rwanda</h2>
+          <p className="mt-2 text-sm text-slate-600 leading-relaxed">
+            Premium houses for sale in Kigali — villas in Nyarutarama, apartments in Kimihurura,
+            townhouses in Kagugu, duplexes in Kibagabaga and bungalows in Kabuga. Compare
+            bedrooms, bathrooms, size and price side by side, check the Igura value estimate
+            against live comparables, and contact verified sellers directly.
+          </p>
+          <p className="mt-2 text-sm text-slate-600 leading-relaxed">
+            Popular searches: villa for sale in Nyarutarama, apartment in Kimihurura,
+            townhouse in Kagugu, duplex in Kibagabaga, bungalow in Kabuga.
+          </p>
+        </div>
+      </div>
+      <CompareTray />
     </PublicLayout>
   );
 }

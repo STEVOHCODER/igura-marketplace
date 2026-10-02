@@ -1,249 +1,321 @@
 "use client";
 import Link from "next/link";
-import { Home, MapPin, Shield, Users, ArrowRight, Search, Star, CheckCircle, ChevronRight, Building2, TrendingUp, Heart, Crown } from "lucide-react";
+import Image from "next/image";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Search, MapPin, ShieldCheck, Home, Building2, TrendingUp, ArrowRight, Sparkles } from "lucide-react";
 import { PublicLayout } from "@/components/layout/public-layout";
+import { PropertyCard } from "@/components/ui/property-card";
+import { CompareTray } from "@/components/ui/compare-tray";
+import { AiSearchBox } from "@/components/ui/ai-search-box";
 import { useI18n } from "@/i18n";
+import { formatPrice } from "@/lib/utils";
+
+type Tab = "rent" | "buy" | "land";
+
+const TAB_TARGET: Record<Tab, { path: string; marketplace: string }> = {
+  rent: { path: "/rent/houses", marketplace: "House Rental" },
+  buy: { path: "/sell/houses", marketplace: "House Selling VVIP" },
+  land: { path: "/plots", marketplace: "Plot Selling VIP" },
+};
+
+const POPULAR_DISTRICTS = ["Gasabo", "Kicukiro", "Nyarugenge", "Bugesera", "Musanze", "Rubavu"];
+
+// Kigali's urban divisions live in the *sector* field on listings
+// (districts read "Kigali City"), while upcountry areas match the district
+// field. Tiles query whichever field actually hits.
+const POPULAR_TILES: { label: string; district?: string; sector?: string }[] = [
+  { label: "Gasabo", sector: "Gasabo" },
+  { label: "Kicukiro", sector: "Kicukiro" },
+  { label: "Nyarugenge", sector: "Nyarugenge" },
+  { label: "Bugesera", district: "Bugesera" },
+  { label: "Musanze", district: "Musanze" },
+  { label: "Rubavu", district: "Rubavu" },
+];
 
 export default function HomePage() {
   const { t } = useI18n();
+  const router = useRouter();
+  const [tab, setTab] = useState<Tab>("rent");
+  const [location, setLocation] = useState("");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [bedrooms, setBedrooms] = useState("");
+  const [propType, setPropType] = useState("");
+  const [districts, setDistricts] = useState<string[]>([]);
+  const [types, setTypes] = useState<any[]>([]);
+  const [liveCount, setLiveCount] = useState<number | null>(null);
+  const [featured, setFeatured] = useState<any[]>([]);
+  const [recent, setRecent] = useState<any[]>([]);
+  const [popCounts, setPopCounts] = useState<Record<string, number>>({});
+  const [totalActive, setTotalActive] = useState<number | null>(null);
+  const [favIds, setFavIds] = useState<Set<string>>(new Set());
+  const debounce = useRef<any>(null);
 
-  const stats = [
-    { value: "2,500+", label: t("stats.activeListings"), icon: Building2 },
-    { value: "30", label: t("stats.districts"), icon: MapPin },
-    { value: "1,200+", label: t("stats.happyClients"), icon: Heart },
-    { value: "100%", label: t("stats.verifiedOwners"), icon: Shield },
-  ];
+  useEffect(() => {
+    fetch("/api/locations?country=Rwanda")
+      .then(r => r.json())
+      .then(d => setDistricts((d?.locations || []).map((l: any) => l.name)))
+      .catch(() => {});
+    fetch("/api/property-types")
+      .then(r => r.json())
+      .then(d => setTypes(d?.propertyTypes || d?.types || []))
+      .catch(() => {});
+    fetch("/api/featured")
+      .then(r => r.json())
+      .then(d => setFeatured(d.listings || []))
+      .catch(() => {});
+    fetch("/api/properties?limit=6")
+      .then(r => r.json())
+      .then(d => setRecent(d.properties || []))
+      .catch(() => {});
+    fetch("/api/properties?limit=1")
+      .then(r => r.json())
+      .then(d => setTotalActive(typeof d.total === "number" ? d.total : null))
+      .catch(() => {});
+    fetch("/api/favorites")
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        if (d?.favorites) setFavIds(new Set(d.favorites.map((f: any) => f.id)));
+      })
+      .catch(() => {});
+  }, []);
 
-  const testimonials = [
-    { name: "Alice Mukamana", role: "Tenant, Kigali", content: "Found my perfect apartment in Remera within a week. The verification process gave me confidence that the listing was real.", rating: 5 },
-    { name: "Jean-Pierre Habimana", role: "Property Owner", content: "Listed my house and got 15 inquiries in the first day. Igura makes it easy to connect with serious renters.", rating: 5 },
-    { name: "Grace Uwimana", role: "Land Buyer", content: "Bought a residential plot in Bugesera through Igura. The process was transparent and secure from start to finish.", rating: 5 },
-  ];
+  useEffect(() => {
+    POPULAR_TILES.forEach((tile) => {
+      const params = new URLSearchParams({ limit: "1", marketplace: "House Rental" });
+      if (tile.district) params.set("district", tile.district);
+      if (tile.sector) params.set("sector", tile.sector);
+      fetch(`/api/properties?${params.toString()}`)
+        .then(r => r.json())
+        .then(d => {
+          if (typeof d.total === "number") setPopCounts(prev => ({ ...prev, [tile.label]: d.total }));
+        })
+        .catch(() => {});
+    });
+  }, []);
+
+  const typeOptions = useMemo(() => {
+    const target = TAB_TARGET[tab].marketplace;
+    return types.filter((x: any) => x.marketplace?.name === target || x.marketplaceId === target);
+  }, [types, tab]);
+
+  useEffect(() => { setPropType(""); }, [tab]);
+
+  // Location first tries an exact district match; anything else (sectors,
+  // cells, free text) goes through full-text search, which covers the
+  // sector/cell fields the hierarchy names live in.
+  const locationParams = (loc: string, params: URLSearchParams) => {
+    const match = districts.find(d => d.toLowerCase() === loc.toLowerCase());
+    if (match) params.set("district", match);
+    else params.set("q", loc);
+  };
+
+  // Live result count for the search button (Tura-style), debounced.
+  useEffect(() => {
+    if (debounce.current) clearTimeout(debounce.current);
+    debounce.current = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams();
+        params.set("marketplace", TAB_TARGET[tab].marketplace);
+        params.set("limit", "1");
+        const loc = location.trim();
+        if (loc) locationParams(loc, params);
+        if (minPrice) params.set("minPrice", minPrice);
+        if (maxPrice) params.set("maxPrice", maxPrice);
+        if (bedrooms && tab !== "land") params.set("bedroomsMin", bedrooms);
+        if (propType) params.set("propertyType", propType);
+        const r = await fetch(`/api/properties?${params.toString()}`);
+        const d = await r.json();
+        setLiveCount(typeof d.total === "number" ? d.total : null);
+      } catch {
+        setLiveCount(null);
+      }
+    }, 450);
+    return () => { if (debounce.current) clearTimeout(debounce.current); };
+  }, [tab, location, minPrice, maxPrice, bedrooms, propType, districts]);
+
+  const doSearch = () => {
+    const params = new URLSearchParams();
+    const loc = location.trim();
+    if (loc) locationParams(loc, params);
+    if (minPrice) params.set("minPrice", minPrice);
+    if (maxPrice) params.set("maxPrice", maxPrice);
+    if (bedrooms && tab !== "land") params.set("bedroomsMin", bedrooms);
+    if (propType) params.set("propertyType", propType);
+    const qs = params.toString();
+    router.push(`${TAB_TARGET[tab].path}${qs ? `?${qs}` : ""}`);
+  };
 
   return (
     <PublicLayout>
-      {/* Hero */}
+      {/* Discovery hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900">
         <div className="absolute inset-0">
           <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
           <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-emerald-500/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3" />
         </div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 lg:py-32">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            <div className="animate-fade-in-up">
-              <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-4 py-1.5 mb-6">
-                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-sm font-medium text-emerald-300">{t("hero.badge")}</span>
-              </div>
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.1]">
-                {t("hero.title1")}<br />{t("hero.titleHome")}<br />
-                <span className="text-emerald-400">{t("hero.title2")}</span> {t("hero.titleFuture")}<br />
-                <span className="text-violet-400">{t("hero.title3")}</span> {t("hero.titleVvip")}
-              </h1>
-              <p className="mt-6 text-lg sm:text-xl text-slate-300 max-w-lg leading-relaxed">
-                {t("hero.desc")}
-              </p>
-              <div className="mt-8 flex flex-col sm:flex-row gap-4">
-                <Link href="/rent/houses" className="group inline-flex items-center justify-center gap-2 bg-emerald-600 text-white px-7 py-4 rounded-xl text-base font-semibold hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-600/25 hover:shadow-emerald-500/30 hover:-translate-y-0.5">
-                  <Search className="h-5 w-5" />{t("hero.findHouse")}
-                  <ChevronRight className="h-4 w-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-                </Link>
-                <Link href="/plots" className="group inline-flex items-center justify-center gap-2 bg-white/10 text-white px-7 py-4 rounded-xl text-base font-semibold hover:bg-white/15 transition-all border border-white/15 hover:border-white/25 hover:-translate-y-0.5">
-                  <MapPin className="h-5 w-5" />{t("hero.findPlot")}
-                </Link>
-                <Link href="/sell/houses" className="group inline-flex items-center justify-center gap-2 bg-violet-600 text-white px-7 py-4 rounded-xl text-base font-semibold hover:bg-violet-500 transition-all shadow-lg shadow-violet-600/25 hover:shadow-violet-500/30 hover:-translate-y-0.5">
-                  <Crown className="h-5 w-5" />{t("hero.sellHouse")}
-                </Link>
-              </div>
-              <div className="mt-8 flex flex-wrap items-center gap-4 sm:gap-6 text-sm text-slate-400">
-                <div className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-400" /><span>{t("hero.membershipAccess")}</span></div>
-                <div className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-400" /><span>{t("hero.verifiedOwners")}</span></div>
-                <div className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-400" /><span>{t("hero.securePayments")}</span></div>
-              </div>
-            </div>
-            <div className="hidden lg:block animate-fade-in-up delay-200">
-              <div className="relative">
-                <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl">
-                  <div className="aspect-[4/3] rounded-2xl overflow-hidden relative">
-                    <img
-                      src="https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&h=600&fit=crop&auto=format"
-                      alt="Modern luxury house in Rwanda"
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-                    <div className="absolute bottom-4 left-4 right-4">
-                      <p className="text-white/90 text-sm font-medium">{t("hero.propertyAwaits")}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="absolute -bottom-6 -left-6 bg-white rounded-2xl p-4 shadow-xl animate-slide-in-right delay-300">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-emerald-100 flex items-center justify-center"><TrendingUp className="h-5 w-5 text-emerald-600" /></div>
-                    <div><p className="text-2xl font-bold text-slate-900">2,500+</p><p className="text-xs text-slate-500">{t("hero.activeListings")}</p></div>
-                  </div>
-                </div>
-                <div className="absolute -top-4 -right-4 bg-white rounded-2xl p-4 shadow-xl animate-slide-in-right delay-400">
-                  <div className="flex items-center gap-1 mb-1">
-                    {[...Array(5)].map((_, i) => (<Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />))}
-                  </div>
-                  <p className="text-sm font-medium text-slate-900">{t("hero.rating")}</p>
-                  <p className="text-xs text-slate-500">{t("hero.reviews")}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-10 sm:pt-20 sm:pb-14">
+          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight max-w-3xl">
+            Find your next place in Rwanda.
+          </h1>
+          <p className="mt-3 text-base sm:text-lg text-slate-300 max-w-2xl">
+            Houses for rent, homes for sale and plots across all districts — from verified owners.
+          </p>
 
-      {/* Stats */}
-      <section className="relative -mt-8 z-10">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 p-6 sm:p-8">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
-              {stats.map((stat) => (
-                <div key={stat.label} className="text-center">
-                  <div className="inline-flex h-10 w-10 rounded-xl bg-emerald-50 items-center justify-center mb-3">
-                    <stat.icon className="h-5 w-5 text-emerald-600" />
-                  </div>
-                  <div className="text-2xl sm:text-3xl font-extrabold text-slate-900">{stat.value}</div>
-                  <div className="text-sm text-slate-500 mt-1">{stat.label}</div>
-                </div>
+          {/* Search card */}
+          <div className="mt-8 max-w-4xl bg-white rounded-2xl shadow-2xl p-3 sm:p-4">
+            <div className="flex gap-1 sm:gap-2 mb-3 px-1">
+              {(["rent", "buy", "land"] as Tab[]).map((k) => (
+                <button
+                  key={k}
+                  onClick={() => setTab(k)}
+                  className={`px-4 sm:px-6 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                    tab === k ? "bg-emerald-600 text-white" : "text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  {k === "rent" ? t("hero.findHouse") : k === "buy" ? t("hero.sellHouse") : t("hero.findPlot")}
+                </button>
               ))}
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr] gap-2">
+              <div className="relative sm:col-span-2 lg:col-span-1">
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") doSearch(); }}
+                  placeholder="Where are you looking? District, sector…"
+                  list="igura-districts"
+                  className="w-full pl-9 pr-3 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <datalist id="igura-districts">
+                  {districts.map((d) => <option key={d} value={d} />)}
+                </datalist>
+              </div>
+              <div className="flex gap-2">
+                <input value={minPrice} onChange={(e) => setMinPrice(e.target.value)} placeholder="Min price" inputMode="numeric" className="w-full px-3 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                <input value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} placeholder="Max price" inputMode="numeric" className="w-full px-3 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+              </div>
+              <div className="flex gap-2">
+                {tab !== "land" ? (
+                  <select value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} className="w-full px-3 py-3 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    <option value="">Bedrooms</option>
+                    {[1, 2, 3, 4, 5].map((b) => <option key={b} value={b}>{b}+</option>)}
+                  </select>
+                ) : null}
+                <select value={propType} onChange={(e) => setPropType(e.target.value)} className="w-full px-3 py-3 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                  <option value="">All types</option>
+                  {typeOptions.map((x: any) => <option key={x.id} value={x.slug || x.id}>{x.displayName || x.name}</option>)}
+                </select>
+              </div>
+            </div>
+            <button
+              onClick={doSearch}
+              className="mt-3 w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-emerald-600 text-white px-8 py-3.5 rounded-xl text-base font-semibold hover:bg-emerald-500 transition-colors"
+            >
+              <Search className="h-5 w-5" />
+              Search{liveCount !== null ? ` (${liveCount})` : ""}
+            </button>
+          </div>
+
+          <AiSearchBox districts={districts} />
+
+          <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-300">
+            <span className="inline-flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-emerald-400" /> Verified owners</span>
+            <span className="inline-flex items-center gap-1.5"><Home className="h-4 w-4 text-emerald-400" /> {totalActive !== null ? `${totalActive} live listings` : "Live listings"}</span>
+            <span className="inline-flex items-center gap-1.5"><TrendingUp className="h-4 w-4 text-emerald-400" /> Secure MoMo payments</span>
           </div>
         </div>
       </section>
 
-      {/* How It Works */}
-      <section className="py-20 sm:py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <span className="text-sm font-semibold text-emerald-600 tracking-wide uppercase">{t("how.simpleProcess")}</span>
-            <h2 className="mt-3 text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">{t("how.title")}</h2>
-            <p className="mt-4 text-lg text-slate-500 max-w-2xl mx-auto">{t("how.desc")}</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
-            {[
-              { step: "01", icon: Users, title: t("how.step1Title"), desc: t("how.step1Desc") },
-              { step: "02", icon: Search, title: t("how.step2Title"), desc: t("how.step2Desc") },
-              { step: "03", icon: Home, title: t("how.step3Title"), desc: t("how.step3Desc") },
-            ].map((item, i) => (
-              <div key={item.step} className="relative group">
-                <div className="bg-slate-50 rounded-2xl p-8 border border-slate-100 group-hover:border-emerald-200 group-hover:bg-emerald-50/30 transition-all duration-300">
-                  <div className="flex items-center gap-4 mb-5">
-                    <div className="h-14 w-14 rounded-2xl bg-emerald-100 flex items-center justify-center group-hover:bg-emerald-600 transition-colors duration-300">
-                      <item.icon className="h-7 w-7 text-emerald-600 group-hover:text-white transition-colors duration-300" />
-                    </div>
-                    <span className="text-4xl font-extrabold text-slate-200 group-hover:text-emerald-200 transition-colors">{item.step}</span>
-                  </div>
-                  <h3 className="text-xl font-bold text-slate-900 mb-3">{item.title}</h3>
-                  <p className="text-slate-500 leading-relaxed">{item.desc}</p>
-                </div>
-                {i < 2 && <div className="hidden md:block absolute top-1/2 -right-6 lg:-right-8 w-6 lg:w-8 h-0.5 bg-slate-200" />}
-              </div>
-            ))}
-          </div>
+      {/* Popular locations */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Popular locations</h2>
+          <Link href="/locations" className="inline-flex items-center gap-1 text-sm font-medium text-emerald-600 hover:underline">
+            Explore all <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {POPULAR_TILES.filter((tile) => popCounts[tile.label] === undefined || popCounts[tile.label] > 0).map((tile) => {
+            const params = new URLSearchParams();
+            if (tile.district) params.set("district", tile.district);
+            if (tile.sector) params.set("sector", tile.sector);
+            return (
+              <Link key={tile.label} href={`/rent/houses?${params.toString()}`} className="group rounded-xl border border-slate-200 bg-white p-4 hover:shadow-md hover:border-emerald-300 transition-all">
+                <MapPin className="h-5 w-5 text-emerald-600 mb-2" />
+                <p className="font-semibold text-slate-900 text-sm">{tile.label}</p>
+                <p className="text-xs text-slate-500">{popCounts[tile.label] !== undefined ? `${popCounts[tile.label]} listings` : "…"}</p>
+              </Link>
+            );
+          })}
         </div>
       </section>
+
+      {/* Recently added */}
+      {recent.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Recently added</h2>
+            <Link href="/rent/houses" className="inline-flex items-center gap-1 text-sm font-medium text-emerald-600 hover:underline">
+              View all <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {recent.map((p: any) => (
+              <PropertyCard key={p.id} property={p} initialSaved={favIds.has(p.id)} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Most viewed */}
+      {featured.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Most viewed right now</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {featured.map((p: any) => (
+              <PropertyCard key={p.id} property={p} initialSaved={favIds.has(p.id)} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Marketplaces */}
-      <section className="py-20 sm:py-24 bg-slate-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <span className="text-sm font-semibold text-emerald-600 tracking-wide uppercase">{t("marketplace.badge")}</span>
-            <h2 className="mt-3 text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">{t("marketplace.title")}</h2>
-            <p className="mt-4 text-lg text-slate-500 max-w-2xl mx-auto">{t("marketplace.desc")}</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Link href="/rent/houses" className="group">
-              <div className="relative bg-white rounded-3xl p-8 sm:p-10 border border-slate-200 hover:border-emerald-300 hover:shadow-2xl hover:shadow-emerald-100/50 transition-all duration-300 overflow-hidden">
-                <div className="absolute top-0 right-0 w-40 h-40 bg-emerald-50 rounded-full -translate-y-1/2 translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="relative">
-                  <div className="h-14 w-14 rounded-2xl bg-emerald-100 flex items-center justify-center mb-6 group-hover:bg-emerald-600 transition-colors duration-300">
-                    <Home className="h-7 w-7 text-emerald-600 group-hover:text-white transition-colors" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-slate-900 mb-3">{t("marketplace.houseRental")}</h3>
-                  <p className="text-slate-500 leading-relaxed mb-6">{t("marketplace.houseRentalDesc")}</p>
-                  <div className="flex items-center gap-2 text-emerald-600 font-semibold group-hover:gap-3 transition-all">{t("marketplace.browseHouses")} <ArrowRight className="h-5 w-5" /></div>
-                </div>
-              </div>
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1">One platform, every need</h2>
+        <p className="text-slate-500 mb-5 text-sm sm:text-base">Rent, buy, or invest in land — pick your marketplace.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[
+            { title: "House Rental", desc: "Rooms, apartments and houses for rent.", href: "/rent/houses", icon: Home },
+            { title: "Plot Selling VIP", desc: "Residential, commercial and farming plots.", href: "/plots", icon: MapPin },
+            { title: "House Selling VVIP", desc: "Premium houses for sale across Rwanda.", href: "/sell/houses", icon: Building2 },
+          ].map((m) => (
+            <Link key={m.title} href={m.href} className="group rounded-2xl border border-slate-200 bg-white p-6 hover:shadow-lg hover:border-emerald-300 transition-all">
+              <m.icon className="h-8 w-8 text-emerald-600 mb-3" />
+              <h3 className="font-bold text-slate-900 text-lg group-hover:text-emerald-600">{m.title}</h3>
+              <p className="text-sm text-slate-500 mt-1">{m.desc}</p>
+              <span className="inline-flex items-center gap-1 mt-3 text-sm font-medium text-emerald-600">Browse <ArrowRight className="h-4 w-4" /></span>
             </Link>
-            <Link href="/plots" className="group">
-              <div className="relative bg-white rounded-3xl p-8 sm:p-10 border border-slate-200 hover:border-amber-300 hover:shadow-2xl hover:shadow-amber-100/50 transition-all duration-300 overflow-hidden">
-                <div className="absolute top-0 right-0 w-40 h-40 bg-amber-50 rounded-full -translate-y-1/2 translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="relative">
-                  <div className="h-14 w-14 rounded-2xl bg-amber-100 flex items-center justify-center mb-6 group-hover:bg-amber-500 transition-colors duration-300">
-                    <MapPin className="h-7 w-7 text-amber-600 group-hover:text-white transition-colors" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-slate-900 mb-3">{t("marketplace.plotSelling")} <span className="text-sm font-semibold text-amber-600 ml-2 bg-amber-50 px-2 py-0.5 rounded-full">VIP</span></h3>
-                  <p className="text-slate-500 leading-relaxed mb-6">{t("marketplace.plotSellingDesc")}</p>
-                  <div className="flex items-center gap-2 text-amber-600 font-semibold group-hover:gap-3 transition-all">{t("marketplace.browsePlots")} <ArrowRight className="h-5 w-5" /></div>
-                </div>
-              </div>
-            </Link>
-            <Link href="/sell/houses" className="group">
-              <div className="relative bg-white rounded-3xl p-8 sm:p-10 border border-slate-200 hover:border-violet-300 hover:shadow-2xl hover:shadow-violet-100/50 transition-all duration-300 overflow-hidden">
-                <div className="absolute top-0 right-0 w-40 h-40 bg-violet-50 rounded-full -translate-y-1/2 translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="relative">
-                  <div className="h-14 w-14 rounded-2xl bg-violet-100 flex items-center justify-center mb-6 group-hover:bg-violet-600 transition-colors duration-300">
-                    <Crown className="h-7 w-7 text-violet-600 group-hover:text-white transition-colors" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-slate-900 mb-3">{t("marketplace.houseSellingVvip")} <span className="text-sm font-semibold text-violet-600 ml-2 bg-violet-50 px-2 py-0.5 rounded-full">VVIP</span></h3>
-                  <p className="text-slate-500 leading-relaxed mb-6">{t("marketplace.houseSellingVvipDesc")}</p>
-                  <div className="flex items-center gap-2 text-violet-600 font-semibold group-hover:gap-3 transition-all">{t("marketplace.browseHousesSale")} <ArrowRight className="h-5 w-5" /></div>
-                </div>
-              </div>
-            </Link>
-          </div>
+          ))}
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-20 sm:py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <span className="text-sm font-semibold text-emerald-600 tracking-wide uppercase">{t("testimonials.badge")}</span>
-            <h2 className="mt-3 text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">{t("testimonials.title")}</h2>
-            <p className="mt-4 text-lg text-slate-500 max-w-2xl mx-auto">{t("testimonials.desc")}</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((tst) => (
-              <div key={tst.name} className="bg-slate-50 rounded-2xl p-8 border border-slate-100 hover:border-emerald-200 transition-colors">
-                <div className="flex items-center gap-1 mb-4">
-                  {[...Array(tst.rating)].map((_, i) => (<Star key={i} className="h-5 w-5 fill-amber-400 text-amber-400" />))}
-                </div>
-                <p className="text-slate-600 leading-relaxed mb-6">&ldquo;{tst.content}&rdquo;</p>
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
-                    <span className="text-sm font-semibold text-emerald-700">{tst.name.split(" ").map(n => n[0]).join("")}</span>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900">{tst.name}</p>
-                    <p className="text-sm text-slate-500">{tst.role}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+      {/* List CTA */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-14">
+        <div className="rounded-2xl bg-slate-900 px-6 py-10 sm:p-12 text-center relative overflow-hidden">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-emerald-500/10 rounded-full blur-3xl" />
+          <h2 className="relative text-2xl sm:text-3xl font-bold text-white">Own a property? List it in minutes.</h2>
+          <p className="relative text-slate-300 mt-2">Reach renters and buyers across Rwanda. Drafts are free — you only need a slot when you publish.</p>
+          <Link href="/register" className="relative mt-6 inline-flex items-center gap-2 bg-emerald-600 text-white px-7 py-3.5 rounded-xl font-semibold hover:bg-emerald-500 transition-colors">
+            <Sparkles className="h-5 w-5" /> List your property
+          </Link>
         </div>
       </section>
-
-      {/* CTA */}
-      <section className="py-20 bg-gradient-to-r from-emerald-600 to-emerald-700 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.03]" />
-        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">{t("cta.title")}</h2>
-          <p className="mt-4 text-lg text-emerald-100 max-w-xl mx-auto">{t("cta.desc")}</p>
-          <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/register" className="inline-flex items-center justify-center gap-2 bg-white text-emerald-700 px-8 py-4 rounded-xl text-base font-semibold hover:bg-emerald-50 transition-all shadow-lg hover:-translate-y-0.5">
-              {t("cta.createAccount")} <ArrowRight className="h-5 w-5" />
-            </Link>
-            <Link href="/register" className="inline-flex items-center justify-center gap-2 bg-emerald-500/30 text-white px-8 py-4 rounded-xl text-base font-semibold hover:bg-emerald-500/40 transition-all border border-emerald-400/30">
-              {t("cta.learnMore")}
-            </Link>
-          </div>
-        </div>
-      </section>
+      <CompareTray />
     </PublicLayout>
   );
 }

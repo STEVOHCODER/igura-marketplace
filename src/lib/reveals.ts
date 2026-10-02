@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { REVEAL_FEE_RWF } from "@/lib/access";
 import { notify } from "@/lib/notify";
 
@@ -12,27 +13,32 @@ import { notify } from "@/lib/notify";
 export async function grantReveal(params: {
   userId: string;
   propertyId: string;
-  paymentId: string;
+  paymentId?: string;
   transactionId?: string;
 }): Promise<boolean> {
   const { userId, propertyId, paymentId, transactionId } = params;
 
   try {
     await prisma.contactReveal.create({
-      data: { userId, propertyId, paymentId, amount: REVEAL_FEE_RWF },
+      data: { userId, propertyId, paymentId, amount: paymentId ? REVEAL_FEE_RWF : 0 },
     });
-  } catch {
-    return false; // Already granted.
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return false;
+    }
+    throw error;
   }
 
-  await prisma.payment.update({
-    where: { id: paymentId },
-    data: {
-      status: "SUCCESSFUL",
-      paidAt: new Date(),
-      ...(transactionId ? { providerTransactionId: transactionId } : {}),
-    },
-  });
+  if (paymentId) {
+    await prisma.payment.update({
+      where: { id: paymentId },
+      data: {
+        status: "SUCCESSFUL",
+        paidAt: new Date(),
+        ...(transactionId ? { providerTransactionId: transactionId } : {}),
+      },
+    });
+  }
 
   const property = await prisma.property.findUnique({
     where: { id: propertyId },

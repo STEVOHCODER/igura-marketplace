@@ -1,13 +1,17 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { getSessionVerified } from "@/lib/auth";
+import { enforceRateLimit, LIMITS } from "@/lib/rate-limit";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getSessionVerified();
     if (!session || (session.role !== "ADMIN" && session.role !== "SUPER_ADMIN")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
+
+    const limited = enforceRateLimit(request, "admin-stats", 20, 60_000);
+    if (limited) return limited;
 
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -98,6 +102,50 @@ export async function GET() {
       });
     }
 
+    // Yearly revenue (last 5 years, including the current one)
+    const yearlyRevenue = [];
+    for (let y = 4; y >= 0; y--) {
+      const year = now.getFullYear() - y;
+      const revenue = await prisma.payment.aggregate({
+        where: {
+          status: "SUCCESSFUL",
+          createdAt: { gte: new Date(year, 0, 1), lt: new Date(year + 1, 0, 1) },
+        },
+        _sum: { amount: true },
+        _count: true,
+      });
+      yearlyRevenue.push({
+        year,
+        revenue: revenue._sum.amount || 0,
+        transactions: revenue._count,
+      });
+    }
+
+    // Memberships by plan (who joined on what): active + total per plan.
+    const membershipsByPlanRaw = await prisma.membership.groupBy({
+      by: ["planId", "status"],
+      _count: true,
+    });
+    const allPlanIds = [...new Set(membershipsByPlanRaw.map((r) => r.planId))];
+    const allPlans = await prisma.plan.findMany({
+      where: { id: { in: allPlanIds } },
+      select: { id: true, displayName: true, name: true },
+    });
+    const planName = new Map(allPlans.map((p) => [p.id, p.displayName || p.name]));
+    const usersByPlan: Record<string, { active: number; total: number }> = {};
+    for (const r of membershipsByPlanRaw) {
+      const name = planName.get(r.planId) || "Unknown plan";
+      const entry = usersByPlan[name] || { active: 0, total: 0 };
+      entry.total += r._count;
+      if (r.status === "ACTIVE") entry.active += r._count;
+      usersByPlan[name] = entry;
+    }
+
+    // Users by role.
+    const usersByRoleRaw = await prisma.user.groupBy({ by: ["role"], _count: true });
+    const usersByRole: Record<string, number> = {};
+    for (const r of usersByRoleRaw) usersByRole[r.role] = r._count;
+
     // Top viewed listings
     const topListings = await prisma.property.findMany({
       take: 5,
@@ -107,7 +155,7 @@ export async function GET() {
     });
 
     return NextResponse.json({
-      users: { total: totalUsers, new30d: newUsers30d },
+      users: { total: totalUsers, new30d: newUsers30d, byRole: usersByRole },
       listings: { total: totalListings, active: activeListings, pending: pendingListings, draft: draftListings },
       payments: { total: totalPayments, successful: successfulPayments, pending: pendingPayments, failed: failedPayments },
       reports: { total: totalReports, pending: pendingReports },
@@ -117,8 +165,9 @@ export async function GET() {
         last7d: revenue7d._sum.amount || 0,
         byMarketplace: marketplaceRevenue,
         monthly: monthlyRevenue,
+        yearly: yearlyRevenue,
       },
-      memberships: { total: totalMemberships, active: activeMemberships },
+      memberships: { total: totalMemberships, active: activeMemberships, byPlan: usersByPlan },
       recentActions,
       topListings,
     });

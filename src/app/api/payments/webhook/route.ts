@@ -3,9 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getPaymentProvider } from "@/lib/payment-provider";
 import { grantReveal } from "@/lib/reveals";
 import { notify } from "@/lib/notify";
-
-/** Membership term granted on a successful plan payment. */
-const MEMBERSHIP_DAYS = 30;
+import { buildMembershipGrant } from "@/lib/payments";
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,6 +38,22 @@ export async function POST(request: NextRequest) {
 
     // Never act twice on the same settled payment.
     if (payment.status === "SUCCESSFUL") {
+      // Backfill a missing expiry on a membership that was activated by the
+      // verify route before this fix shipped, so nothing stays lifetime.
+      if (payment.membershipId) {
+        const m = await prisma.membership.findUnique({
+          where: { id: payment.membershipId },
+          select: { id: true, status: true, expiresAt: true },
+        });
+        if (m && m.status === "ACTIVE" && !m.expiresAt) {
+          const expiresAt = new Date();
+          expiresAt.setDate(expiresAt.getDate() + 30);
+          await prisma.membership.update({
+            where: { id: m.id },
+            data: { expiresAt },
+          });
+        }
+      }
       return NextResponse.json({ status: "already_processed" });
     }
 
@@ -66,7 +80,6 @@ export async function POST(request: NextRequest) {
         newStatus = "FAILED";
       }
     }
-
     await prisma.payment.update({
       where: { id: payment.id },
       data: {
@@ -103,6 +116,19 @@ export async function POST(request: NextRequest) {
     // looked at `payment.membershipId`, so a buyer who closed the tab after
     // paying got nothing at all.
     if (metadata.type === "phone_reveal" && typeof metadata.propertyId === "string") {
+      if (
+        event.amount !== payment.amount ||
+        event.currency !== payment.currency
+      ) {
+        console.warn(
+          `[payments] Rejecting reveal ${event.reference}: expected ${payment.amount} ${payment.currency}, got ${event.amount} ${event.currency}`
+        );
+        await prisma.payment.update({
+          where: { id: payment.id },
+          data: { status: "FAILED" },
+        });
+        return NextResponse.json({ status: "processed" });
+      }
       await grantReveal({
         userId: payment.userId,
         propertyId: metadata.propertyId,
@@ -113,27 +139,29 @@ export async function POST(request: NextRequest) {
     }
 
     if (payment.membershipId) {
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + MEMBERSHIP_DAYS);
-
-      await prisma.membership.update({
-        where: { id: payment.membershipId },
-        data: {
-          status: "ACTIVE",
-          activatedAt: new Date(),
-          // `expiresAt` existed in the schema but was never written, so every
-          // membership was effectively lifetime after a single payment.
-          expiresAt,
-        },
+      const grant = buildMembershipGrant({
+        paymentAmount: payment.amount,
+        paymentCurrency: payment.currency,
+        settledAmount: event.amount,
+        settledCurrency: event.currency,
       });
 
-      await notify({
-        userId: payment.userId,
-        type: "MEMBERSHIP_ACTIVATED",
-        title: "Membership active",
-        message: `Your membership is active until ${expiresAt.toLocaleDateString("en-RW", { day: "numeric", month: "long", year: "numeric" })}.`,
-        metadata: { membershipId: payment.membershipId },
-      });
+      // A rejected amount flips the payment to FAILED above; if that somehow
+      // did not happen, refuse to grant rather than fall through.
+      if (grant) {
+        await prisma.membership.update({
+          where: { id: payment.membershipId },
+          data: grant,
+        });
+
+        await notify({
+          userId: payment.userId,
+          type: "MEMBERSHIP_ACTIVATED",
+          title: "Membership active",
+          message: `Your membership is active until ${grant.expiresAt.toLocaleDateString("en-RW", { day: "numeric", month: "long", year: "numeric" })}.`,
+          metadata: { membershipId: payment.membershipId },
+        });
+      }
     }
 
     return NextResponse.json({ status: "processed" });

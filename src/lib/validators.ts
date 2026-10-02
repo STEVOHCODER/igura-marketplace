@@ -61,6 +61,27 @@ export const propertyUpdateSchema = propertySchema.partial().extend({
   status: z.enum(OWNER_SETTABLE_STATUSES).optional(),
 });
 
+/// Form text inputs submit "" for untouched optional fields, and "" fails
+/// `min(1)` differently from a missing key. Normalize before parsing so an
+/// empty box means "not provided" instead of a 400 the user cannot decode.
+const EMPTYABLE_PROPERTY_FIELDS = [
+  "locationSector",
+  "locationCell",
+  "locationVillage",
+  "areaUnit",
+  "plotPurpose",
+  "availabilityDate",
+  "contactName",
+] as const;
+
+export function sanitizePropertyInput<T extends Record<string, any>>(body: T): T {
+  const cleaned: Record<string, any> = { ...(body as object) };
+  for (const key of EMPTYABLE_PROPERTY_FIELDS) {
+    if (cleaned[key] === "") delete cleaned[key];
+  }
+  return cleaned as T;
+}
+
 export const forgotPasswordSchema = z.object({
   email: z.string().email("Invalid email address"),
 });

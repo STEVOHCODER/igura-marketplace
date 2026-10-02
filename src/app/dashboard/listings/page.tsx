@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { Home, Plus, Edit, Trash2, Eye, EyeOff, MoreVertical, Phone, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ export default function ListingsPage() {
   const { t } = useI18n();
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [quota, setQuota] = useState<{ activeListings: number; maxActiveListings: number; canPublish: boolean; reason: string | null } | null>(null);
   const { toast } = useToast();
 
   const fetchListings = () => {
@@ -20,6 +22,21 @@ export default function ListingsPage() {
       .then(r => r.json())
       .then(d => setListings(d?.properties || []))
       .finally(() => setLoading(false));
+    fetch("/api/access/quota")
+      .then(r => r.json())
+      .then(d => {
+        if (typeof d?.activeListings === "number") setQuota(d);
+      })
+      .catch(() => {});
+  };
+
+  const refreshQuota = () => {
+    fetch("/api/access/quota")
+      .then(r => r.json())
+      .then(d => {
+        if (typeof d?.activeListings === "number") setQuota(d);
+      })
+      .catch(() => {});
   };
 
   useEffect(() => { fetchListings(); }, []);
@@ -49,6 +66,10 @@ export default function ListingsPage() {
       if (res.ok) {
         toast("Status updated", "success");
         fetchListings();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast(data.error || "Status update failed", "error");
+        refreshQuota();
       }
     } catch {
       toast("Something went wrong", "error");
@@ -65,6 +86,10 @@ export default function ListingsPage() {
       const data = await res.json();
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
+        return;
+      }
+      if (data.pending && data.reference) {
+        toast(data.message || "Payment request sent. Approve on your phone, then check again.", "success");
         return;
       }
       if (data.revealed || data.success) {
@@ -97,6 +122,17 @@ export default function ListingsPage() {
         </Link>
       </div>
 
+      {/* Quota banner: drafts are free, publishing takes a slot */}
+      {quota && (
+        <div className={`mb-6 rounded-xl border p-4 text-sm ${quota.canPublish ? "bg-slate-50 border-slate-200 text-slate-600" : "bg-amber-50 border-amber-200 text-amber-800"}`}>
+          {quota.canPublish ? (
+            <p>{quota.activeListings} of {quota.maxActiveListings} active listings used. Drafts don&apos;t count — only published listings take a slot.</p>
+          ) : (
+            <p className="font-medium">{quota.reason || "Listing limit reached."} Unpublish a listing or upgrade your plan to publish more.</p>
+          )}
+        </div>
+      )}
+
       {loading ? (
         <div className="space-y-4">
           {Array.from({ length: 3 }).map((_, i) => (
@@ -116,7 +152,7 @@ export default function ListingsPage() {
             <div key={listing.id} className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-4">
               <div className="h-20 w-20 rounded-lg bg-slate-100 overflow-hidden flex-shrink-0">
                 {listing.images?.[0] ? (
-                  <img src={listing.images[0].url} alt={listing.title} className="h-full w-full object-cover" />
+                  <Image src={listing.images[0].url} alt={listing.title} width={80} height={80} className="h-full w-full object-cover" />
                 ) : (
                   <div className="h-full w-full flex items-center justify-center text-slate-300">
                     <Home className="h-6 w-6" />
@@ -153,6 +189,8 @@ export default function ListingsPage() {
                 <Button
                   variant="outline"
                   size="sm"
+                  disabled={listing.status !== "ACTIVE" && quota !== null && !quota.canPublish}
+                  title={listing.status !== "ACTIVE" && quota !== null && !quota.canPublish ? (quota.reason || "Listing limit reached") : (listing.status === "ACTIVE" ? "Unpublish" : "Publish")}
                   onClick={() => handleStatusChange(listing.id, listing.status === "ACTIVE" ? "UNAVAILABLE" : "ACTIVE")}
                 >
                   {listing.status === "ACTIVE" ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

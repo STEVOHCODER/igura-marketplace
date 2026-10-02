@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, Home, MapPin, LogIn, UserPlus, LayoutDashboard, LogOut, User, ChevronDown, Crown } from "lucide-react";
+import { Menu, X, Home, MapPin, LogIn, UserPlus, LayoutDashboard, LogOut, User, ChevronDown, Crown, Heart, BellRing } from "lucide-react";
 import { cn, getInitials } from "@/lib/utils";
 import { useI18n } from "@/i18n";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
@@ -56,6 +56,8 @@ export function Navbar() {
     { href: "/rent/houses", label: t("nav.houseRental"), icon: Home },
     { href: "/plots", label: t("nav.plotsLand"), icon: MapPin },
     { href: "/sell/houses", label: t("nav.houseSellingVvip"), icon: Crown },
+    { href: "/saved", label: "Saved", icon: Heart },
+    { href: "/saved-searches", label: "Searches", icon: BellRing },
   ];
 
   const handleLogout = async () => {

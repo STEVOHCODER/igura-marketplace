@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
 
     // Create 9 plans: 3 marketplaces × 3 tiers (Starter/Professional/Enterprise)
     // Clients browse free — no client plans needed
+    // Video: Starter = no video, Professional = 20s (2 total), Enterprise = 40s (3 total)
     const plans = [
       // ── House Rental ──
       {
@@ -50,6 +51,8 @@ export async function POST(request: NextRequest) {
         price: 5000,
         maxActiveListings: 5,
         maxImagesPerListing: 3,
+        maxVideoLengthSeconds: 0,
+        maxTotalVideos: 0,
         features: [
           "5 active listings",
           "3 images per listing",
@@ -67,13 +70,15 @@ export async function POST(request: NextRequest) {
         price: 15000,
         maxActiveListings: 20,
         maxImagesPerListing: 6,
+        maxVideoLengthSeconds: 20,
+        maxTotalVideos: 2,
         features: [
           "20 active listings",
           "6 images per listing",
+          "2 video uploads (20s each)",
           "Priority search placement",
           "Contact leads from clients",
-          "Listing analytics (views, inquiries)",
-          "3 free boosts per month",
+          "Listing analytics (views, contact reveals)",
         ],
         status: "ACTIVE",
       },
@@ -85,15 +90,16 @@ export async function POST(request: NextRequest) {
         price: 40000,
         maxActiveListings: 999,
         maxImagesPerListing: 10,
+        maxVideoLengthSeconds: 40,
+        maxTotalVideos: 3,
         features: [
           "Unlimited active listings",
           "10 images per listing",
+          "3 video uploads (40s each)",
           "Top search placement",
           "Contact leads from clients",
           "Full analytics dashboard",
-          "Unlimited boosts",
           "Homepage featured listings",
-          "Dedicated account support",
         ],
         status: "ACTIVE",
       },
@@ -107,6 +113,8 @@ export async function POST(request: NextRequest) {
         price: 8000,
         maxActiveListings: 5,
         maxImagesPerListing: 3,
+        maxVideoLengthSeconds: 0,
+        maxTotalVideos: 0,
         features: [
           "5 active listings",
           "3 images per listing",
@@ -124,13 +132,15 @@ export async function POST(request: NextRequest) {
         price: 25000,
         maxActiveListings: 20,
         maxImagesPerListing: 6,
+        maxVideoLengthSeconds: 20,
+        maxTotalVideos: 2,
         features: [
           "20 active listings",
           "6 images per listing",
+          "2 video uploads (20s each)",
           "Priority search placement",
           "Contact leads from clients",
-          "Listing analytics (views, inquiries)",
-          "3 free boosts per month",
+          "Listing analytics (views, contact reveals)",
         ],
         status: "ACTIVE",
       },
@@ -142,15 +152,16 @@ export async function POST(request: NextRequest) {
         price: 60000,
         maxActiveListings: 999,
         maxImagesPerListing: 10,
+        maxVideoLengthSeconds: 40,
+        maxTotalVideos: 3,
         features: [
           "Unlimited active listings",
           "10 images per listing",
+          "3 video uploads (40s each)",
           "Top search placement",
           "Contact leads from clients",
           "Full analytics dashboard",
-          "Unlimited boosts",
           "Homepage featured listings",
-          "Dedicated account support",
         ],
         status: "ACTIVE",
       },
@@ -164,6 +175,8 @@ export async function POST(request: NextRequest) {
         price: 10000,
         maxActiveListings: 5,
         maxImagesPerListing: 3,
+        maxVideoLengthSeconds: 0,
+        maxTotalVideos: 0,
         features: [
           "5 active listings",
           "3 images per listing",
@@ -181,13 +194,15 @@ export async function POST(request: NextRequest) {
         price: 30000,
         maxActiveListings: 20,
         maxImagesPerListing: 6,
+        maxVideoLengthSeconds: 20,
+        maxTotalVideos: 2,
         features: [
           "20 active listings",
           "6 images per listing",
+          "2 video uploads (20s each)",
           "Priority search placement",
           "Contact leads from clients",
-          "Listing analytics (views, inquiries)",
-          "3 free boosts per month",
+          "Listing analytics (views, contact reveals)",
         ],
         status: "ACTIVE",
       },
@@ -199,15 +214,16 @@ export async function POST(request: NextRequest) {
         price: 75000,
         maxActiveListings: 999,
         maxImagesPerListing: 10,
+        maxVideoLengthSeconds: 40,
+        maxTotalVideos: 3,
         features: [
           "Unlimited active listings",
           "10 images per listing",
+          "3 video uploads (40s each)",
           "Top search placement",
           "Contact leads from clients",
           "Full analytics dashboard",
-          "Unlimited boosts",
           "Homepage featured listings",
-          "Dedicated account support",
         ],
         status: "ACTIVE",
       },
@@ -224,6 +240,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error("Seed plans error:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Failed to seed plans. Check server logs." }, { status: 500 });
   }
 }

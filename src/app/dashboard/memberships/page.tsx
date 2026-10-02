@@ -16,18 +16,41 @@ export default function MembershipsPage() {
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
+  // MTN MoMo prompts the payer's own handset: we send the number with the
+  // request, then the buyer approves with their PIN and we poll the status.
+  const [phone, setPhone] = useState("");
+  const [pendingRefs, setPendingRefs] = useState<Record<string, string>>({});
+  const [checking, setChecking] = useState<string | null>(null);
+  const [payments, setPayments] = useState<any[]>([]);
 
-  useEffect(() => {
-    fetch("/api/auth/me").then(r => r.json()).then(d => {
-      if (d?.user) setUser(d.user);
-    });
-
-    fetch("/api/memberships")
+  const refreshMemberships = () => {
+    return fetch("/api/memberships")
       .then(r => r.json())
       .then(d => {
         setMemberships(d?.memberships || []);
       })
-      .finally(() => setLoading(false));
+      .catch(() => {});
+  };
+
+  const refreshPayments = () => {
+    return fetch("/api/payments")
+      .then(r => r.json())
+      .then(d => {
+        setPayments(d?.payments || []);
+      })
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    fetch("/api/auth/me").then(r => r.json()).then(d => {
+      if (d?.user) {
+        setUser(d.user);
+        if (d.user.phone) setPhone(d.user.phone);
+      }
+    });
+
+    refreshMemberships().finally(() => setLoading(false));
+    refreshPayments();
   }, []);
 
   useEffect(() => {
@@ -37,23 +60,23 @@ export default function MembershipsPage() {
       .then(r => r.json())
       .then(d => {
         const allPlans = d?.plans || [];
-        // Clients only see CLIENT plans, Commissionaires see COMMISSIONAIRE plans, Admin sees all
-        if (user.role === "ADMIN" || user.role === "SUPER_ADMIN") {
-          setPlans(allPlans);
-        } else {
-          setPlans(allPlans.filter((p: any) => p.role === user.role));
-        }
+        // Show all plans to all users — clients browse free, commissionaires purchase listing plans
+        setPlans(allPlans);
       })
       .catch(() => {});
   }, [user]);
 
   const handlePurchase = async (planId: string) => {
+    if (!phone.trim()) {
+      toast("Enter your MTN MoMo number first (e.g. 0788123456).", "error");
+      return;
+    }
     setPurchasing(planId);
     try {
       const res = await fetch("/api/memberships", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId }),
+        body: JSON.stringify({ planId, phone: phone.trim() }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -64,8 +87,16 @@ export default function MembershipsPage() {
         window.location.href = data.paymentUrl;
       } else if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
+      } else if (data.pending && data.reference) {
+        // MTN Request to Pay: the prompt is live on the buyer's handset.
+        setPendingRefs(prev => ({ ...prev, [planId]: data.reference }));
+        toast(data.message || "Payment request sent. Enter your MoMo PIN on your phone to approve.", "success");
+        await refreshMemberships();
+        await refreshPayments();
       } else {
         toast("Payment initiated. Check your phone for the payment prompt.", "success");
+        await refreshMemberships();
+        await refreshPayments();
       }
     } catch {
       toast("Something went wrong", "error");
@@ -74,18 +105,69 @@ export default function MembershipsPage() {
     }
   };
 
-  const hasActiveMembership = (marketplaceName: string, role: string) => {
+  const handleCheckStatus = async (planId: string) => {
+    const reference = pendingRefs[planId];
+    if (!reference) return;
+    setChecking(planId);
+    try {
+      const res = await fetch(`/api/payments/verify/${encodeURIComponent(reference)}`);
+      const data = await res.json();
+      const status = data?.payment?.status;
+      if (status === "SUCCESSFUL") {
+        toast("Payment confirmed — your membership is active.", "success");
+      } else if (status === "FAILED" || status === "CANCELLED") {
+        toast("Payment did not go through. No money was taken — you can try again.", "error");
+      } else {
+        toast("Still waiting for approval. Enter your MoMo PIN on your phone, then check again.", "error");
+      }
+      await refreshMemberships();
+      await refreshPayments();
+    } catch {
+      toast("Could not check status. Please try again.", "error");
+    } finally {
+      setChecking(null);
+    }
+  };
+
+  const handleCheckPayment = async (paymentId: string, reference: string | null) => {
+    if (!reference) return;
+    setChecking(paymentId);
+    try {
+      const res = await fetch(`/api/payments/verify/${encodeURIComponent(reference)}`);
+      const data = await res.json();
+      const status = data?.payment?.status;
+      if (status === "SUCCESSFUL") {
+        toast("Payment confirmed.", "success");
+      } else if (status === "FAILED" || status === "CANCELLED") {
+        toast("Payment did not go through. No money was taken.", "error");
+      } else {
+        toast("Still waiting for approval on your phone.", "error");
+      }
+      await refreshMemberships();
+      await refreshPayments();
+    } catch {
+      toast("Could not check status. Please try again.", "error");
+    } finally {
+      setChecking(null);
+    }
+  };
+
+  // Cancelled rows are history, not state: showing them next to live
+  // memberships reads as "stuck". The full ledger lives below.
+  const visibleMemberships = memberships.filter((m: any) => m.status !== "CANCELLED");
+
+  // Match by exact plan: matching on marketplace+role lit up every tier
+  // card (Starter/Professional/Enterprise) from a single ACTIVE Starter.
+  const hasActiveMembership = (planId: string) => {
     return memberships.some((m: any) =>
-      m.plan?.marketplace?.name === marketplaceName &&
-      m.plan?.role === role &&
+      (m.planId === planId || m.plan?.id === planId) &&
       m.status === "ACTIVE"
     );
   };
 
-  const isPending = (marketplaceName: string, role: string) => {
+  const isPending = (planId: string) => {
     return memberships.some((m: any) =>
-      m.plan?.marketplace?.name === marketplaceName &&
-      m.plan?.role === role &&
+      (m.planId === planId || m.plan?.id === planId) &&
       m.status === "PENDING"
     );
   };
@@ -95,8 +177,8 @@ export default function MembershipsPage() {
   const houseSalePlans = plans.filter(p => p.marketplace?.name === "House Selling VVIP");
 
   const renderPlanCard = (plan: any) => {
-    const active = hasActiveMembership(plan.marketplace?.name, plan.role);
-    const pending = isPending(plan.marketplace?.name, plan.role);
+    const active = hasActiveMembership(plan.id);
+    const pending = isPending(plan.id);
     const isCommissionaire = plan.role === "COMMISSIONAIRE";
     const isPlot = plan.marketplace?.name === "Plot Selling VIP";
     const isHouseSale = plan.marketplace?.name === "House Selling VVIP";
@@ -138,13 +220,13 @@ export default function MembershipsPage() {
             ))}
           </ul>
           <Button
-            onClick={() => handlePurchase(plan.id)}
-            disabled={active || pending || purchasing === plan.id}
-            loading={purchasing === plan.id}
+            onClick={() => pending && pendingRefs[plan.id] ? handleCheckStatus(plan.id) : handlePurchase(plan.id)}
+            disabled={active || purchasing === plan.id || checking === plan.id || (pending && !pendingRefs[plan.id])}
+            loading={purchasing === plan.id || checking === plan.id}
             variant={active ? "outline" : "primary"}
             className="w-full"
           >
-            {active ? t("memberships.active") : pending ? t("memberships.pending") : t("memberships.getStarted")}
+            {active ? t("memberships.active") : pending && pendingRefs[plan.id] ? "Check payment status" : pending ? t("memberships.pending") : t("memberships.getStarted")}
           </Button>
         </CardContent>
       </Card>
@@ -154,14 +236,29 @@ export default function MembershipsPage() {
   return (
     <div className="max-w-6xl mx-auto">
       <h1 className="text-2xl font-bold text-slate-900 mb-2">{t("memberships.title")}</h1>
-      <p className="text-slate-500 mb-8">{t("memberships.subtitle")}</p>
+      <p className="text-slate-500 mb-6">{t("memberships.subtitle")}</p>
+
+      {/* MTN MoMo number: the payment prompt goes to this handset */}
+      <Card className="mb-8">
+        <CardContent className="p-4">
+          <label className="block text-sm font-medium text-slate-700 mb-1">MTN MoMo number</label>
+          <input
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="0788123456"
+            inputMode="tel"
+            className="w-full max-w-xs rounded-lg border border-slate-300 px-3 py-2.5 text-sm"
+          />
+          <p className="text-xs text-slate-500 mt-1">You will approve the payment with your MoMo PIN on this number.</p>
+        </CardContent>
+      </Card>
 
       {/* Active Memberships */}
-      {memberships.length > 0 && (
+      {visibleMemberships.length > 0 && (
         <div className="mb-8">
           <h2 className="text-lg font-semibold text-slate-900 mb-4">{t("memberships.yourMemberships")}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {memberships.map((m: any) => (
+            {visibleMemberships.map((m: any) => (
               <Card key={m.id}>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
@@ -223,6 +320,42 @@ export default function MembershipsPage() {
             {t("memberships.noPlans")}
           </CardContent>
         </Card>
+      )}
+
+      {/* Payment ledger: every attempt in one place, newest first */}
+      {payments.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-slate-900 mb-4">Recent payments</h2>
+          <Card>
+            <CardContent className="p-0 divide-y divide-slate-100">
+              {payments.map((p: any) => (
+                <div key={p.id} className="flex items-center justify-between gap-3 p-4">
+                  <div className="min-w-0">
+                    <p className="font-medium text-slate-900 truncate">
+                      {p.kind === "reveal" ? "Contact reveal" : (p.planName || "Membership")} &middot; {Number(p.amount).toLocaleString()} {p.currency}
+                    </p>
+                    <p className="text-xs text-slate-500 truncate">
+                      {p.reference || "no reference"} &middot; {p.createdAt ? new Date(p.createdAt).toLocaleString("en-RW") : ""}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Badge variant={p.status === "SUCCESSFUL" ? "success" : p.status === "PENDING" ? "warning" : "danger"}>{p.status}</Badge>
+                    {p.status === "PENDING" && p.reference && (
+                      <Button
+                        onClick={() => handleCheckPayment(p.id, p.reference)}
+                        disabled={checking === p.id}
+                        loading={checking === p.id}
+                        variant="outline"
+                      >
+                        Check
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );

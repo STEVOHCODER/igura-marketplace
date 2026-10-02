@@ -14,10 +14,20 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "suspended">("all");
   const [granting, setGranting] = useState<string | null>(null);
   const [editingRole, setEditingRole] = useState<string | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [newUser, setNewUser] = useState({ email: "", firstName: "", lastName: "", phone: "", password: "", role: "CLIENT" });
   const { toast } = useToast();
   const { t } = useI18n();
+
+  const reloadUsers = () => {
+    return fetch("/api/admin/users").then(r => r.json()).then(d => {
+      setUsers(d?.users || []);
+    });
+  };
 
   useEffect(() => {
     Promise.all([
@@ -97,11 +107,58 @@ export default function AdminUsersPage() {
       });
       if (res.ok) {
         toast(t("adminUsers.accessRevoked"), "success");
-        const refreshed = await fetch("/api/admin/users").then(r => r.json());
-        setUsers(refreshed?.users || []);
+        await reloadUsers();
       }
     } catch {
       toast(t("adminUsers.failedRevoke"), "error");
+    }
+  };
+
+  const deleteUser = async (userId: string, email: string) => {
+    if (!confirm(`Delete ${email}? Their listings, payments and memberships go with the account. This cannot be undone.`)) return;
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        toast("User deleted", "success");
+        setUsers(prev => prev.filter(u => u.id !== userId));
+      } else {
+        toast(data.error || "Could not delete user", "error");
+      }
+    } catch {
+      toast("Could not delete user", "error");
+    }
+  };
+
+  const addUser = async () => {
+    if (!newUser.email.trim() || !newUser.firstName.trim() || !newUser.lastName.trim()) {
+      toast("Email, first and last name are required", "error");
+      return;
+    }
+    if (!newUser.password || newUser.password.length < 8) {
+      toast("Password must be at least 8 characters", "error");
+      return;
+    }
+    setAdding(true);
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...newUser, phone: newUser.phone.trim() || undefined }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        toast("User created", "success");
+        setShowAdd(false);
+        setNewUser({ email: "", firstName: "", lastName: "", phone: "", password: "", role: "CLIENT" });
+        await reloadUsers();
+      } else {
+        toast(data.error || "Could not create user", "error");
+      }
+    } catch {
+      toast("Could not create user", "error");
+    } finally {
+      setAdding(false);
     }
   };
 
@@ -110,7 +167,9 @@ export default function AdminUsersPage() {
       u.firstName.toLowerCase().includes(search.toLowerCase()) ||
       u.lastName.toLowerCase().includes(search.toLowerCase());
     const matchRole = roleFilter === "all" || u.role === roleFilter;
-    return matchSearch && matchRole;
+    const matchStatus = statusFilter === "all" ||
+      (statusFilter === "active" ? u.isActive : !u.isActive);
+    return matchSearch && matchRole && matchStatus;
   });
 
   const roleCounts = {
@@ -123,10 +182,36 @@ export default function AdminUsersPage() {
 
   return (
     <div className="max-w-7xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">{t("adminUsers.title")}</h1>
-        <p className="text-slate-500 text-sm mt-1">{users.length} {t("adminUsers.totalUsers")} · {roleCounts.ADMIN} {t("adminUsers.admins")} · {roleCounts.COMMISSIONAIRE} {t("adminUsers.commissionaires")} · {roleCounts.CLIENT} {t("adminUsers.clients")}</p>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">{t("adminUsers.title")}</h1>
+          <p className="text-slate-500 text-sm mt-1">{users.length} {t("adminUsers.totalUsers")} · {roleCounts.ADMIN} {t("adminUsers.admins")} · {roleCounts.COMMISSIONAIRE} {t("adminUsers.commissionaires")} · {roleCounts.CLIENT} {t("adminUsers.clients")}</p>
+        </div>
+        <Button onClick={() => setShowAdd(v => !v)} variant={showAdd ? "outline" : "primary"}>+ Add user</Button>
       </div>
+
+      {showAdd && (
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <input value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} placeholder="Email" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+              <input value={newUser.firstName} onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })} placeholder="First name" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+              <input value={newUser.lastName} onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })} placeholder="Last name" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+              <input value={newUser.phone} onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })} placeholder="Phone (optional)" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+              <input value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} placeholder="Password (min 8 chars)" type="password" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+              <select value={newUser.role} onChange={(e) => setNewUser({ ...newUser, role: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white">
+                <option value="CLIENT">CLIENT</option>
+                <option value="COMMISSIONAIRE">COMMISSIONAIRE</option>
+                <option value="USER">USER</option>
+                <option value="ADMIN">ADMIN</option>
+              </select>
+            </div>
+            <div className="mt-3 flex justify-end">
+              <Button onClick={addUser} disabled={adding} loading={adding}>Create user</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Role Filter Tabs */}
       <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
@@ -146,11 +231,16 @@ export default function AdminUsersPage() {
         ))}
       </div>
 
-      <div className="mb-6">
-        <div className="relative max-w-md">
+      <div className="mb-6 flex flex-wrap items-center gap-3">
+        <div className="relative max-w-md flex-1 min-w-[220px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input type="text" placeholder={t("adminUsers.searchPlaceholder")} value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 text-sm" />
         </div>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)} className="rounded-lg border border-slate-300 px-3 py-2.5 text-sm bg-white">
+          <option value="all">All statuses</option>
+          <option value="active">Active</option>
+          <option value="suspended">Suspended</option>
+        </select>
       </div>
 
       <Card>
@@ -220,13 +310,13 @@ export default function AdminUsersPage() {
                       <Badge variant={u.isActive ? "success" : "danger"}>{u.isActive ? t("adminUsers.active") : t("adminUsers.suspended")}</Badge>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex gap-1">
-                        {u.memberships?.map((m: any) => (
-                          <Badge key={m.id} variant={m.status === "ACTIVE" ? "success" : m.status === "PENDING" ? "warning" : "default"} className="text-[10px]">
-                            {m.plan?.marketplace?.displayName?.split(" ")[0]} {m.status}
+                      <div className="flex gap-1 flex-wrap">
+                        {(u.activePlans || []).map((name: string) => (
+                          <Badge key={name} variant="success" className="text-[10px]">
+                            {name}
                           </Badge>
                         ))}
-                        {(!u.memberships || u.memberships.length === 0) && (
+                        {(!u.activePlans || u.activePlans.length === 0) && (
                           <span className="text-xs text-slate-400">{t("adminUsers.none")}</span>
                         )}
                       </div>
@@ -252,6 +342,14 @@ export default function AdminUsersPage() {
                           title="Grant membership"
                         >
                           <Shield className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => deleteUser(u.id, u.email)}
+                          title="Delete user"
+                        >
+                          ✕
                         </Button>
                       </div>
                     </td>

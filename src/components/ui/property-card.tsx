@@ -1,7 +1,10 @@
 import Link from "next/link";
-import { MapPin, Bed, Bath, Maximize, PlayCircle } from "lucide-react";
+import Image from "next/image";
+import { MapPin, Bed, Bath, Maximize, PlayCircle, ShieldCheck } from "lucide-react";
 import { formatPrice, availabilityLabel } from "@/lib/utils";
 import { Badge } from "./badge";
+import { FavoriteButton } from "./favorite-button";
+import { CompareButton } from "./compare-button";
 
 interface PropertyCardProps {
   property: {
@@ -22,24 +25,51 @@ interface PropertyCardProps {
     propertyType?: { displayName: string } | null;
     images?: { url: string; altText?: string | null }[];
     videoUrl?: string | null;
+    verifiedOwner?: boolean;
+    createdAt?: string | Date | null;
   };
   marketplace?: string;
+  initialSaved?: boolean;
+  onToggleFavorite?: (propertyId: string, saved: boolean) => void;
 }
 
-export function PropertyCard({ property, marketplace }: PropertyCardProps) {
-  const isPlot = marketplace === "plot_sale" || marketplace === "Plot Selling VIP" || property.marketplace?.name === "Plot Selling VIP";
+function timeAgo(value?: string | Date | null): string | null {
+  if (!value) return null;
+  const ms = Date.now() - new Date(value).getTime();
+  if (!Number.isFinite(ms) || ms < 0) return null;
+  const mins = Math.floor(ms / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}mo ago`;
+  return `${Math.floor(months / 12)}y ago`;
+}
+
+export function PropertyCard({ property, marketplace, initialSaved, onToggleFavorite }: PropertyCardProps) {
+  const marketName = marketplace || property.marketplace?.name || "";
+  const isPlot = marketName === "plot_sale" || marketName === "Plot Selling VIP";
+  const isSale = marketName === "House Selling VVIP" || isPlot;
   const href = isPlot
     ? `/plots/${property.slug}`
-    : `/rent/houses/${property.slug}`;
+    : marketName === "House Selling VVIP"
+      ? `/sell/houses/${property.slug}`
+      : `/rent/houses/${property.slug}`;
+  const ago = timeAgo(property.createdAt);
 
   return (
     <Link href={href} className="group">
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden transition-shadow hover:shadow-md">
         <div className="relative aspect-[4/3] bg-slate-100 overflow-hidden">
           {property.images && property.images.length > 0 ? (
-            <img
+            <Image
               src={property.images[0].url}
               alt={property.images[0].altText || property.title}
+              fill
+              sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
               className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
             />
           ) : (
@@ -53,6 +83,16 @@ export function PropertyCard({ property, marketplace }: PropertyCardProps) {
             <Badge variant="success">{property.propertyType?.displayName || "Property"}</Badge>
             {property.negotiable && <Badge variant="outline">Negotiable</Badge>}
           </div>
+          <div className="absolute top-3 right-3 flex gap-2">
+            <FavoriteButton
+              propertyId={property.id}
+              initialSaved={initialSaved}
+              {...(onToggleFavorite
+                ? { onToggle: (saved: boolean) => onToggleFavorite(property.id, saved) }
+                : {})}
+            />
+            <CompareButton propertyId={property.id} />
+          </div>
           {property.videoUrl && (
             <div className="absolute bottom-3 right-3 h-8 w-8 rounded-full bg-black/60 flex items-center justify-center">
               <PlayCircle className="h-5 w-5 text-white" />
@@ -63,7 +103,10 @@ export function PropertyCard({ property, marketplace }: PropertyCardProps) {
           <h3 className="font-semibold text-slate-900 group-hover:text-emerald-600 transition-colors line-clamp-1">
             {property.title}
           </h3>
-          <p className="mt-1 text-2xl font-bold text-emerald-600">{formatPrice(property.price)}<span className="text-sm font-normal text-slate-500">/month</span></p>
+          <p className="mt-1 text-2xl font-bold text-emerald-600">
+            {formatPrice(property.price)}
+            {!isSale && <span className="text-sm font-normal text-slate-500">/month</span>}
+          </p>
           {(property.locationDistrict || property.locationSector) && (
             <div className="mt-2 flex items-center text-sm text-slate-500">
               <MapPin className="h-4 w-4 mr-1 flex-shrink-0" />
@@ -71,7 +114,7 @@ export function PropertyCard({ property, marketplace }: PropertyCardProps) {
             </div>
           )}
           <div className="mt-3 flex items-center gap-4 text-sm text-slate-500">
-            {property.bedrooms != null && (
+            {property.bedrooms != null && property.bedrooms > 0 && (
               <span className="flex items-center gap-1"><Bed className="h-4 w-4" />{property.bedrooms}</span>
             )}
             {property.bathrooms != null && (
@@ -81,10 +124,16 @@ export function PropertyCard({ property, marketplace }: PropertyCardProps) {
               <span className="flex items-center gap-1"><Maximize className="h-4 w-4" />{property.areaValue} {property.areaUnit === "SQM" ? "m²" : property.areaUnit === "HECTARE" ? "ha" : property.areaUnit}</span>
             )}
           </div>
-          <div className="mt-2">
+          <div className="mt-2 flex items-center gap-2 flex-wrap">
             <Badge variant={property.availabilityStatus === "AVAILABLE" ? "success" : property.availabilityStatus === "UNAVAILABLE" ? "danger" : "warning"}>
               {availabilityLabel(property.availabilityStatus, property.availabilityDate)}
             </Badge>
+            {property.verifiedOwner && (
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700">
+                <ShieldCheck className="h-3.5 w-3.5" /> Verified owner
+              </span>
+            )}
+            {ago && <span className="text-xs text-slate-400">{ago}</span>}
           </div>
         </div>
       </div>

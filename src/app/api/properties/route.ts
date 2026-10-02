@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
-import { propertySchema, searchSchema } from "@/lib/validators";
+import { getSessionVerified } from "@/lib/auth";
+import { propertySchema, sanitizePropertyInput, searchSchema } from "@/lib/validators";
+import { canCreateListing } from "@/lib/access";
 import { generateUniqueSlug, buildSearchText } from "@/lib/utils";
 import { getListingAllowance } from "@/lib/access";
 import { boundingBox, haversineKm } from "@/lib/geo";
@@ -38,6 +39,7 @@ const LIST_SELECT = {
   latitude: true,
   longitude: true,
   coordinatesRevealed: true,
+  ownerId: true,
   images: { take: 1, orderBy: { sortOrder: "asc" as const } },
   propertyType: true,
   marketplace: true,
@@ -56,7 +58,24 @@ export async function GET(request: NextRequest) {
     // Everyone can browse listings freely — no membership required.
     // Phone numbers are hidden behind a 2,000 RWF paywall on detail pages.
 
-    const where: any = { status: "ACTIVE" };
+    // Determine status filter: public always shows ACTIVE, owner dashboard uses requested status
+    const isOwnerView = query.myListings === "true" && query.statusFilter;
+    let statusFilter = "ACTIVE";
+    let session = null;
+
+    if (isOwnerView) {
+      session = await getSessionVerified();
+      if (!session) {
+        return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+      }
+      // Owner view: filter by status and ownerId
+      statusFilter = query.statusFilter || "ACTIVE";
+      if (!["ACTIVE", "DRAFT", "UPCOMING", "UNAVAILABLE"].includes(statusFilter)) {
+        statusFilter = "ACTIVE";
+      }
+    }
+
+    const where: any = { status: statusFilter };
 
     if (filters.marketplace) {
       const allMarketplaces = await prisma.marketplace.findMany({ select: { id: true, name: true } });
@@ -78,7 +97,19 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    if (filters.district) where.locationDistrict = filters.district;
+    // The district dropdown names what users call districts (Gasabo,
+    // Kicukiro…), but listings store those under locationSector with
+    // locationDistrict="Kigali City". Match any hierarchy level so the
+    // filter never silently returns nothing.
+    if (filters.district) {
+      where.OR = [
+        ...(where.OR || []),
+        { locationDistrict: filters.district },
+        { locationSector: filters.district },
+        { locationCell: filters.district },
+        { locationVillage: filters.district },
+      ];
+    }
     if (filters.sector) where.locationSector = filters.sector;
     if (filters.cell) where.locationCell = filters.cell;
     if (filters.village) where.locationVillage = filters.village;
@@ -134,6 +165,11 @@ export async function GET(request: NextRequest) {
       where.longitude = { gte: box.minLng, lte: box.maxLng };
     }
 
+    // Owner dashboard: filter by ownerId
+    if (isOwnerView && session) {
+      where.ownerId = session.userId;
+    }
+
     const orderBy: any = (() => {
       switch (filters.sort) {
         case "price_asc":
@@ -166,7 +202,7 @@ export async function GET(request: NextRequest) {
       ]);
 
       return NextResponse.json({
-        properties: properties.map(stripHiddenCoords),
+        properties: (await withVerifiedFlag(properties)).map(stripHiddenCoords),
         total,
         page: filters.page,
         totalPages: Math.ceil(total / filters.limit),
@@ -180,12 +216,25 @@ export async function GET(request: NextRequest) {
       take: IN_MEMORY_CAP,
     });
 
+    // Fetch owner plan tiers for search ranking boost
+    const ownerIds = [...new Set(candidates.map(p => p.ownerId))];
+    const memberships = await prisma.membership.findMany({
+      where: { userId: { in: ownerIds }, status: "ACTIVE", plan: { role: "COMMISSIONAIRE" } },
+      select: { userId: true, plan: { select: { maxActiveListings: true } } },
+    });
+    const ownerPlanTiers = new Map<string, number>();
+    for (const m of memberships) {
+      // Enterprise = 999 listings → +8, Professional = 20 → +4, Starter = 5 → 0
+      const boost = m.plan.maxActiveListings >= 999 ? 8 : m.plan.maxActiveListings >= 20 ? 4 : 0;
+      ownerPlanTiers.set(m.userId, boost);
+    }
+
     let scored = candidates.map((p) => {
       const distanceKm =
         geoActive && p.latitude != null && p.longitude != null
           ? haversineKm(filters.lat!, filters.lng!, p.latitude, p.longitude)
           : null;
-      return { ...p, distanceKm, score: relevanceScore(p, terms) };
+      return { ...p, distanceKm, score: relevanceScore(p, terms, ownerPlanTiers) };
     });
 
     // Bounding box is a square around a circle, so trim the corners.
@@ -201,9 +250,10 @@ export async function GET(request: NextRequest) {
 
     const total = scored.length;
     const paged = scored.slice(skip, skip + filters.limit).map(stripHiddenCoords);
+    const verified = await withVerifiedFlag(paged);
 
     return NextResponse.json({
-      properties: paged,
+      properties: verified,
       total,
       page: filters.page,
       totalPages: Math.ceil(total / filters.limit),
@@ -219,15 +269,36 @@ export async function GET(request: NextRequest) {
 }
 
 /**
+ * Attaches `verifiedOwner` to listings. The ONLY backend state allowed to
+ * render a "verified owner" badge is a live (unexpired ACTIVE) membership —
+ * never marketing copy.
+ */
+async function withVerifiedFlag<T extends { ownerId: string }>(properties: T[]): Promise<(T & { verifiedOwner: boolean })[]> {
+  if (properties.length === 0) return [];
+  const ownerIds = [...new Set(properties.map((p) => p.ownerId))];
+  const rows = await prisma.membership.findMany({
+    where: { userId: { in: ownerIds }, status: "ACTIVE" },
+    select: { userId: true, expiresAt: true },
+  });
+  const now = new Date();
+  const verified = new Set(
+    rows.filter((r) => !r.expiresAt || r.expiresAt > now).map((r) => r.userId)
+  );
+  return properties.map((p) => ({ ...p, verifiedOwner: verified.has(p.ownerId) }));
+}
+
+/**
  * Cheap TF-style relevance score.
  *
  * Title matches count more than description matches, exact whole-word matches
  * count more than substring matches, and a small recency bonus breaks ties in
- * favour of fresh listings.
+ * favour of fresh listings. Enterprise/Professional plan holders get a ranking
+ * boost so their listings appear higher.
  */
 function relevanceScore(
-  property: { title: string; description: string | null; locationDistrict: string | null; locationSector: string | null; createdAt: Date; viewCount: number },
-  terms: string[]
+  property: { title: string; description: string | null; locationDistrict: string | null; locationSector: string | null; createdAt: Date; viewCount: number; ownerId: string },
+  terms: string[],
+  ownerPlanTiers: Map<string, number>
 ): number {
   if (terms.length === 0) return 0;
 
@@ -254,6 +325,10 @@ function relevanceScore(
   // Mild popularity nudge, capped so a viral listing cannot dominate.
   score += Math.min(2, Math.log10(property.viewCount + 1));
 
+  // Plan tier boost: Enterprise = +8, Professional = +4, Starter/Free = 0
+  const tier = ownerPlanTiers.get(property.ownerId) || 0;
+  score += tier;
+
   return score;
 }
 
@@ -265,7 +340,7 @@ function stripHiddenCoords<T extends { coordinatesRevealed: boolean; latitude: n
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getSessionVerified();
     if (!session) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
@@ -279,21 +354,54 @@ export async function POST(request: NextRequest) {
     );
     if (limited) return limited;
 
-    const body = await request.json();
-    const data = propertySchema.parse(body);
+    const rawBody = await request.json();
+    const sanitized = sanitizePropertyInput(rawBody);
 
-    // Quota and free-period logic lives in one place now, and it honours
-    // membership expiry rather than trusting a stored ACTIVE status forever.
-    const allowance = await getListingAllowance(session.userId);
-
-    if (!allowance.allowed) {
-      return NextResponse.json({ error: allowance.reason || "Not allowed to create listings" }, { status: 403 });
+    // The form does not require a contact name; fall back to the owner's
+    // account name rather than failing the whole upload on one empty box.
+    if (!sanitized.contactName) {
+      const owner = await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { firstName: true, lastName: true },
+      });
+      const fallback = `${owner?.firstName || ""} ${owner?.lastName || ""}`.trim();
+      if (fallback) sanitized.contactName = fallback;
     }
+
+    const data = propertySchema.parse(sanitized);
+
+    // Drafts are free: the quota slot is taken at publish time, not here.
+    // This only asks whether the user may list at all (member or free
+    // window), so an over-quota commissionaire can still prepare drafts.
+    const creation = await canCreateListing(session.userId);
+
+    if (!creation.allowed) {
+      return NextResponse.json({ error: creation.reason || "Not allowed to create listings" }, { status: 403 });
+    }
+
+    // Media caps still come from the full allowance (plan or free tier).
+    const allowance = await getListingAllowance(session.userId);
 
     const marketplace = await prisma.marketplace.findFirst({ where: { name: data.marketplace } });
 
     if (!marketplace) {
       return NextResponse.json({ error: "Marketplace not found" }, { status: 400 });
+    }
+
+    // A stale or wrong propertyTypeId used to fall through to the create and
+    // surface as an opaque 500 "Internal server error". Check it first so the
+    // user gets a message they can act on. Prisma's MongoDB driver throws on
+    // a malformed ObjectId rather than returning null, so validate the shape
+    // before it hits the query.
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(data.propertyTypeId);
+    const propertyType = isObjectId
+      ? await prisma.propertyType.findUnique({ where: { id: data.propertyTypeId } })
+      : null;
+    if (!propertyType) {
+      return NextResponse.json(
+        { error: "Property type not found. Please refresh and select a type." },
+        { status: 400 }
+      );
     }
 
     const searchText = buildSearchText({
@@ -363,6 +471,8 @@ export async function POST(request: NextRequest) {
         allowance: {
           isFreePeriod: allowance.isFreePeriod,
           maxImagesPerListing: allowance.maxImagesPerListing,
+          maxVideoLengthSeconds: allowance.maxVideoLengthSeconds,
+          maxTotalVideos: allowance.maxTotalVideos,
           remaining: allowance.maxActiveListings - allowance.activeListings - 1,
         },
       },

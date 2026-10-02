@@ -1,19 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { getSessionVerified } from "@/lib/auth";
 import { getPaymentProvider } from "@/lib/payment-provider";
+import { buildMembershipGrant, isSafePaymentReference } from "@/lib/payments";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ reference: string }> }
 ) {
   try {
-    const session = await getSession();
+    const session = await getSessionVerified();
     if (!session) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     const { reference } = await params;
+
+    if (!isSafePaymentReference(reference)) {
+      return NextResponse.json({ error: "Invalid payment reference" }, { status: 400 });
+    }
 
     const payment = await prisma.payment.findFirst({
       where: { reference },
@@ -29,7 +34,9 @@ export async function GET(
 
     if (payment.status === "PENDING") {
       const provider = getPaymentProvider();
-      const result = await provider.verifyPayment(reference);
+      // MTN looks transactions up by the X-Reference-Id UUID from initiation
+      // (stored in providerTransactionId), not by our own reference.
+      const result = await provider.verifyPayment(reference, payment.providerTransactionId || undefined);
 
       if (result.status !== payment.status) {
         const statusMap: Record<string, string> = {
@@ -59,13 +66,35 @@ export async function GET(
         });
 
         if (newStatus === "SUCCESSFUL" && payment.membershipId) {
-          await prisma.membership.update({
-            where: { id: payment.membershipId },
-            data: {
-              status: "ACTIVE",
-              activatedAt: new Date(),
-            },
+          // Confirm the settled amount and currency before granting, and stamp
+          // the 30-day expiry. This route previously wrote neither, so a buyer
+          // who confirmed here before the webhook landed kept a lifetime
+          // membership — see src/lib/payments.ts.
+          const grant = buildMembershipGrant({
+            paymentAmount: payment.amount,
+            paymentCurrency: payment.currency,
+            settledAmount: result.amount,
+            settledCurrency: result.currency,
           });
+
+          if (grant) {
+            await prisma.membership.update({
+              where: { id: payment.membershipId },
+              data: grant,
+            });
+          } else {
+            console.warn(
+              `[payments] Verify route rejecting ${reference}: expected ${payment.amount} ${payment.currency}, got ${result.amount} ${result.currency}`
+            );
+            await prisma.payment.update({
+              where: { id: payment.id },
+              data: { status: "FAILED" },
+            });
+            return NextResponse.json(
+              { error: "Payment amount could not be confirmed", payment: { id: payment.id, status: "FAILED", reference: payment.reference } },
+              { status: 402 }
+            );
+          }
         }
 
         return NextResponse.json({

@@ -3,6 +3,8 @@ import { useState, useEffect, useCallback } from "react";
 import { Search, SlidersHorizontal, X, Home } from "lucide-react";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { PropertyCard } from "@/components/ui/property-card";
+import { SaveSearchButton } from "@/components/ui/save-search-button";
+import { CompareTray } from "@/components/ui/compare-tray";
 import { Pagination } from "@/components/ui/pagination";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -33,7 +35,29 @@ export default function HouseSearchPage() {
     maxPrice: "",
     availability: "",
     negotiable: "",
+    bedroomsMin: "",
+    sort: "newest",
   });
+  const [favIds, setFavIds] = useState<Set<string>>(new Set());
+
+  // Deep links (homepage search, saved searches, shared URLs) arrive as
+  // query params; adopt them once on mount.
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const patch: Record<string, string> = {};
+    for (const k of ["q", "district", "sector", "propertyType", "minPrice", "maxPrice", "availability", "negotiable", "bedroomsMin"]) {
+      const v = sp.get(k);
+      if (v) patch[k] = v;
+    }
+    if (Object.keys(patch).length > 0) setFilters((f) => ({ ...f, ...patch }));
+    fetch("/api/favorites")
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        if (d?.favorites) setFavIds(new Set(d.favorites.map((f: any) => f.id)));
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fetchProperties = useCallback(async () => {
     setLoading(true);
@@ -50,6 +74,8 @@ export default function HouseSearchPage() {
       if (filters.maxPrice) params.set("maxPrice", filters.maxPrice);
       if (filters.availability) params.set("availability", filters.availability);
       if (filters.negotiable) params.set("negotiable", filters.negotiable);
+  if (filters.bedroomsMin) params.set("bedroomsMin", filters.bedroomsMin);
+  if (filters.sort && filters.sort !== "newest") params.set("sort", filters.sort);
 
       const res = await fetch(`/api/properties?${params.toString()}`);
       const data = await res.json();
@@ -71,11 +97,11 @@ export default function HouseSearchPage() {
   };
 
   const clearFilters = () => {
-    setFilters({ q: "", district: "", sector: "", propertyType: "", minPrice: "", maxPrice: "", availability: "", negotiable: "" });
+    setFilters({ q: "", district: "", sector: "", propertyType: "", minPrice: "", maxPrice: "", availability: "", negotiable: "", bedroomsMin: "", sort: "newest" });
     setPage(1);
   };
 
-  const hasActiveFilters = Object.values(filters).some((v) => v !== "");
+  const hasActiveFilters = Object.entries(filters).some(([k, v]) => k !== "sort" && v !== "");
 
   return (
     <PublicLayout>
@@ -86,10 +112,24 @@ export default function HouseSearchPage() {
               <h1 className="text-2xl font-bold text-slate-900">{t("houses.title")}</h1>
               <p className="text-sm text-slate-500 mt-1">{total} {t("houses.available")}</p>
             </div>
-            <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)}>
-              <SlidersHorizontal className="h-4 w-4 mr-1.5" />
-              {t("houses.filters")}
-            </Button>
+            <div className="flex items-center gap-2">
+              <select
+                aria-label="Sort listings"
+                value={filters.sort}
+                onChange={(e) => { setFilters({ ...filters, sort: e.target.value }); setPage(1); }}
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white"
+              >
+                <option value="newest">Newest</option>
+                <option value="price_asc">Price: low to high</option>
+                <option value="price_desc">Price: high to low</option>
+                <option value="popular">Most viewed</option>
+              </select>
+              <SaveSearchButton marketplace="House Rental" filters={filters} />
+              <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)}>
+                <SlidersHorizontal className="h-4 w-4 mr-1.5" />
+                {t("houses.filters")}
+              </Button>
+            </div>
           </div>
 
           <form onSubmit={handleSearch} className="flex gap-3">
@@ -97,6 +137,7 @@ export default function HouseSearchPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
                 type="text"
+                aria-label="Search houses"
                 placeholder={t("houses.searchPlaceholder")}
                 value={filters.q}
                 onChange={(e) => setFilters({ ...filters, q: e.target.value })}
@@ -109,14 +150,14 @@ export default function HouseSearchPage() {
           {showFilters && (
             <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                <select value={filters.district} onChange={(e) => setFilters({ ...filters, district: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white">
+                <select aria-label="Filter by district" value={filters.district} onChange={(e) => setFilters({ ...filters, district: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white">
                   <option value="">{t("houses.allDistricts")}</option>
                   {RWANDA_DISTRICTS.filter((d, i, a) => a.indexOf(d) === i).map((d) => (
                     <option key={d} value={d}>{d}</option>
                   ))}
                 </select>
-                <input type="text" placeholder={t("plots.sector")} value={filters.sector} onChange={(e) => setFilters({ ...filters, sector: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-                <select value={filters.propertyType} onChange={(e) => setFilters({ ...filters, propertyType: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white">
+                <input type="text" aria-label="Filter by sector" placeholder={t("plots.sector")} value={filters.sector} onChange={(e) => setFilters({ ...filters, sector: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                <select aria-label="Filter by property type" value={filters.propertyType} onChange={(e) => setFilters({ ...filters, propertyType: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white">
                   <option value="">{t("houses.allTypes")}</option>
                   <option value="shambrette">Shambrette</option>
                   <option value="room_salon">Room + Salon</option>
@@ -126,6 +167,10 @@ export default function HouseSearchPage() {
                 </select>
                 <input type="number" placeholder={t("houses.minPrice")} value={filters.minPrice} onChange={(e) => setFilters({ ...filters, minPrice: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
                 <input type="number" placeholder={t("houses.maxPrice")} value={filters.maxPrice} onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                <select aria-label="Minimum bedrooms" value={filters.bedroomsMin} onChange={(e) => setFilters({ ...filters, bedroomsMin: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white">
+                  <option value="">Bedrooms: any</option>
+                  {[1, 2, 3, 4, 5].map((b) => <option key={b} value={b}>{b}+ beds</option>)}
+                </select>
                 <select value={filters.availability} onChange={(e) => setFilters({ ...filters, availability: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white">
                   <option value="">{t("houses.anyAvailability")}</option>
                   <option value="AVAILABLE">{t("houses.availableNow")}</option>
@@ -167,7 +212,7 @@ export default function HouseSearchPage() {
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {properties.map((p) => (
-                <PropertyCard key={p.id} property={p} marketplace="house_rental" />
+                <PropertyCard key={p.id} property={p} marketplace="house_rental" initialSaved={favIds.has(p.id)} />
               ))}
             </div>
             <div className="mt-8">
@@ -176,6 +221,25 @@ export default function HouseSearchPage() {
           </>
         )}
       </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+        <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6 sm:p-8">
+          <h2 className="text-lg font-bold text-slate-900">Renting a house in Rwanda</h2>
+          <p className="mt-2 text-sm text-slate-600 leading-relaxed">
+            Looking for a house for rent in Kigali? Browse rooms, studios, apartments, townhouses,
+            duplexes and villas for rent in Gasabo, Kicukiro and Nyarugenge — including Remera,
+            Kimironko, Kacyiru, Gacuriro, Kagugu, Kanombe, Gatenga, Nyabugogo and Gitega.
+            Every listing shows the real price in RWF, bedrooms, size and availability, and numbers
+            from verified owners can be revealed instantly with Mobile Money.
+          </p>
+          <p className="mt-2 text-sm text-slate-600 leading-relaxed">
+            Popular searches: apartment for rent in Remera, house for rent in Kimironko,
+            room for rent in Kicukiro, studio in Nyabugogo, townhouse near Kacyiru.
+            Save any search to get flagged when new matches land.
+          </p>
+        </div>
+      </div>
+      <CompareTray />
     </PublicLayout>
   );
 }

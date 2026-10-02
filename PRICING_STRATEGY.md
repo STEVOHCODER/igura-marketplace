@@ -13,14 +13,14 @@
 | House Selling VVIP Commissionaire | 25,000 | COMMISSIONAIRE | 10 | 3 |
 
 **Phone Reveal:** 2,000 RWF one-time per property
-**Free Period:** 30 days for commissionaires (up to 10 listings)
+**Free Launch:** Authenticated commissionaires can publish up to 5 active listings, with 3 images per listing and 1 total video up to 20 seconds.
 
 ### Problems
 1. **Clients pay to browse** — we removed the paywall, but plans still charge clients for "search" and "view" which are now free
 2. **No value metric** — pricing is flat, doesn't scale with success
 3. **No upgrade triggers** — once you pick a plan, there's no reason to upgrade
 4. **VVIP naming is confusing** — "House Selling VVIP" doesn't communicate value
-5. **No tier differentiation** — all commissionaire plans are identical (10 listings, 3 images)
+5. **No tier differentiation** — paid tiers still need distinct limits and features when billing is enabled
 6. **Phone reveal is disconnected** — 2,000 RWF one-time doesn't build recurring revenue
 
 ---
@@ -50,7 +50,7 @@ This eliminates client-side friction and maximizes traffic for commissionaires.
 ### For Commissionaires (Listers) — Good / Better / Best
 
 #### Starter (Good)
-**Free for first 30 days, then 5,000 RWF/month**
+**Free launch, then 5,000 RWF/month when billing is enabled**
 - Up to 5 active listings
 - 3 images per listing
 - Basic search visibility
@@ -180,7 +180,7 @@ This aligns incentives: Igura only makes money when commissionaires succeed.
 
 1. **Anchoring:** Enterprise tier makes Professional look affordable
 2. **Decoy:** Starter tier is obviously limited, driving upgrades to Professional
-3. **Free trial:** 30-day free period reduces risk for new commissionaires
+3. **Free launch:** permanent initial allowance reduces risk while marketplace supply is built
 4. **Loss aversion:** "You've received 12 inquiries this month — upgrade to keep them coming"
 5. **Social proof:** "85% of top commissionaires use Professional"
 6. **Annual discount:** 20% off for annual commitment (e.g., Professional: 15,000 → 12,000/month)

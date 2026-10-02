@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getPaymentProvider } from "@/lib/payment-provider";
-import { getTokenFromRequest } from "@/lib/auth";
+import { getPaymentProvider, getProviderName } from "@/lib/payment-provider";
+import { getTokenFromRequestVerified } from "@/lib/auth";
 import { hasRevealedContact, REVEAL_FEE_RWF } from "@/lib/access";
 import { enforceRateLimit, LIMITS } from "@/lib/rate-limit";
 import { grantReveal } from "@/lib/reveals";
+import { isPendingFresh, sweepStalePending } from "@/lib/pending-payments";
+import { isPaymentsEnabled } from "@/lib/monetization";
 
 /**
  * Starts a contact-reveal purchase.
@@ -18,7 +20,7 @@ import { grantReveal } from "@/lib/reveals";
  *     person's 2,000 RWF unlock the number for every visitor forever.
  */
 export async function POST(request: NextRequest) {
-  const session = await getTokenFromRequest(request);
+  const session = await getTokenFromRequestVerified(request);
   if (!session) {
     return NextResponse.json(
       { error: "Please sign in to reveal the owner's contact." },
@@ -35,17 +37,26 @@ export async function POST(request: NextRequest) {
   );
   if (limited) return limited;
 
-  let body: { propertyId?: string; method?: string };
+  let body: { propertyId?: string; method?: string; phone?: string };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const { propertyId, method } = body;
+  const { propertyId, method, phone } = body;
 
   if (!propertyId) {
     return NextResponse.json({ error: "Property ID required" }, { status: 400 });
+  }
+
+  // Quicko moves mobile money only. Fail fast with a message the UI can show
+  // instead of sending a card charge at a provider that cannot take it.
+  if (getProviderName() === "quicko" && method && method !== "mobile_money") {
+    return NextResponse.json(
+      { error: "Card payments are not available. Please choose Mobile Money." },
+      { status: 400 }
+    );
   }
 
   const property = await prisma.property.findUnique({
@@ -82,6 +93,20 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  if (!isPaymentsEnabled()) {
+    await grantReveal({
+      userId: session.userId,
+      propertyId: property.id,
+    });
+    return NextResponse.json({
+      success: true,
+      revealed: true,
+      free: true,
+      phone: property.contactPhone,
+      contactName: property.contactName,
+    });
+  }
+
   const buyer = await prisma.user.findUnique({
     where: { id: session.userId },
     select: { email: true, phone: true, firstName: true, lastName: true },
@@ -110,12 +135,55 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  await sweepStalePending();
+
+  // Same no-resubmit rule as memberships: a click while an attempt is still
+  // live hands back the existing prompt instead of firing a second one.
+  const candidates = await prisma.payment.findMany({
+    where: { userId: session.userId, status: "PENDING" },
+    orderBy: { createdAt: "desc" },
+    take: 20,
+  });
+  const liveAttempt = candidates.find(
+    (p) =>
+      (p.metadata as Record<string, unknown> | null)?.type === "phone_reveal" &&
+      (p.metadata as Record<string, unknown> | null)?.propertyId === property.id
+  );
+
+  if (liveAttempt && isPendingFresh(liveAttempt.createdAt)) {
+    const provider = getPaymentProvider();
+    const check = await provider.verifyPayment(
+      liveAttempt.reference || `reveal-${liveAttempt.id}`,
+      liveAttempt.providerTransactionId || undefined
+    );
+
+    if (check.status === "FAILED" || check.status === "CANCELLED") {
+      await prisma.payment.update({
+        where: { id: liveAttempt.id },
+        data: { status: check.status as any },
+      });
+    } else {
+      return NextResponse.json({
+        success: true,
+        pending: true,
+        reference: liveAttempt.reference,
+        message:
+          "A payment request is already active on your number. Approve it on your phone, then check its status.",
+      });
+    }
+  } else if (liveAttempt) {
+    await prisma.payment.update({
+      where: { id: liveAttempt.id },
+      data: { status: "CANCELLED" },
+    });
+  }
+
   const payment = await prisma.payment.create({
     data: {
       userId: session.userId,
       planId: fallbackPlan.id,
       amount: REVEAL_FEE_RWF,
-      provider: "flutterwave",
+      provider: getProviderName(),
       reference,
       status: "PENDING",
       method: paymentMethod,
@@ -129,12 +197,13 @@ export async function POST(request: NextRequest) {
   });
 
   const provider = getPaymentProvider();
+  const payerPhone = typeof phone === "string" && phone.trim() ? phone.trim() : buyer.phone || undefined;
   const result = await provider.initiatePayment({
     amount: REVEAL_FEE_RWF,
     currency: "RWF",
     reference,
     email: buyer.email,
-    phone: buyer.phone || undefined,
+    phone: payerPhone,
     name: `${buyer.firstName} ${buyer.lastName}`,
     method:
       paymentMethod === "MOBILE_MONEY"
@@ -147,6 +216,21 @@ export async function POST(request: NextRequest) {
 
   if (result.success && result.checkoutUrl) {
     return NextResponse.json({ success: true, checkoutUrl: result.checkoutUrl, reference });
+  }
+
+  // Quicko Request to Pay: the prompt is live on the buyer's handset.
+  // PENDING also covers unclear provider answers — keep open for a check.
+  if (result.status === "PENDING") {
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: { providerTransactionId: result.transactionId || null },
+    });
+    return NextResponse.json({
+      success: true,
+      pending: true,
+      reference,
+      message: result.message,
+    });
   }
 
   await prisma.payment.update({
@@ -168,7 +252,7 @@ export async function POST(request: NextRequest) {
  * callback will not double-charge or duplicate the grant.
  */
 export async function GET(request: NextRequest) {
-  const session = await getTokenFromRequest(request);
+  const session = await getTokenFromRequestVerified(request);
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -211,13 +295,17 @@ export async function GET(request: NextRequest) {
   }
 
   const provider = getPaymentProvider();
-  const result = await provider.verifyPayment(reference);
+  const result = await provider.verifyPayment(reference, payment.providerTransactionId || undefined);
 
-  const amountOk =
-    result.amount === undefined || result.amount >= REVEAL_FEE_RWF;
+  // Verify exact amount match (not just >=) to prevent partial payment exploits
+  const amountOk = result.amount === REVEAL_FEE_RWF;
   const currencyOk = !result.currency || result.currency === "RWF";
 
-  if (result.status !== "SUCCESSFUL" || !amountOk || !currencyOk) {
+  // Validate propertyId matches the payment metadata
+  const meta = payment.metadata as Record<string, unknown> | null;
+  const propertyIdMatches = !meta || meta.propertyId === propertyId;
+
+  if (result.status !== "SUCCESSFUL" || !amountOk || !currencyOk || !propertyIdMatches) {
     await prisma.payment.update({
       where: { id: payment.id },
       data: { status: result.status === "SUCCESSFUL" ? "FAILED" : (result.status as any) },
@@ -226,7 +314,11 @@ export async function GET(request: NextRequest) {
       success: false,
       revealed: false,
       status: result.status,
-      error: !amountOk || !currencyOk ? "Payment amount did not match the reveal fee." : undefined,
+      error: !propertyIdMatches
+        ? "Property ID does not match payment record."
+        : !amountOk || !currencyOk
+          ? "Payment amount did not match the reveal fee."
+          : undefined,
     });
   }
 

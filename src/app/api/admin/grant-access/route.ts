@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { getSessionVerified } from "@/lib/auth";
+import { enforceRateLimit, LIMITS } from "@/lib/rate-limit";
+
+const grantSchema = z.object({
+  userId: z.string().min(1),
+  planId: z.string().min(1),
+  action: z.enum(["activate", "revoke"]),
+});
 
 // Admin: manually activate a membership for a user (bypass payment)
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getSessionVerified();
     if (!session) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
@@ -16,12 +24,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
 
-    const body = await request.json();
-    const { userId, planId, action } = body;
+    const limited = enforceRateLimit(
+      request,
+      "admin-grant",
+      LIMITS.admin.limit,
+      LIMITS.admin.windowMs,
+      session.userId
+    );
+    if (limited) return limited;
 
-    if (!userId || !planId) {
-      return NextResponse.json({ error: "userId and planId required" }, { status: 400 });
+    const parsed = grantSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid request", details: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      );
     }
+    const { userId, planId, action } = parsed.data;
 
     // Find or create membership
     let membership = await prisma.membership.findFirst({
