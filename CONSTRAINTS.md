@@ -560,3 +560,47 @@ confirms the tests assert real behavior.
 
 Cold-start first visit after a deploy is slower (FCP ~2.9s) while Vercel warms
 the lambdas; the warm figures above are steady state. CLS stays at 0.0013.
+
+## Lister-reported bugs: dashboard empty list + video rejected
+
+- `dashboard/listings` and `dashboard/analytics` requested
+  `/api/properties?limit=100`. `searchSchema` caps `limit` at 50, so the call
+  returned 400; the body had no `properties` key and the table rendered "0
+  total listings". `/api/access/quota` is a separate request and kept working,
+  which is why the banner showed "1 of 5" while the table showed 0. Fixed to
+  `limit=50`. Any page using `d?.properties || []` hides this class of failure
+  behind an empty state - watch for it.
+- Video upload rejected valid files three ways:
+  1. A phone `.mov` is an MP4 container. Browsers declare `video/quicktime`
+     while the bytes sniff as `video/mp4`, so exact equality failed and the
+     user's own camera footage was rejected. `isCompatibleVideoType` compares
+     ISO-BMFF types as one family; a renamed `.exe` still fails.
+  2. `MAX_SIZE` was 25MB against a tier that advertises 20 seconds. A 20s 1080p
+     phone clip is routinely 30-60MB. Raised to 60MB in the route and in both
+     upload forms (they must stay in sync).
+  3. An unreadable duration defaulted to 40s, above the 20s free cap, so the
+     upload was refused with "must be 20 seconds or shorter" - blaming clip
+     length for a metadata problem. Unknown duration now skips the length
+     comparison and still enforces the one-video slot.
+
+## Morphic design foundation
+
+Warm, not cold: the neutral ramp sits around 35-40deg instead of slate blue,
+because the product is property in Rwanda. Tokens in `globals.css`:
+elevation ramp (`--elev-1..4`, warm-tinted), glass tints for light and dark
+fields, radii, and a warm gradient headline.
+
+The 70/20/10 split is encoded, not just intended:
+- `surface-card` / `surface-raised` / `surface-sunken` are fully opaque and are
+  the default for anything scanned.
+- `glass-panel` / `glass-panel-dark` are for overlay surfaces only - currently
+  the hero search panel, and map controls when they exist.
+- Property cards are solid with the price placed on the photograph. Only the
+  small floating controls use a scrim, so badges stay legible over any photo
+  without making the card translucent.
+
+Competitor note: Tura serves correctly-sized images but shows "Image
+unavailable" on many listings; Igura's `CoverImage` fallback plus
+`next/image` (AVIF/WebP, R2 in `remotePatterns`) is the stronger pipeline.
+Their real edge is SEO-shaped titles and location counts, which Igura matches
+via the marketplace layout copy.
