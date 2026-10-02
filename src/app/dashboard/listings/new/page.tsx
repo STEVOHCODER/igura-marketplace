@@ -149,6 +149,9 @@ export default function NewListingPage() {
     if (!form.price || parseInt(form.price) <= 0) { toast("Valid price is required", "error"); return; }
     if (!form.contactPhone.trim()) { toast("Contact phone is required", "error"); return; }
     if (!form.locationDistrict) { toast("District is required", "error"); return; }
+    // A listing is published the moment it is submitted, so it must arrive with
+    // at least one photo. The server enforces this again on publish.
+    if (images.length < 1) { toast("Add at least one photo", "error"); return; }
 
     setSubmitting(true);
     try {
@@ -172,26 +175,49 @@ export default function NewListingPage() {
       const data = await res.json();
       if (!res.ok) { toast(serverFieldError(data) || data.error || t("create.failedCreate"), "error"); return; }
 
+      const propertyId = data.property.id;
+
       // Upload images
+      let imageUploadFailed = false;
       for (let i = 0; i < images.length; i++) {
         const fd = new FormData();
         fd.append("file", images[i]);
         fd.append("sortOrder", i.toString());
-        await fetch(`/api/properties/${data.property.id}/images`, { method: "POST", body: fd });
+        const imgRes = await fetch(`/api/properties/${propertyId}/images`, { method: "POST", body: fd });
+        if (!imgRes.ok) imageUploadFailed = true;
       }
 
       if (video) {
         const fd = new FormData();
         fd.append("file", video);
         if (videoDuration != null) fd.append("duration", String(videoDuration));
-        const vRes = await fetch(`/api/properties/${data.property.id}/video`, { method: "POST", body: fd });
+        const vRes = await fetch(`/api/properties/${propertyId}/video`, { method: "POST", body: fd });
         if (!vRes.ok) {
           const videoError = await vRes.json().catch(() => ({}));
           toast(videoError.error || t("create.videoUploadFailed"), "error");
         }
       }
 
-      toast(t("create.successCreate"), "success");
+      // Publish straight away. There is no separate draft stage: the listing only
+      // goes live once its photos exist, so the order above matters.
+      const pubRes = await fetch(`/api/properties/${propertyId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "ACTIVE" }),
+      });
+
+      if (!pubRes.ok) {
+        const pubErr = await pubRes.json().catch(() => ({}));
+        toast(pubErr.error || t("create.failedCreate"), "error");
+        router.push(`/dashboard/listings/${propertyId}/edit`);
+        return;
+      }
+
+      if (imageUploadFailed) {
+        toast("Published, but some photos failed to upload. Add them from the edit page.", "error");
+      } else {
+        toast(t("create.successCreate"), "success");
+      }
       router.push("/dashboard/listings");
     } catch {
       toast(t("create.wrong"), "error");

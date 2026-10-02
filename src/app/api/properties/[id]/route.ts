@@ -115,6 +115,18 @@ export async function PUT(
           { status: 403 }
         );
       }
+
+      // A listing with no photo cannot be judged from a search card, and an
+      // empty gallery is the clearest sign of a placeholder listing. Images are
+      // uploaded after the row exists, so this belongs at publish time rather
+      // than in the create schema.
+      const imageCount = await prisma.propertyImage.count({ where: { propertyId: existing.id } });
+      if (imageCount < 1) {
+        return NextResponse.json(
+          { error: "Add at least one photo before publishing this listing." },
+          { status: 400 }
+        );
+      }
     }
 
     const updateData: any = {};

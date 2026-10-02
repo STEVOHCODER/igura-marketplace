@@ -122,13 +122,13 @@ export default function ListingsPage() {
         </Link>
       </div>
 
-      {/* Quota banner: drafts are free, publishing takes a slot */}
+      {/* Quota banner: every submitted listing is published, so each one takes a slot */}
       {quota && (
         <div className={`mb-6 rounded-xl border p-4 text-sm ${quota.canPublish ? "bg-slate-50 border-slate-200 text-slate-600" : "bg-amber-50 border-amber-200 text-amber-800"}`}>
           {quota.canPublish ? (
-            <p>{quota.activeListings} of {quota.maxActiveListings} active listings used. Drafts don&apos;t count — only published listings take a slot.</p>
+            <p>{quota.activeListings} of {quota.maxActiveListings} listings used. Every listing you submit goes live straight away.</p>
           ) : (
-            <p className="font-medium">{quota.reason || "Listing limit reached."} Unpublish a listing or upgrade your plan to publish more.</p>
+            <p className="font-medium">{quota.reason || "Listing limit reached."} Unpublish a listing to free a slot.</p>
           )}
         </div>
       )}

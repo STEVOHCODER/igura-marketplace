@@ -11,6 +11,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { t } = useI18n();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  // Plans are fully built but not advertised during the free launch. Set
+  // SHOW_PLANS=true to bring the memberships page back into the nav.
+  const [showPlans, setShowPlans] = useState(false);
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -19,13 +22,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       .catch(() => window.location.href = "/login");
   }, []);
 
+  useEffect(() => {
+    fetch("/api/config")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => setShowPlans(!!data?.showPlans))
+      .catch(() => setShowPlans(false));
+  }, []);
+
   const commissionaireNav = [
     { name: t("dash.overview"), href: "/dashboard", icon: LayoutDashboard },
     { name: t("dash.myListings"), href: "/dashboard/listings", icon: Home },
     { name: t("dash.newListing"), href: "/dashboard/listings/new", icon: Plus },
     { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
     { name: "Leads", href: "/dashboard/leads", icon: Users },
-    { name: t("dash.memberships"), href: "/dashboard/memberships", icon: CreditCard },
+    ...(showPlans ? [{ name: t("dash.memberships"), href: "/dashboard/memberships", icon: CreditCard }] : []),
     { name: "Notifications", href: "/dashboard/notifications", icon: Bell },
   ];
 
@@ -33,7 +43,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: t("dash.overview"), href: "/dashboard", icon: LayoutDashboard },
     { name: t("dash.searchHouses"), href: "/rent/houses", icon: Home },
     { name: t("dash.searchPlots"), href: "/plots", icon: MapPin },
-    { name: t("dash.memberships"), href: "/dashboard/memberships", icon: CreditCard },
+    ...(showPlans ? [{ name: t("dash.memberships"), href: "/dashboard/memberships", icon: CreditCard }] : []),
     { name: "Notifications", href: "/dashboard/notifications", icon: Bell },
   ];
 

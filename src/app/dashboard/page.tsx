@@ -13,15 +13,25 @@ export default function DashboardPage() {
   const { t } = useI18n();
   const [user, setUser] = useState<any>(null);
   const [memberships, setMemberships] = useState<any[]>([]);
+  const [showPlans, setShowPlans] = useState(false);
   const [stats, setStats] = useState({ active: 0, draft: 0, unavailable: 0, total: 0 });
 
   useEffect(() => {
     fetch("/api/auth/me").then(r => r.json()).then(d => setUser(d?.user));
-    fetch("/api/memberships").then(r => r.json()).then(d => setMemberships(d?.memberships || []));
     fetch("/api/properties?limit=1").then(r => r.json()).then(d => {
       setStats({ active: d?.active || 0, draft: d?.draft || 0, unavailable: d?.unavailable || 0, total: d?.total || 0 });
     });
   }, [pathname]);
+
+  // Plans are not advertised during the free launch, so the memberships call
+  // is skipped entirely unless SHOW_PLANS turns them back on.
+  useEffect(() => {
+    fetch("/api/config").then(r => r.json()).then(d => {
+      if (!d?.showPlans) return;
+      setShowPlans(true);
+      fetch("/api/memberships").then(r => r.json()).then(m => setMemberships(m?.memberships || []));
+    }).catch(() => {});
+  }, []);
 
   const commissionaireMemberships = memberships.filter((m: any) => m.plan?.role === "COMMISSIONAIRE" && m.status === "ACTIVE");
 
@@ -50,7 +60,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {user?.role === "COMMISSIONAIRE" && commissionaireMemberships.length > 0 && (
+      {showPlans && user?.role === "COMMISSIONAIRE" && commissionaireMemberships.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {commissionaireMemberships.map((m: any) => (
             <Card key={m.id} className="border border-emerald-200 bg-emerald-50">
@@ -85,19 +95,6 @@ export default function DashboardPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-amber-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-slate-900">{stats.draft}</p>
-                <p className="text-xs text-slate-500">{t("dash.drafts")}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-red-100 flex items-center justify-center">
                 <MapPin className="h-5 w-5 text-red-600" />
               </div>
@@ -108,19 +105,21 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                <CreditCard className="h-5 w-5 text-blue-600" />
+        {showPlans && (
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <CreditCard className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-slate-900">{memberships.filter((m: any) => m.status === "ACTIVE").length}</p>
+                  <p className="text-xs text-slate-500">{t("dash.activeMemberships")}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-bold text-slate-900">{memberships.filter((m: any) => m.status === "ACTIVE").length}</p>
-                <p className="text-xs text-slate-500">{t("dash.activeMemberships")}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
