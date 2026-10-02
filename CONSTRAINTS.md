@@ -477,3 +477,31 @@ At least one constraint must be external (not judged by this project's own tests
 Lighthouse, axe-core, and `npm audit` all read outside databases. Coverage is the
 genuinely circular one — it is measured, not enforced, until an external review
 confirms the tests assert real behavior.
+
+## Launch reset (hard delete, plans hidden)
+
+- `SHOW_PLANS` flag (default off). Plans, pricing, upgrades and
+  `/dashboard/memberships` are fully built and reachable by direct URL, but
+  the nav entry, overview cards and quota copy are hidden. `GET /api/config`
+  exposes `showPlans` for the client. Set `SHOW_PLANS=true` to restore.
+- Publishing requires at least one image. The check sits on the publish guard
+  (`PUT /api/properties/[id]`), not the create schema, because images upload
+  after the row exists. Returns 400 "Add at least one photo...".
+- No draft step. `POST /api/properties` still writes DRAFT (slug generation
+  depends on the created id), then the form uploads media and immediately
+  `PUT`s `status: ACTIVE`. Only ACTIVE consumes a quota slot.
+- Database wiped to a clean slate: 40 seed/test listings hard-deleted, every
+  account removed except `stevohsunb@gmail.com`, promoted to ADMIN as the
+  single owner. All 9 plans, 3 marketplaces, 18 property types and the
+  location hierarchy preserved.
+- **ADMIN cannot create listings** - `canCreateListing` allows only
+  COMMISSIONAIRE. The owner account is admin-only, so listing needs either a
+  second COMMISSIONAIRE account or promoting a test user.
+- Verified live after the reset: anonymous browse 200, register with no plan
+  (both roles), 7 property types, publish blocked with 0 photos then allowed
+  with 1, seeker finds the listing, phone redacted until reveal, reveal free
+  (`free:true`, phone delivered), visitor reveal 401. All pages render 200 on
+  the empty database.
+- The reset ran through a temporary `POST /api/admin/launch-reset` route
+  (ADMIN + `x-launch-reset: CONFIRM` + hard-coded keep-email). Deleted from
+  source after use; returns 404 in production.
