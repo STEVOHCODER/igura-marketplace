@@ -10,7 +10,11 @@ export default function AdminLocationsPage() {
   const { t } = useI18n();
 
   useEffect(() => {
-    fetch("/api/locations")
+    // /api/locations with no params returns only country names (that branch
+    // feeds the public signup dropdowns), so this table read five columns off
+    // objects that only ever had `name` and rendered a page of dashes. The
+    // admin needs the full flat hierarchy instead.
+    fetch("/api/admin/locations")
       .then(r => r.json())
       .then(d => setLocations(d?.locations || []))
       .finally(() => setLoading(false));

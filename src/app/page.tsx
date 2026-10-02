@@ -50,49 +50,39 @@ export default function HomePage() {
   const [popCounts, setPopCounts] = useState<Record<string, number>>({});
   const [totalActive, setTotalActive] = useState<number | null>(null);
   const [favIds, setFavIds] = useState<Set<string>>(new Set());
+  // Set once /api/home resolves. Until then the debounced count effect must stay
+  // idle, otherwise it fires a redundant request that /api/home is about to
+  // make redundant.
+  const [homeLoaded, setHomeLoaded] = useState(false);
   const debounce = useRef<any>(null);
 
   useEffect(() => {
-    fetch("/api/locations?country=Rwanda")
-      .then(r => r.json())
-      .then(d => setDistricts((d?.locations || []).map((l: any) => l.name)))
-      .catch(() => {});
-    fetch("/api/property-types")
-      .then(r => r.json())
-      .then(d => setTypes(d?.propertyTypes || d?.types || []))
-      .catch(() => {});
-    fetch("/api/featured")
-      .then(r => r.json())
-      .then(d => setFeatured(d.listings || []))
-      .catch(() => {});
-    fetch("/api/properties?limit=6")
-      .then(r => r.json())
-      .then(d => setRecent(d.properties || []))
-      .catch(() => {});
-    fetch("/api/properties?limit=1")
-      .then(r => r.json())
-      .then(d => setTotalActive(typeof d.total === "number" ? d.total : null))
-      .catch(() => {});
+    // One request instead of the previous fan-out (locations, property types,
+    // featured, recent, a total, plus one query per popular tile): a dozen cold
+    // serverless round trips, each waiting on its own MongoDB query, and the
+    // page could not paint until the slowest one finished. See /api/home.
+    fetch("/api/home")
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d || d.error) return;
+        setDistricts(d.districts || []);
+        setTypes(d.propertyTypes || []);
+        setFeatured(d.featured || []);
+        setRecent(d.recent || []);
+        setTotalActive(typeof d.totalActive === "number" ? d.totalActive : null);
+        setLiveCount(typeof d.totalActive === "number" ? d.totalActive : null);
+        setPopCounts(d.popularCounts || {});
+        setHomeLoaded(true);
+      })
+      .catch(() => setHomeLoaded(true));
+
+    // Session-scoped, so it cannot fold into the public payload above.
     fetch("/api/favorites")
-      .then(r => (r.ok ? r.json() : null))
-      .then(d => {
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
         if (d?.favorites) setFavIds(new Set(d.favorites.map((f: any) => f.id)));
       })
       .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    POPULAR_TILES.forEach((tile) => {
-      const params = new URLSearchParams({ limit: "1", marketplace: "House Rental" });
-      if (tile.district) params.set("district", tile.district);
-      if (tile.sector) params.set("sector", tile.sector);
-      fetch(`/api/properties?${params.toString()}`)
-        .then(r => r.json())
-        .then(d => {
-          if (typeof d.total === "number") setPopCounts(prev => ({ ...prev, [tile.label]: d.total }));
-        })
-        .catch(() => {});
-    });
   }, []);
 
   const typeOptions = useMemo(() => {
@@ -112,14 +102,22 @@ export default function HomePage() {
   };
 
   // Live result count for the search button (Tura-style), debounced.
-  useEffect(() => {
+useEffect(() => {
+    const loc = location.trim();
+    const hasFilter = !!loc || !!minPrice || !!maxPrice || !!bedrooms || !!propType;
+
+    // With no filter applied the count is just "listings in this marketplace",
+    // which /api/home already returns. Waiting for it to land avoids a duplicate
+    // request on mount.
+    if (!homeLoaded) return;
+    if (!hasFilter && liveCount != null) return;
+
     if (debounce.current) clearTimeout(debounce.current);
     debounce.current = setTimeout(async () => {
       try {
         const params = new URLSearchParams();
         params.set("marketplace", TAB_TARGET[tab].marketplace);
         params.set("limit", "1");
-        const loc = location.trim();
         if (loc) locationParams(loc, params);
         if (minPrice) params.set("minPrice", minPrice);
         if (maxPrice) params.set("maxPrice", maxPrice);
@@ -133,7 +131,7 @@ export default function HomePage() {
       }
     }, 450);
     return () => { if (debounce.current) clearTimeout(debounce.current); };
-  }, [tab, location, minPrice, maxPrice, bedrooms, propType, districts]);
+  }, [tab, location, minPrice, maxPrice, bedrooms, propType, liveCount, homeLoaded]);
 
   const doSearch = () => {
     const params = new URLSearchParams();
@@ -150,28 +148,57 @@ export default function HomePage() {
   return (
     <PublicLayout>
       {/* Discovery hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900">
-        <div className="absolute inset-0">
-          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
-          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-emerald-500/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3" />
+      <section className="relative overflow-hidden bg-slate-950">
+        {/* Layered depth instead of a flat gradient: a base wash, two colour
+            pools, a faint architectural grid and a vignette. All decorative and
+            pointer-events-none, so they add atmosphere without costing a repaint
+            on scroll or shifting layout (CLS stays at 0). */}
+        <div aria-hidden className="absolute inset-0 pointer-events-none">
+          <div className="absolute inset-0 bg-[radial-gradient(120%_100%_at_50%_0%,#0f3d33_0%,#0b1f1c_45%,#020617_100%)]" />
+          <div
+            className="absolute inset-0 opacity-[0.07]"
+            style={{
+              backgroundImage:
+                "linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px)",
+              backgroundSize: "56px 56px",
+              maskImage: "radial-gradient(100% 70% at 50% 0%, #000 20%, transparent 75%)",
+              WebkitMaskImage: "radial-gradient(100% 70% at 50% 0%, #000 20%, transparent 75%)",
+            }}
+          />
+          <div className="absolute -top-40 -right-24 h-[520px] w-[520px] rounded-full bg-emerald-400/20 blur-[120px]" />
+          <div className="absolute -bottom-32 -left-20 h-[420px] w-[420px] rounded-full bg-teal-500/10 blur-[110px]" />
+          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-slate-950 to-transparent" />
         </div>
+
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-10 sm:pt-20 sm:pb-14">
-          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight max-w-3xl">
-            Find your next place in Rwanda.
+          <p className="inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-300">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            </span>
+            Rwanda&rsquo;s property marketplace
+          </p>
+
+          <h1 className="mt-5 text-4xl sm:text-6xl font-extrabold tracking-tight text-white leading-[1.05] max-w-3xl">
+            Find your next place{" "}
+            <span className="bg-gradient-to-r from-emerald-300 to-teal-200 bg-clip-text text-transparent">
+              in Rwanda.
+            </span>
           </h1>
-          <p className="mt-3 text-base sm:text-lg text-slate-300 max-w-2xl">
-            Houses for rent, homes for sale and plots across all districts — from verified owners.
+          <p className="mt-4 text-base sm:text-lg text-slate-300/90 max-w-2xl leading-relaxed">
+            Houses for rent, homes for sale and plots across all districts — with real prices in
+            RWF and direct contact with verified owners.
           </p>
 
           {/* Search card */}
-          <div className="mt-8 max-w-4xl bg-white rounded-2xl shadow-2xl p-3 sm:p-4">
+          <div className="mt-9 max-w-4xl rounded-2xl bg-white/95 backdrop-blur-sm p-3 sm:p-4 shadow-[0_24px_60px_-12px_rgba(2,6,23,0.45)] ring-1 ring-white/60">
             <div className="flex gap-1 sm:gap-2 mb-3 px-1">
               {(["rent", "buy", "land"] as Tab[]).map((k) => (
                 <button
                   key={k}
                   onClick={() => setTab(k)}
                   className={`px-4 sm:px-6 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                    tab === k ? "bg-emerald-600 text-white" : "text-slate-600 hover:bg-slate-100"
+                    tab === k ? "bg-emerald-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-100"
                   }`}
                 >
                   {k === "rent" ? t("hero.findHouse") : k === "buy" ? t("hero.sellHouse") : t("hero.findPlot")}
@@ -221,9 +248,9 @@ export default function HomePage() {
 
           <AiSearchBox districts={districts} />
 
-          <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-300">
+          <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-300/80">
             <span className="inline-flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-emerald-400" /> Verified owners</span>
-            <span className="inline-flex items-center gap-1.5"><Home className="h-4 w-4 text-emerald-400" /> {totalActive !== null ? `${totalActive} live listings` : "Live listings"}</span>
+            <span className="inline-flex items-center gap-1.5"><Home className="h-4 w-4 text-emerald-400" /> {totalActive !== null ? `${totalActive} live listing${totalActive === 1 ? "" : "s"}` : "Live listings"}</span>
             <span className="inline-flex items-center gap-1.5"><TrendingUp className="h-4 w-4 text-emerald-400" /> Secure MoMo payments</span>
           </div>
         </div>
@@ -231,8 +258,11 @@ export default function HomePage() {
 
       {/* Popular locations */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Popular locations</h2>
+        <div className="flex items-end justify-between mb-4">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Popular locations</h2>
+            <p className="mt-1 text-sm text-slate-500">Start with the areas people search most.</p>
+          </div>
           <Link href="/locations" className="inline-flex items-center gap-1 text-sm font-medium text-emerald-600 hover:underline">
             Explore all <ArrowRight className="h-4 w-4" />
           </Link>
@@ -243,10 +273,15 @@ export default function HomePage() {
             if (tile.district) params.set("district", tile.district);
             if (tile.sector) params.set("sector", tile.sector);
             return (
-              <Link key={tile.label} href={`/rent/houses?${params.toString()}`} className="group rounded-xl border border-slate-200 bg-white p-4 hover:shadow-md hover:border-emerald-300 transition-all">
-                <MapPin className="h-5 w-5 text-emerald-600 mb-2" />
-                <p className="font-semibold text-slate-900 text-sm">{tile.label}</p>
-                <p className="text-xs text-slate-500">{popCounts[tile.label] !== undefined ? `${popCounts[tile.label]} listings` : "…"}</p>
+              <Link
+                key={tile.label}
+                href={`/rent/houses?${params.toString()}`}
+                className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-4 transition-all hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-lg hover:shadow-emerald-900/5"
+              >
+                <span aria-hidden className="absolute -right-6 -top-6 h-16 w-16 rounded-full bg-emerald-50 transition-transform duration-300 group-hover:scale-[2.5]" />
+                <MapPin className="relative h-5 w-5 text-emerald-600 mb-2" />
+                <p className="relative font-semibold text-slate-900 text-sm">{tile.label}</p>
+                <p className="relative text-xs text-slate-500">{popCounts[tile.label] !== undefined ? `${popCounts[tile.label]} listing${popCounts[tile.label] === 1 ? "" : "s"}` : "…"}</p>
               </Link>
             );
           })}
@@ -294,11 +329,21 @@ export default function HomePage() {
             { title: "Plot Selling VIP", desc: "Residential, commercial and farming plots.", href: "/plots", icon: MapPin },
             { title: "House Selling VVIP", desc: "Premium houses for sale across Rwanda.", href: "/sell/houses", icon: Building2 },
           ].map((m) => (
-            <Link key={m.title} href={m.href} className="group rounded-2xl border border-slate-200 bg-white p-6 hover:shadow-lg hover:border-emerald-300 transition-all">
-              <m.icon className="h-8 w-8 text-emerald-600 mb-3" />
-              <h3 className="font-bold text-slate-900 text-lg group-hover:text-emerald-600">{m.title}</h3>
-              <p className="text-sm text-slate-500 mt-1">{m.desc}</p>
-              <span className="inline-flex items-center gap-1 mt-3 text-sm font-medium text-emerald-600">Browse <ArrowRight className="h-4 w-4" /></span>
+            <Link
+              key={m.title}
+              href={m.href}
+              className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 transition-all hover:-translate-y-1 hover:border-emerald-300 hover:shadow-xl hover:shadow-emerald-900/5"
+            >
+              <span aria-hidden className="absolute right-0 top-0 h-24 w-24 translate-x-1/3 -translate-y-1/3 rounded-full bg-gradient-to-br from-emerald-100 to-transparent transition-transform duration-500 group-hover:scale-150" />
+              <div className="relative inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 transition-colors group-hover:bg-emerald-600">
+                <m.icon className="h-6 w-6 text-emerald-600 transition-colors group-hover:text-white" />
+              </div>
+              <h3 className="relative mt-4 font-bold text-slate-900 text-lg group-hover:text-emerald-700 transition-colors">{m.title}</h3>
+              <p className="relative text-sm text-slate-500 mt-1">{m.desc}</p>
+              <span className="relative inline-flex items-center gap-1 mt-4 text-sm font-semibold text-emerald-600">
+                Browse
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </span>
             </Link>
           ))}
         </div>
@@ -306,13 +351,37 @@ export default function HomePage() {
 
       {/* List CTA */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-14">
-        <div className="rounded-2xl bg-slate-900 px-6 py-10 sm:p-12 text-center relative overflow-hidden">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-emerald-500/10 rounded-full blur-3xl" />
-          <h2 className="relative text-2xl sm:text-3xl font-bold text-white">Own a property? List it in minutes.</h2>
-          <p className="relative text-slate-300 mt-2">Reach renters and buyers across Rwanda. Drafts are free — you only need a slot when you publish.</p>
-          <Link href="/register" className="relative mt-6 inline-flex items-center gap-2 bg-emerald-600 text-white px-7 py-3.5 rounded-xl font-semibold hover:bg-emerald-500 transition-colors">
-            <Sparkles className="h-5 w-5" /> List your property
-          </Link>
+        <div className="relative overflow-hidden rounded-3xl bg-slate-950 px-6 py-12 sm:p-16 text-center">
+          <div aria-hidden className="absolute inset-0 pointer-events-none">
+            <div className="absolute inset-0 bg-[radial-gradient(90%_120%_at_50%_0%,#134e4a_0%,#0f172a_60%)]" />
+            <div className="absolute -top-24 left-1/2 h-64 w-[680px] -translate-x-1/2 rounded-full bg-emerald-400/20 blur-[100px]" />
+            <div
+              className="absolute inset-0 opacity-[0.06]"
+              style={{
+                backgroundImage:
+                  "linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px)",
+                backgroundSize: "48px 48px",
+              }}
+            />
+          </div>
+
+          <div className="relative">
+            <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white">
+              Own a property? List it in minutes.
+            </h2>
+            <p className="mt-3 text-slate-300/90 max-w-xl mx-auto leading-relaxed">
+              Reach renters and buyers across Rwanda. Listing is free during launch — add a photo
+              and your property goes live.
+            </p>
+            <Link
+              href="/register"
+              className="group relative mt-8 inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-7 py-3.5 font-semibold text-white shadow-lg shadow-emerald-900/30 transition-all hover:bg-emerald-400 hover:shadow-emerald-500/20"
+            >
+              <Sparkles className="h-5 w-5" />
+              List your property
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+          </div>
         </div>
       </section>
       <CompareTray />

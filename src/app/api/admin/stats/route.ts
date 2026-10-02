@@ -78,6 +78,28 @@ export async function GET(request: NextRequest) {
     });
     const planMap = new Map(plans.map((p) => [p.id, p]));
 
+    // Reveal payments are a separate product from plan sales, but they reuse a
+    // planId purely to satisfy the Payment model (see reveal-contact/route.ts).
+    // Grouping them by planId therefore credited 2,000 RWF reveals to an
+    // unrelated plan's marketplace. Count them on their own instead.
+    //
+    // Prisma's MongoDB connector cannot filter on a JSON path, so the classify
+    // happens in JS over the successful rows (same approach the reconcile cron
+    // uses). Only amount + metadata are selected, and only for settled payments.
+    const [totalReveals, activeReveals, settledForRevealSplit] = await Promise.all([
+      prisma.contactReveal.count(),
+      prisma.contactReveal.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
+      prisma.payment.findMany({
+        where: { status: "SUCCESSFUL" },
+        select: { amount: true, metadata: true },
+      }),
+    ]);
+
+    const revealRevenue = settledForRevealSplit.reduce((sum, p) => {
+      const meta = (p.metadata as Record<string, unknown> | null) ?? {};
+      return meta.type === "phone_reveal" ? sum + (p.amount || 0) : sum;
+    }, 0);
+
     const marketplaceRevenue = revenueByMarketplace.reduce((acc: Record<string, number>, r) => {
       const plan = planMap.get(r.planId);
       const name = plan?.marketplace?.displayName || "Unknown";
@@ -167,6 +189,7 @@ export async function GET(request: NextRequest) {
         monthly: monthlyRevenue,
         yearly: yearlyRevenue,
       },
+      reveals: { total: totalReveals, last30d: activeReveals, revenue: revealRevenue },
       memberships: { total: totalMemberships, active: activeMemberships, byPlan: usersByPlan },
       recentActions,
       topListings,

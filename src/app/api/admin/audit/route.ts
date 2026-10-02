@@ -36,12 +36,21 @@ export async function GET(request: NextRequest) {
       prisma.adminAction.count({ where }),
     ]);
 
-    // Get unique action types for filter dropdown
-    const actionTypes = await prisma.adminAction.findMany({
-      select: { actionType: true },
-      distinct: ["actionType"],
-      orderBy: { actionType: "asc" },
-    });
+    // Unique values for both filter dropdowns, taken from the data itself. The
+    // target-type list used to be hardcoded in the page and had drifted: it
+    // offered MEMBERSHIP (which nothing wrote) and omitted MARKETPLACE/PLAN.
+    const [actionTypes, targetTypes] = await Promise.all([
+      prisma.adminAction.findMany({
+        select: { actionType: true },
+        distinct: ["actionType"],
+        orderBy: { actionType: "asc" },
+      }),
+      prisma.adminAction.findMany({
+        select: { targetType: true },
+        distinct: ["targetType"],
+        orderBy: { targetType: "asc" },
+      }),
+    ]);
 
     return NextResponse.json({
       actions,
@@ -49,6 +58,7 @@ export async function GET(request: NextRequest) {
       page,
       totalPages: Math.ceil(total / limit),
       actionTypes: actionTypes.map((a) => a.actionType),
+      targetTypes: targetTypes.map((t) => t.targetType).filter(Boolean),
     });
   } catch (error) {
     console.error("Get audit log error:", error);

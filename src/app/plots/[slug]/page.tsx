@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: `${property.title} - Igura`,
     description: property.description?.slice(0, 160) || `Buy ${property.title} in ${property.locationSector || ""}, ${property.locationDistrict || "Kigali"} for ${formatPrice(property.price)}`,
     openGraph: {
-      title: `${property.title} | Igura`,
+      title: property.title,
       description: property.description?.slice(0, 200) || `Buy ${property.title} for ${formatPrice(property.price)}`,
       images: img ? [{ url: img, width: 800, height: 600 }] : [],
       type: "website",

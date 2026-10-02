@@ -11,6 +11,7 @@ export default function AdminAuditPage() {
   const [actions, setActions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionTypes, setActionTypes] = useState<string[]>([]);
+  const [targetTypes, setTargetTypes] = useState<string[]>([]);
   const [filterType, setFilterType] = useState("");
   const [filterTarget, setFilterTarget] = useState("");
   const [page, setPage] = useState(1);
@@ -30,6 +31,7 @@ export default function AdminAuditPage() {
       const data = await res.json();
       setActions(data?.actions || []);
       setActionTypes(data?.actionTypes || []);
+      setTargetTypes(data?.targetTypes || []);
       setTotalPages(data?.totalPages || 1);
     } catch {
       setActions([]);
@@ -79,11 +81,10 @@ export default function AdminAuditPage() {
           className="px-4 py-2.5 rounded-lg border border-slate-300 text-sm bg-white"
         >
           <option value="">{t("adminAudit.allTargets")}</option>
-          <option value="USER">{t("adminAudit.users")}</option>
-          <option value="PROPERTY">{t("adminAudit.properties")}</option>
-          <option value="REPORT">{t("adminAudit.reports")}</option>
-          <option value="PAYMENT">{t("adminAudit.payments")}</option>
-          <option value="MEMBERSHIP">{t("adminAudit.memberships")}</option>
+          {/* Derived from recorded data so the list can never drift again. */}
+          {targetTypes.map((t) => (
+            <option key={t} value={t}>{t.replace(/_/g, " ")}</option>
+          ))}
         </select>
         {(filterType || filterTarget) && (
           <Button variant="outline" size="sm" onClick={() => { setFilterType(""); setFilterTarget(""); setPage(1); }}>

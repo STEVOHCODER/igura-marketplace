@@ -8,6 +8,8 @@ const grantSchema = z.object({
   userId: z.string().min(1),
   planId: z.string().min(1),
   action: z.enum(["activate", "revoke"]),
+  /** Optional end date; defaults to 30 days from now so a grant is not eternal. */
+  expiresAt: z.string().datetime().or(z.string().date()).optional(),
 });
 
 // Admin: manually activate a membership for a user (bypass payment)
@@ -40,7 +42,12 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    const { userId, planId, action } = parsed.data;
+    const { userId, planId, action, expiresAt: expiresAtRaw } = parsed.data;
+
+    const target = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, email: true } });
+    if (!target) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
 
     // Find or create membership
     let membership = await prisma.membership.findFirst({
@@ -49,15 +56,24 @@ export async function POST(request: NextRequest) {
     });
 
     if (action === "activate") {
+      // An admin grant used to create a membership with no expiry at all, which
+      // silently made it permanent. Default to the plan's period and let an
+      // explicit `expiresAt` override it.
+      const now = new Date();
+      const expiresAt =
+        expiresAtRaw != null
+          ? new Date(expiresAtRaw)
+          : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
       if (membership) {
         membership = await prisma.membership.update({
           where: { id: membership.id },
-          data: { status: "ACTIVE", activatedAt: new Date() },
+          data: { status: "ACTIVE", activatedAt: now, expiresAt },
           include: { plan: true },
         });
       } else {
         membership = await prisma.membership.create({
-          data: { userId, planId, status: "ACTIVE", activatedAt: new Date() },
+          data: { userId, planId, status: "ACTIVE", activatedAt: now, expiresAt },
           include: { plan: true },
         });
       }
@@ -77,6 +93,25 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      // This route mints money-shaped records, so it belongs in the audit log
+      // like every other privileged mutation. Without this, /admin/audit
+      // claimed to track all admin actions while missing every grant.
+      await prisma.adminAction.create({
+        data: {
+          adminId: session.userId,
+          actionType: "MEMBERSHIP_GRANTED",
+          targetType: "MEMBERSHIP",
+          targetId: membership.id,
+          details: {
+            targetEmail: target.email,
+            planName: membership.plan?.name || null,
+            amount: membership.plan?.price || 0,
+            expiresAt: expiresAt.toISOString(),
+            byAdmin: true,
+          },
+        },
+      });
+
       return NextResponse.json({ success: true, membership });
     }
 
@@ -85,6 +120,16 @@ export async function POST(request: NextRequest) {
         await prisma.membership.update({
           where: { id: membership.id },
           data: { status: "CANCELLED" },
+        });
+
+        await prisma.adminAction.create({
+          data: {
+            adminId: session.userId,
+            actionType: "MEMBERSHIP_REVOKED",
+            targetType: "MEMBERSHIP",
+            targetId: membership.id,
+            details: { targetEmail: target.email, planId, byAdmin: true },
+          },
         });
       }
       return NextResponse.json({ success: true });

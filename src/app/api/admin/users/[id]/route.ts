@@ -45,27 +45,41 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       updateData.isActive = isActive;
     }
 
+    // Suspension has to end live access, not just block the next login: the
+    // session check only compares tokenVersion, and JWTs live for 7 days, so
+    // without this bump a suspended user keeps full API access all week.
+    // Reactivation also bumps, which forces a fresh sign-in either way.
+    if (isActive !== undefined || role !== undefined) {
+      updateData.tokenVersion = (user as any).tokenVersion + 1;
+    }
+
     const updated = await prisma.user.update({
       where: { id },
       data: updateData,
     });
 
-    // Log the admin action
-    await prisma.adminAction.create({
-      data: {
-        adminId: session.userId,
-        actionType: role ? "USER_ROLE_CHANGED" : isActive ? "USER_ACTIVATED" : "USER_SUSPENDED",
-        targetType: "USER",
-        targetId: id,
-        details: {
-          previousRole: user.role,
-          newRole: role || user.role,
-          previousActive: user.isActive,
-          newActive: isActive !== undefined ? isActive : user.isActive,
-          targetEmail: user.email,
-        },
+    // Log the admin action. One row per concern: sending role and isActive
+    // together previously logged only the role change, hiding the status flip
+    // from the audit trail entirely.
+    const base = {
+      adminId: session.userId,
+      targetType: "USER",
+      targetId: id,
+      details: {
+        previousRole: user.role,
+        newRole: role || user.role,
+        previousActive: user.isActive,
+        newActive: isActive !== undefined ? isActive : user.isActive,
+        targetEmail: user.email,
       },
-    });
+    };
+    const actions: string[] = [];
+    if (role !== undefined && role !== user.role) actions.push("USER_ROLE_CHANGED");
+    if (isActive === false) actions.push("USER_SUSPENDED");
+    if (isActive === true) actions.push("USER_ACTIVATED");
+    for (const actionType of actions) {
+      await prisma.adminAction.create({ data: { ...base, actionType } });
+    }
 
     const { passwordHash, ...userWithoutPassword } = updated;
     return NextResponse.json({ user: userWithoutPassword });

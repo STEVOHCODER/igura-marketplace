@@ -24,7 +24,14 @@ const nextConfig = {
         protocol: "https",
         hostname: "res.cloudinary.com",
       },
+      // Cloudflare R2 public bucket. Without this, next/image rejects every
+      // R2-hosted upload at runtime and the optimiser 400s on real listings.
+      {
+        protocol: "https",
+        hostname: "pub-*.r2.dev",
+      },
     ],
+    formats: ["image/avif", "image/webp"],
   },
   headers: async () => [
     {

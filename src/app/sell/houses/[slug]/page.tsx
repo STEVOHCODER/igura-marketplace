@@ -31,7 +31,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!property) return { title: "Property Not Found" };
   const img = property.images[0]?.url;
   return {
-    title: `${property.title} - Igura VVIP`,
+    // The root layout applies "%s | Igura", so a title that already names the
+    // brand renders as "... | Igura | Igura". The openGraph title is absolute.
+    title: property.title,
     description: property.description?.slice(0, 160) || `Buy ${property.title} in ${property.locationSector || ""}, ${property.locationDistrict || "Kigali"} for ${formatPrice(property.price)}`,
     openGraph: {
       title: `${property.title} | Igura VVIP`,

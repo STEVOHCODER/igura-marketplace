@@ -262,7 +262,23 @@ export async function DELETE(
     }
 
     if (existing.ownerId !== session.userId) {
-      return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+      // Admins moderate other people's listings from /admin/listings, so the
+      // delete button they see has to work. Previously this returned 403 for
+      // every admin, silently, because an admin is never the owner.
+      const isAdmin = session.role === "ADMIN" || session.role === "SUPER_ADMIN";
+      if (!isAdmin) {
+        return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+      }
+
+      await prisma.adminAction.create({
+        data: {
+          adminId: session.userId,
+          actionType: "PROPERTY_DELETED",
+          targetType: "PROPERTY",
+          targetId: id,
+          details: { propertyTitle: existing.title, previousStatus: existing.status, byAdmin: true },
+        },
+      });
     }
 
     // Soft delete: the row and its Cloudinary images stay recoverable. A hard

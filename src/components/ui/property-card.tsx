@@ -1,10 +1,10 @@
 import Link from "next/link";
-import Image from "next/image";
 import { MapPin, Bed, Bath, Maximize, PlayCircle, ShieldCheck } from "lucide-react";
 import { formatPrice, availabilityLabel } from "@/lib/utils";
 import { Badge } from "./badge";
 import { FavoriteButton } from "./favorite-button";
 import { CompareButton } from "./compare-button";
+import { CoverImage } from "./cover-image";
 
 interface PropertyCardProps {
   property: {
@@ -60,20 +60,24 @@ export function PropertyCard({ property, marketplace, initialSaved, onToggleFavo
       : `/rent/houses/${property.slug}`;
   const ago = timeAgo(property.createdAt);
 
+  // A stored URL can still be undecodable or already purged from the bucket.
+  // CoverImage swaps in a placeholder on error, so a dead link never paints
+  // browser alt text across the badges.
+  const coverUrl = property.images?.[0]?.url;
+
   return (
     <Link href={href} className="group">
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden transition-shadow hover:shadow-md">
         <div className="relative aspect-[4/3] bg-slate-100 overflow-hidden">
-          {property.images && property.images.length > 0 ? (
-            <Image
-              src={property.images[0].url}
-              alt={property.images[0].altText || property.title}
-              fill
+          {coverUrl ? (
+            <CoverImage
+              src={coverUrl}
+              alt={property.images![0].altText || property.title}
               sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
               className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
             />
           ) : (
-            <div className="flex items-center justify-center h-full text-slate-400">
+            <div className="flex items-center justify-center h-full text-slate-300">
               <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3H21m-3.75 3H21" />
               </svg>

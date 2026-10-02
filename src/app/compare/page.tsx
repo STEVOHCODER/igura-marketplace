@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { GitCompare } from "lucide-react";
 import { PublicLayout } from "@/components/layout/public-layout";
@@ -78,8 +79,16 @@ export default function ComparePage() {
                     <th key={p.id} className="p-3 text-left align-top min-w-[180px]">
                       <div className="rounded-xl overflow-hidden border border-slate-200 bg-white">
                         {p.images?.[0]?.url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={p.images[0].url} alt={p.title} className="w-full aspect-[4/3] object-cover" />
+                          // next/image: a comparison row holds up to four
+                          // side-by-side thumbnails, and the raw <img> pulled
+                          // each full-resolution upload with no resizing.
+                          <Image
+                            src={p.images[0].url}
+                            alt={p.title}
+                            width={480}
+                            height={360}
+                            className="w-full aspect-[4/3] object-cover"
+                          />
                         ) : (
                           <div className="w-full aspect-[4/3] bg-slate-100" />
                         )}

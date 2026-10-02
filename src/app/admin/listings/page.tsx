@@ -17,11 +17,17 @@ export default function AdminListingsPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const { toast } = useToast();
   const { t } = useI18n();
+  const [marketplaces, setMarketplaces] = useState<string[]>([]);
 
   useEffect(() => {
     fetch("/api/admin/listings")
       .then(r => r.json())
-      .then(d => setListings(d?.listings || []))
+      .then(d => {
+        setListings(d?.listings || []);
+        // Derive the filter options from what actually exists rather than a
+        // hardcoded pair that silently drifts as marketplaces change.
+        setMarketplaces(d?.marketplaces || []);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -55,6 +61,11 @@ export default function AdminListingsPage() {
       if (res.ok) {
         toast(t("adminListings.listingRemoved"), "success");
         setListings(prev => prev.filter(l => l.id !== id));
+      } else {
+        // A 4xx/5xx is not thrown, so without this branch a failed delete
+        // looked identical to a successful one: no toast, row left in place.
+        const data = await res.json().catch(() => ({}));
+        toast(data.error || t("adminListings.failedRemove"), "error");
       }
     } catch {
       toast(t("adminListings.failedRemove"), "error");
@@ -133,8 +144,11 @@ export default function AdminListingsPage() {
           className="px-4 py-2.5 rounded-lg border border-slate-300 text-sm bg-white"
         >
           <option value="all">{t("adminListings.allMarketplaces")}</option>
-          <option value="House Rental">{t("adminListings.houseRental")}</option>
-          <option value="Plot Selling VIP">{t("adminListings.plotSelling")}</option>
+          {/* Built from live data: the previous hardcoded list omitted
+              "House Selling VVIP", so VVIP listings could never be filtered. */}
+          {marketplaces.map((m) => (
+            <option key={m} value={m}>{m}</option>
+          ))}
         </select>
       </div>
 

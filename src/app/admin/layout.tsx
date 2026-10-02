@@ -9,6 +9,7 @@ import { useI18n } from "@/i18n";
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
+  const [checked, setChecked] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { t } = useI18n();
 
@@ -22,8 +23,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }
         setUser(d.user);
       })
-      .catch(() => window.location.href = "/login");
+      .catch(() => window.location.href = "/login")
+      .finally(() => setChecked(true));
   }, []);
+
+  // Hold the page back until the role check resolves. Rendering `children`
+  // first flashed admin content at non-admins during the redirect, and every
+  // admin API re-checks the role anyway - this just stops the flash.
+  if (!checked || !user) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-emerald-600" />
+      </div>
+    );
+  }
 
   const nav = [
     { name: t("admin.overview"), href: "/admin", icon: LayoutDashboard },

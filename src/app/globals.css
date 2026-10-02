@@ -1,7 +1,5 @@
 @import "tailwindcss";
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-
 :root {
   --color-primary: #059669;
   --color-primary-dark: #047857;
@@ -13,7 +11,10 @@
   --color-text: #0f172a;
   --color-text-secondary: #64748b;
   --color-border: #e2e8f0;
-  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  /* Resolved by next/font on <html class="--font-jakarta">, so there is no
+     network request for the family. The system stack is the fallback if the
+     font fails to load, which keeps text readable either way. */
+  --font-sans: var(--font-jakarta), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 * {

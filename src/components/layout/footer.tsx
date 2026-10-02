@@ -1,10 +1,22 @@
 "use client";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { MapPin, Home, Shield, Crown } from "lucide-react";
 import { useI18n } from "@/i18n";
 
 export function Footer() {
   const { t } = useI18n();
+  // Plans are hidden during the free launch, so the footer must not advertise
+  // them either - the link sat in plain view and bypassed the hidden nav.
+  const [showPlans, setShowPlans] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/config")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setShowPlans(!!d?.showPlans))
+      .catch(() => setShowPlans(false));
+  }, []);
+
   return (
     <footer className="bg-slate-900 text-slate-400">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
@@ -54,9 +66,11 @@ export function Footer() {
               <li>
                 <Link href="/register" className="hover:text-white transition-colors">{t("footer.listProperty")}</Link>
               </li>
-              <li>
-                <Link href="/dashboard/memberships" className="hover:text-white transition-colors">{t("footer.pricingPlans")}</Link>
-              </li>
+              {showPlans && (
+                <li>
+                  <Link href="/dashboard/memberships" className="hover:text-white transition-colors">{t("footer.pricingPlans")}</Link>
+                </li>
+              )}
             </ul>
           </div>
 
