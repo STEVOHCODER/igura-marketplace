@@ -11,9 +11,13 @@ export async function GET() {
 
     const userId = session.userId;
 
-    // Get all user's listings with view counts
+    // Every status including DELETED. Deleting a listing is a soft delete: the
+    // row, its ContactReveal trail and its PropertyView history all survive, so
+    // excluding DELETED here made a removed listing's views and paid reveals
+    // vanish from the owner's totals. History an owner earned should not
+    // disappear because they took the property off the market.
     const listings = await prisma.property.findMany({
-      where: { ownerId: userId, status: { in: ["ACTIVE", "DRAFT", "UPCOMING", "UNAVAILABLE"] } },
+      where: { ownerId: userId },
       select: {
         id: true,
         title: true,

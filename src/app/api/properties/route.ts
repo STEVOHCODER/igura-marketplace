@@ -72,14 +72,16 @@ export async function GET(request: NextRequest) {
       }
       // Owner view: filter by status and ownerId
       statusFilter = query.statusFilter || "ACTIVE";
-      if (!["ACTIVE", "DRAFT", "UPCOMING", "UNAVAILABLE", "ALL"].includes(statusFilter)) {
+      // DELETED is valid here: deleting a listing is a soft delete, and the owner
+      // still needs to see its views and reveals in analytics.
+      if (!["ACTIVE", "DRAFT", "UPCOMING", "UNAVAILABLE", "DELETED", "ALL"].includes(statusFilter)) {
         statusFilter = "ACTIVE";
       }
     }
 
     const where: any = {
       status: statusFilter === "ALL"
-        ? { in: ["ACTIVE", "DRAFT", "UPCOMING", "UNAVAILABLE"] }
+        ? { in: ["ACTIVE", "DRAFT", "UPCOMING", "UNAVAILABLE", "DELETED"] }
         : statusFilter,
     };
 

@@ -9,13 +9,16 @@ import { useI18n } from "@/i18n";
 import { formatPrice } from "@/lib/utils";
 import Link from "next/link";
 
-type StatusFilter = "ALL" | "ACTIVE" | "DRAFT" | "UPCOMING" | "UNAVAILABLE";
+type StatusFilter = "ALL" | "ACTIVE" | "DRAFT" | "UPCOMING" | "UNAVAILABLE" | "DELETED";
 
 const STATUS_TABS: { key: StatusFilter; label: string; color: string }[] = [
-  { key: "ALL", label: "All", color: "bg-slate-100 text-slate-700" },
-  { key: "ACTIVE", label: "Active", color: "bg-emerald-100 text-emerald-700" },
-  { key: "DRAFT", label: "Draft", color: "bg-amber-100 text-amber-700" },
-  { key: "UNAVAILABLE", label: "Unavailable", color: "bg-red-100 text-red-700" },
+  { key: "ALL", label: "All", color: "bg-[#f2ede6] text-[#1c1917]" },
+  { key: "ACTIVE", label: "Active", color: "bg-[#ecfdf5] text-[#047857]" },
+  { key: "DRAFT", label: "Draft", color: "bg-[#fef3c7] text-[#92400e]" },
+  { key: "UNAVAILABLE", label: "Unavailable", color: "bg-[#fee2e2] text-[#b91c1c]" },
+  // Removed listings keep their views and reveals, so they stay visible and
+  // filterable rather than quietly vanishing from the history.
+  { key: "DELETED", label: "Removed", color: "bg-[#f2ede6] text-[#6b625b]" },
 ];
 
 const STATUS_BADGE: Record<string, "success" | "warning" | "danger" | "default"> = {
@@ -23,6 +26,7 @@ const STATUS_BADGE: Record<string, "success" | "warning" | "danger" | "default">
   DRAFT: "warning",
   UPCOMING: "warning",
   UNAVAILABLE: "danger",
+  DELETED: "default",
 };
 
 interface Listing {
