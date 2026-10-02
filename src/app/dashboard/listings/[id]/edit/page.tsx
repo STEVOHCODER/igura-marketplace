@@ -36,8 +36,9 @@ export default function EditListingPage() {
   const [newVideoDuration, setNewVideoDuration] = useState<number | null>(null);
   const [videoAccess, setVideoAccess] = useState<{ allowed: boolean; maxDuration: number; maxTotalVideos: number; isFreePeriod: boolean }>({ allowed: false, maxDuration: 0, maxTotalVideos: 0, isFreePeriod: false });
 
-  const MAX_VIDEO_SECONDS = 40;
-  const MAX_VIDEO_SIZE = 25 * 1024 * 1024;
+const MAX_VIDEO_SECONDS = 40;
+// Must match MAX_SIZE in the video API route.
+const MAX_VIDEO_SIZE = 60 * 1024 * 1024;
   const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 
   useEffect(() => {

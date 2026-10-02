@@ -87,7 +87,9 @@ export default function AnalyticsPage() {
 
     // Single status: use properties API
     try {
-      const res = await fetch(`/api/properties?limit=100&myListings=true&statusFilter=${status}`, { signal: controller.signal });
+      // limit is capped at 50 by searchSchema; 100 returned a 400 and left this
+      // page with an empty series.
+      const res = await fetch(`/api/properties?limit=50&myListings=true&statusFilter=${status}`, { signal: controller.signal });
       const d = await res.json();
       if (!controller.signal.aborted) {
         const mapped: Listing[] = (d.properties || []).map((p: any) => ({

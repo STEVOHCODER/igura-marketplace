@@ -4,10 +4,14 @@ import { getSessionVerified } from "@/lib/auth";
 import { uploadPropertyVideo, deletePropertyVideo } from "@/lib/cloudinary";
 import { enforceRateLimit, LIMITS } from "@/lib/rate-limit";
 import { checkVideoAccess } from "@/lib/access";
-import { detectVideoMimeType } from "@/lib/video-validation";
+import { detectVideoMimeType, isCompatibleVideoType } from "@/lib/video-validation";
 
 const ALLOWED_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
-const MAX_SIZE = 25 * 1024 * 1024;
+// 25MB was under-sized for the promise this tier makes. A 20-second clip shot
+// on a modern phone at 1080p routinely runs 30-60MB, so listers hit "File too
+// large" on videos that were inside the 20-second rule they were told about.
+// 60MB covers 20s at 1080p on any current handset.
+const MAX_SIZE = 60 * 1024 * 1024;
 
 /**
  * Magic-byte sniff. `file.type` comes straight from the client and can be
@@ -60,10 +64,12 @@ export async function POST(
     }
 
     // The declared MIME type is client-controlled. Read the leading bytes and
-    // confirm the file really is what it claims; a renamed .exe fails here.
+    // confirm the file really is a video of that family; a renamed .exe fails
+    // here. ISO-BMFF containers are compared as one family because browsers
+    // label phone .mov recordings inconsistently.
     const head = new Uint8Array(await file.slice(0, 64).arrayBuffer());
     const detected = detectVideoMimeType(head);
-    if (!detected || detected !== file.type) {
+    if (!isCompatibleVideoType(file.type, detected)) {
       return NextResponse.json(
         { error: "File content does not match the declared type" },
         { status: 400 }
@@ -71,15 +77,20 @@ export async function POST(
     }
 
     if (file.size > MAX_SIZE) {
+      const maxMb = Math.round(MAX_SIZE / (1024 * 1024));
       return NextResponse.json(
-        { error: "File too large. Maximum size: 25MB" },
+        { error: `File too large. Maximum size: ${maxMb}MB. Trim the clip or record at a lower resolution.` },
         { status: 400 }
       );
     }
 
-    // Check video access based on plan tier and free period
-    const videoDuration = clientDuration ?? 40;
-    const videoAccess = await checkVideoAccess(session.userId, videoDuration);
+    // Check video access based on plan tier and free period. When the browser
+    // could not report a duration we pass 0 so the slot count is still enforced
+    // but the duration comparison is skipped. The previous `?? 40` default
+    // rejected every such upload with "must be 20 seconds or shorter", which
+    // blamed the clip length for a metadata problem.
+    const knownDuration = clientDuration != null && Number.isFinite(clientDuration);
+    const videoAccess = await checkVideoAccess(session.userId, knownDuration ? clientDuration : 0);
     if (!videoAccess.allowed) {
       return NextResponse.json(
         { error: videoAccess.reason || "Video upload not allowed on your current plan" },

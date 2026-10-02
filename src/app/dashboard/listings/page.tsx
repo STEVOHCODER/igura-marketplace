@@ -18,7 +18,11 @@ export default function ListingsPage() {
   const { toast } = useToast();
 
   const fetchListings = () => {
-    fetch("/api/properties?limit=100&myListings=true&statusFilter=ALL")
+    // limit is capped at 50 by searchSchema. Asking for 100 made this return 400,
+// and because the response had no `properties` key the table rendered "0 total
+// listings" while /api/access/quota - a separate call - still reported the real
+// count, which is why the two disagreed on screen.
+fetch("/api/properties?limit=50&myListings=true&statusFilter=ALL")
       .then(r => r.json())
       .then(d => setListings(d?.properties || []))
       .finally(() => setLoading(false));
