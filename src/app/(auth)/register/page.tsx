@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { UserPlus, Eye, EyeOff, ArrowRight, Home, MapPin, Briefcase, Search, Crown } from "lucide-react";
+import { UserPlus, Eye, EyeOff, ArrowRight, Briefcase, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
@@ -18,7 +18,6 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<"COMMISSIONAIRE" | "CLIENT" | null>(null);
-  const [marketplace, setMarketplace] = useState<"House Rental" | "Plot Selling VIP" | "House Selling VVIP" | null>(null);
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -38,7 +37,7 @@ export default function RegisterPage() {
     e.preventDefault();
     setErrors({});
 
-    if (!role || !marketplace) {
+    if (!role) {
       setErrors({ general: t("register.selectRole") });
       return;
     }
@@ -61,7 +60,6 @@ export default function RegisterPage() {
           phone: form.phone,
           password: form.password,
           role,
-          marketplace,
         }),
       });
 
@@ -74,25 +72,13 @@ export default function RegisterPage() {
       }
 
       toast(t("register.success"), "success");
-      router.push("/dashboard/memberships");
+      router.push("/dashboard");
     } catch {
       toast(t("register.wrong"), "error");
     } finally {
       setLoading(false);
     }
   };
-
-  const commissionairePlans = [
-    { marketplace: "House Rental" as const, price: 5000, features: ["10 active listings", "3 images per listing", "Manage properties", "Contact leads"] },
-    { marketplace: "Plot Selling VIP" as const, price: 20000, features: ["10 active listings", "3 images per listing", "Manage plots", "Premium placement"] },
-    { marketplace: "House Selling VVIP" as const, price: 25000, features: ["10 active listings", "3 images per listing", "Manage house sales", "VVIP placement"] },
-  ];
-
-  const clientPlans = [
-    { marketplace: "House Rental" as const, price: 2000, features: ["Search all houses", "View full listings", "Contact owners directly", "Save favorites"] },
-    { marketplace: "Plot Selling VIP" as const, price: 15000, features: ["Search all plots", "View full listings", "Contact owners directly", "Save favorites"] },
-    { marketplace: "House Selling VVIP" as const, price: 10000, features: ["Search all houses for sale", "View full listings", "Contact owners directly", "Save favorites"] },
-  ];
 
   return (
     <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/30 border border-slate-100 p-8">
@@ -162,43 +148,6 @@ export default function RegisterPage() {
             <p className="font-semibold text-slate-900">{role === "COMMISSIONAIRE" ? t("register.commissionaire") : t("register.client")}</p>
           </div>
 
-          <div className="mb-6">
-            <p className="text-sm font-medium text-slate-700 mb-3">{t("register.chooseMarketplace")}</p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {(role === "COMMISSIONAIRE" ? commissionairePlans : clientPlans).map((plan) => (
-                <button
-                  key={plan.marketplace}
-                  onClick={() => setMarketplace(plan.marketplace)}
-                  className={`p-3 rounded-xl border-2 transition-all text-left ${
-                    marketplace === plan.marketplace
-                      ? "border-emerald-500 bg-emerald-50"
-                      : "border-slate-200 hover:border-slate-300"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    {plan.marketplace.includes("House") ? (
-                      <Home className="h-4 w-4 text-emerald-600" />
-                    ) : plan.marketplace.includes("Plot") ? (
-                      <MapPin className="h-4 w-4 text-amber-600" />
-                    ) : (
-                      <Crown className="h-4 w-4 text-violet-600" />
-                    )}
-                    <span className="text-sm font-medium text-slate-900">
-                      {plan.marketplace === "House Rental" ? t("register.houseRental") : plan.marketplace === "Plot Selling VIP" ? t("register.plotSelling") : t("register.houseSellingVvip")}
-                    </span>
-                  </div>
-                  <p className="text-lg font-bold text-slate-900">{plan.price.toLocaleString()} RWF</p>
-                  <ul className="mt-2 space-y-1">
-                    {plan.features.slice(0, 2).map((f, i) => (
-                      <li key={i} className="text-xs text-slate-500">- {f}</li>
-                    ))}
-                  </ul>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {marketplace && (
             <form onSubmit={handleSubmit} className="space-y-4">
               {errors.general && <p className="text-sm text-red-600">{errors.general}</p>}
 
@@ -278,7 +227,6 @@ export default function RegisterPage() {
                 <ArrowRight className="h-4 w-4 ml-1.5" />
               </Button>
             </form>
-          )}
         </>
       )}
 

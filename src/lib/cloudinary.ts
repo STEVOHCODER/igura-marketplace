@@ -1,4 +1,5 @@
 import { v2 as cloudinary, UploadApiOptions } from "cloudinary";
+import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { Readable } from "stream";
 
 /**
@@ -35,6 +36,45 @@ function uploadBuffer(buffer: Buffer, options: UploadApiOptions): Promise<any> {
   });
 }
 
+function getR2Client(): S3Client | null {
+  const endpoint = process.env.CLOUDFLARE_R2_ENDPOINT;
+  const accessKeyId = process.env.CLOUDFLARE_R2_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY;
+  if (!endpoint || !accessKeyId || !secretAccessKey) return null;
+  return new S3Client({
+    region: "auto",
+    endpoint,
+    credentials: { accessKeyId, secretAccessKey },
+  });
+}
+
+function getR2PublicUrl(key: string): string {
+  const base = process.env.CLOUDFLARE_R2_PUBLIC_URL?.replace(/\/+$/, "");
+  if (!base) {
+    throw new Error("CLOUDFLARE_R2_PUBLIC_URL is not configured");
+  }
+  return `${base}/${key.split("/").map(encodeURIComponent).join("/")}`;
+}
+
+async function uploadToR2(
+  buffer: Buffer,
+  key: string,
+  contentType: string
+): Promise<CloudinaryUploadResult> {
+  const client = getR2Client();
+  const bucket = process.env.CLOUDFLARE_R2_BUCKET;
+  if (!client || !bucket) throw new Error("Cloudflare R2 is not configured");
+  await client.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: buffer, ContentType: contentType }));
+  return { url: getR2PublicUrl(key), publicId: `r2:${key}` };
+}
+
+async function deleteFromR2(storagePath: string): Promise<void> {
+  const client = getR2Client();
+  const bucket = process.env.CLOUDFLARE_R2_BUCKET;
+  if (!client || !bucket || !storagePath.startsWith("r2:")) return;
+  await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: storagePath.slice(3) }));
+}
+
 export interface CloudinaryUploadResult {
   url: string;
   publicId: string;
@@ -45,20 +85,31 @@ export async function uploadPropertyImage(
   propertyId: string,
   sortOrder: number
 ): Promise<CloudinaryUploadResult> {
-  assertConfigured();
   const buffer = Buffer.from(await file.arrayBuffer());
-
-  const result = await uploadBuffer(buffer, {
-    resource_type: "image",
-    folder: `igura/properties/${propertyId}/images`,
-    public_id: `${sortOrder}-${Date.now()}`,
-    overwrite: false,
-  });
-
-  return { url: result.secure_url as string, publicId: result.public_id as string };
+  try {
+    assertConfigured();
+    const result = await uploadBuffer(buffer, {
+      resource_type: "image",
+      folder: `igura/properties/${propertyId}/images`,
+      public_id: `${sortOrder}-${Date.now()}`,
+      overwrite: false,
+    });
+    return { url: result.secure_url as string, publicId: result.public_id as string };
+  } catch (cloudinaryError) {
+    console.error("Cloudinary image upload failed; trying R2 fallback:", cloudinaryError);
+    return uploadToR2(buffer, `properties/${propertyId}/images/${sortOrder}-${Date.now()}`, file.type);
+  }
 }
 
 export async function deletePropertyImage(publicId: string): Promise<void> {
+  if (publicId.startsWith("r2:")) {
+    try {
+      await deleteFromR2(publicId);
+    } catch (error) {
+      console.error("R2 image deletion error:", error);
+    }
+    return;
+  }
   try {
     await cloudinary.uploader.destroy(publicId, { resource_type: "image" });
   } catch (error) {
@@ -103,6 +154,14 @@ export async function uploadPropertyVideo(
 }
 
 export async function deletePropertyVideo(publicId: string): Promise<void> {
+  if (publicId.startsWith("r2:")) {
+    try {
+      await deleteFromR2(publicId);
+    } catch (error) {
+      console.error("R2 video deletion error:", error);
+    }
+    return;
+  }
   try {
     await cloudinary.uploader.destroy(publicId, { resource_type: "video" });
   } catch (error) {

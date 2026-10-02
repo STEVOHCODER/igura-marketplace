@@ -107,7 +107,17 @@ export async function POST(
       );
     }
 
-    const { url, publicId, durationSeconds } = await uploadPropertyVideo(file, id);
+    let uploaded: Awaited<ReturnType<typeof uploadPropertyVideo>>;
+    try {
+      uploaded = await uploadPropertyVideo(file, id);
+    } catch (error) {
+      console.error("Video storage provider failed:", error);
+      return NextResponse.json(
+        { error: "Video storage is temporarily unavailable. Your listing was saved; please add the video from the edit page later." },
+        { status: 503 }
+      );
+    }
+    const { url, publicId, durationSeconds } = uploaded;
 
     // Authoritative Cloudinary duration check.
     //
