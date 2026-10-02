@@ -32,8 +32,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // admin API re-checks the role anyway - this just stops the flash.
   if (!checked || !user) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-emerald-600" />
+      <div className="min-h-screen bg-[#faf8f4] flex items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#d6ccbf] border-t-emerald-600" />
       </div>
     );
   }
@@ -50,11 +50,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-[#faf8f4]">
       <div className="flex">
         {/* Desktop Sidebar */}
-        <div className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-slate-900 text-white">
-          <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-800">
+        <div className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-[#16130f] text-[#fffdfb]">
+          <div className="flex items-center gap-2 px-6 py-4 border-b border-white/10">
             <Shield className="h-5 w-5 text-emerald-400" />
             <span className="text-lg font-bold">{t("admin.adminPanel")}</span>
           </div>
@@ -62,15 +62,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             {nav.map((item) => (
               <Link key={item.href} href={item.href} className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                pathname === item.href ? "bg-emerald-600 text-white" : "text-slate-300 hover:bg-slate-800"
+                pathname === item.href ? "bg-[#047857] text-white" : "text-slate-300 hover:bg-slate-800"
               )}>
                 <item.icon className="h-5 w-5" />
                 {item.name}
               </Link>
             ))}
           </nav>
-          <div className="px-3 py-4 border-t border-slate-800 space-y-1">
-            <Link href="/dashboard" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-400 hover:bg-slate-800">
+          <div className="px-3 py-4 border-t border-white/10 space-y-1">
+            <Link href="/dashboard" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[#a8a29e] hover:bg-slate-800">
               {t("admin.backToDashboard")}
             </Link>
             <button
@@ -78,7 +78,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 await fetch("/api/auth/logout", { method: "POST" });
                 window.location.href = "/login";
               }}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-400 hover:bg-slate-800 w-full"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[#a8a29e] hover:bg-slate-800 w-full"
             >
               <LogOut className="h-5 w-5" />
               {t("admin.signOut")}
@@ -87,7 +87,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
 
         {/* Mobile Header */}
-        <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-slate-900 text-white px-4 py-3 flex items-center justify-between">
+        <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-[#16130f] text-[#fffdfb] px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-emerald-400" />
             <span className="font-bold">Admin</span>
@@ -101,13 +101,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Mobile Menu */}
         {mobileOpen && (
-          <div className="lg:hidden fixed inset-0 z-40 bg-slate-900/50" onClick={() => setMobileOpen(false)}>
-            <div className="w-64 h-full bg-slate-900 text-white pt-16" onClick={(e) => e.stopPropagation()}>
+          <div className="lg:hidden fixed inset-0 z-40 bg-[#16130f]/50" onClick={() => setMobileOpen(false)}>
+            <div className="w-64 h-full bg-[#16130f] text-[#fffdfb] pt-16" onClick={(e) => e.stopPropagation()}>
               <nav className="px-3 py-4 space-y-1">
                 {nav.map((item) => (
                   <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)} className={cn(
                     "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                    pathname === item.href ? "bg-emerald-600 text-white" : "text-slate-300 hover:bg-slate-800"
+                    pathname === item.href ? "bg-[#047857] text-white" : "text-slate-300 hover:bg-slate-800"
                   )}>
                     <item.icon className="h-5 w-5" />
                     {item.name}

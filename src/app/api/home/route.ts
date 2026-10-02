@@ -84,17 +84,29 @@ export async function GET() {
 
       prisma.property.count({ where: { status: "ACTIVE" } }),
 
-      // One count query per tile, all issued in parallel. Counted directly
-      // rather than by listing a page per tile so the payload stays tiny.
-      ...POPULAR_TILES.map((tile) =>
-        prisma.property.count({
+      // One count query per tile, all issued in parallel.
+      //
+      // The tile labels ("Gasabo", "Kicukiro", "Nyarugenge") are what people
+      // call districts, but a listing stores them under `locationSector` with
+      // locationDistrict="Kigali City" - the sector within Gasabo is Kimironko
+      // or Remera, not "Gasabo". An exact `locationSector` equality therefore
+      // counted zero for every tile. Match any level of the hierarchy, the same
+      // way the properties search does, so the number agrees with the click
+      // through to the results page.
+      ...POPULAR_TILES.map((tile) => {
+        const names = [tile.sector, tile.district].filter(Boolean) as string[];
+        return prisma.property.count({
           where: {
             status: "ACTIVE",
             marketplace: { name: "House Rental" },
-            ...(tile.sector ? { locationSector: tile.sector } : { locationDistrict: tile.district }),
+            OR: [
+              ...names.map((n) => ({ locationDistrict: n })),
+              ...names.map((n) => ({ locationSector: n })),
+              ...names.map((n) => ({ locationCell: n })),
+            ],
           },
-        })
-      ),
+        });
+      }),
     ]);
 
     const popularCounts: Record<string, number> = {};

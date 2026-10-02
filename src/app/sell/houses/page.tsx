@@ -107,21 +107,21 @@ export default function HouseSalePage() {
 
   return (
     <PublicLayout>
-      <div className="bg-white border-b border-slate-200">
+      <div className="bg-[#fffdfb] border-b border-[#e8e1d8]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">
+              <h1 className="text-2xl font-bold text-[#1c1917]">
                 {t("houseSale.title")} <Badge variant="warning" className="ml-2">VVIP</Badge>
               </h1>
-              <p className="text-sm text-slate-500 mt-1">{total} {t("houseSale.available")}</p>
+              <p className="text-sm text-[#6b625b] mt-1">{total} {t("houseSale.available")}</p>
             </div>
             <div className="flex items-center gap-2">
               <select
                 aria-label="Sort listings"
                 value={filters.sort}
                 onChange={(e) => { setFilters({ ...filters, sort: e.target.value }); setPage(1); }}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white"
+                className="rounded-lg border border-[#d6ccbf] px-3 py-2 text-sm bg-[#fffdfb]"
               >
                 <option value="newest">Newest</option>
                 <option value="price_asc">Price: low to high</option>
@@ -138,45 +138,45 @@ export default function HouseSalePage() {
 
           <form onSubmit={handleSearch} className="flex gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#a8a29e]" />
               <input
                 type="text"
                 placeholder={t("houseSale.searchPlaceholder")}
                 value={filters.q}
                 onChange={(e) => setFilters({ ...filters, q: e.target.value })}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#d6ccbf] text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               />
             </div>
             <Button type="submit" size="lg">{t("houseSale.search")}</Button>
           </form>
 
           {showFilters && (
-            <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <div className="mt-4 p-4 bg-[#f7f4ef] rounded-xl border border-[#e8e1d8]">
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                <select value={filters.district} onChange={(e) => setFilters({ ...filters, district: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white">
+                <select value={filters.district} onChange={(e) => setFilters({ ...filters, district: e.target.value })} className="rounded-lg border border-[#d6ccbf] px-3 py-2 text-sm bg-[#fffdfb]">
                   <option value="">{t("houseSale.allDistricts")}</option>
                   {RWANDA_DISTRICTS.filter((d, i, a) => a.indexOf(d) === i).map((d) => (
                     <option key={d} value={d}>{d}</option>
                   ))}
                 </select>
-                <input type="text" placeholder={t("houseSale.sector")} value={filters.sector} onChange={(e) => setFilters({ ...filters, sector: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-                <select value={filters.purpose} onChange={(e) => setFilters({ ...filters, purpose: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white">
+                <input type="text" placeholder={t("houseSale.sector")} value={filters.sector} onChange={(e) => setFilters({ ...filters, sector: e.target.value })} className="rounded-lg border border-[#d6ccbf] px-3 py-2 text-sm" />
+                <select value={filters.purpose} onChange={(e) => setFilters({ ...filters, purpose: e.target.value })} className="rounded-lg border border-[#d6ccbf] px-3 py-2 text-sm bg-[#fffdfb]">
                   <option value="">{t("houseSale.allPurposes")}</option>
                   <option value="residential">{t("houseSale.residential")}</option>
                   <option value="commercial">{t("houseSale.commercial")}</option>
                   <option value="mixed_use">{t("houseSale.mixedUse")}</option>
                 </select>
-                <input type="number" placeholder={t("houseSale.minPrice")} value={filters.minPrice} onChange={(e) => setFilters({ ...filters, minPrice: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-                <input type="number" placeholder={t("houseSale.maxPrice")} value={filters.maxPrice} onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                <input type="number" placeholder={t("houseSale.minPrice")} value={filters.minPrice} onChange={(e) => setFilters({ ...filters, minPrice: e.target.value })} className="rounded-lg border border-[#d6ccbf] px-3 py-2 text-sm" />
+                <input type="number" placeholder={t("houseSale.maxPrice")} value={filters.maxPrice} onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })} className="rounded-lg border border-[#d6ccbf] px-3 py-2 text-sm" />
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3">
-                <input type="number" placeholder={t("houseSale.minArea")} value={filters.areaMin} onChange={(e) => setFilters({ ...filters, areaMin: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-                <input type="number" placeholder={t("houseSale.maxArea")} value={filters.areaMax} onChange={(e) => setFilters({ ...filters, areaMax: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-                <select aria-label="Minimum bedrooms" value={filters.bedroomsMin} onChange={(e) => setFilters({ ...filters, bedroomsMin: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white">
+                <input type="number" placeholder={t("houseSale.minArea")} value={filters.areaMin} onChange={(e) => setFilters({ ...filters, areaMin: e.target.value })} className="rounded-lg border border-[#d6ccbf] px-3 py-2 text-sm" />
+                <input type="number" placeholder={t("houseSale.maxArea")} value={filters.areaMax} onChange={(e) => setFilters({ ...filters, areaMax: e.target.value })} className="rounded-lg border border-[#d6ccbf] px-3 py-2 text-sm" />
+                <select aria-label="Minimum bedrooms" value={filters.bedroomsMin} onChange={(e) => setFilters({ ...filters, bedroomsMin: e.target.value })} className="rounded-lg border border-[#d6ccbf] px-3 py-2 text-sm bg-[#fffdfb]">
                   <option value="">Bedrooms: any</option>
                   {[1, 2, 3, 4, 5].map((b) => <option key={b} value={b}>{b}+ beds</option>)}
                 </select>
-                <select value={filters.availability} onChange={(e) => setFilters({ ...filters, availability: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white">
+                <select value={filters.availability} onChange={(e) => setFilters({ ...filters, availability: e.target.value })} className="rounded-lg border border-[#d6ccbf] px-3 py-2 text-sm bg-[#fffdfb]">
                   <option value="">{t("houseSale.anyAvailability")}</option>
                   <option value="AVAILABLE">{t("houseSale.availableNow")}</option>
                   <option value="UPCOMING">{t("houseSale.comingSoon")}</option>
@@ -196,7 +196,7 @@ export default function HouseSalePage() {
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="rounded-xl border border-slate-200 overflow-hidden">
+              <div key={i} className="rounded-xl border border-[#e8e1d8] overflow-hidden">
                 <Skeleton className="aspect-[4/3]" />
                 <div className="p-4 space-y-3">
                   <Skeleton className="h-5 w-3/4" />
@@ -228,15 +228,15 @@ export default function HouseSalePage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6 sm:p-8">
-          <h2 className="text-lg font-bold text-slate-900">Buying a house in Rwanda</h2>
-          <p className="mt-2 text-sm text-slate-600 leading-relaxed">
+        <div className="rounded-2xl bg-[#f7f4ef] border border-[#e8e1d8] p-6 sm:p-8">
+          <h2 className="text-lg font-bold text-[#1c1917]">Buying a house in Rwanda</h2>
+          <p className="mt-2 text-sm text-[#6b625b] leading-relaxed">
             Premium houses for sale in Kigali — villas in Nyarutarama, apartments in Kimihurura,
             townhouses in Kagugu, duplexes in Kibagabaga and bungalows in Kabuga. Compare
             bedrooms, bathrooms, size and price side by side, check the Igura value estimate
             against live comparables, and contact verified sellers directly.
           </p>
-          <p className="mt-2 text-sm text-slate-600 leading-relaxed">
+          <p className="mt-2 text-sm text-[#6b625b] leading-relaxed">
             Popular searches: villa for sale in Nyarutarama, apartment in Kimihurura,
             townhouse in Kagugu, duplex in Kibagabaga, bungalow in Kabuga.
           </p>

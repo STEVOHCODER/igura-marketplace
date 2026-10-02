@@ -18,7 +18,7 @@ export function Footer() {
   }, []);
 
   return (
-    <footer className="bg-slate-900 text-slate-400">
+    <footer className="bg-[#16130f] text-[#a8a29e]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-8">
           <div className="md:col-span-1">
@@ -36,64 +36,64 @@ export function Footer() {
                 <text x="50" y="33" fontFamily="Inter, system-ui, sans-serif" fontSize="26" fontWeight="700" fill="#ffffff">Igura</text>
               </svg>
             </Link>
-            <p className="text-sm leading-relaxed text-slate-500">
+            <p className="text-sm leading-relaxed text-[#78716c]">
               {t("footer.brandDesc")}
             </p>
-            <div className="flex items-center gap-2 mt-4 text-xs text-slate-500">
+            <div className="flex items-center gap-2 mt-4 text-xs text-[#78716c]">
               <Shield className="h-3.5 w-3.5 text-emerald-500" />
               <span>{t("footer.verifiedSecure")}</span>
             </div>
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-white mb-4">{t("footer.marketplace")}</h4>
+            <h4 className="text-sm font-semibold text-[#fffdfb] mb-4">{t("footer.marketplace")}</h4>
             <ul className="space-y-2.5 text-sm">
               <li>
-                <Link href="/rent/houses" className="hover:text-white transition-colors inline-flex items-center gap-1.5">
+                <Link href="/rent/houses" className="hover:text-[#fffdfb] transition-colors inline-flex items-center gap-1.5">
                   <Home className="h-3.5 w-3.5 text-emerald-500" /> {t("footer.rentHouse")}
                 </Link>
               </li>
               <li>
-                <Link href="/plots" className="hover:text-white transition-colors inline-flex items-center gap-1.5">
+                <Link href="/plots" className="hover:text-[#fffdfb] transition-colors inline-flex items-center gap-1.5">
                   <MapPin className="h-3.5 w-3.5 text-emerald-500" /> {t("footer.findPlot")}
                 </Link>
               </li>
               <li>
-                <Link href="/sell/houses" className="hover:text-white transition-colors inline-flex items-center gap-1.5">
-                  <Crown className="h-3.5 w-3.5 text-violet-500" /> {t("footer.sellHouse")}
+                <Link href="/sell/houses" className="hover:text-[#fffdfb] transition-colors inline-flex items-center gap-1.5">
+                  <Crown className="h-3.5 w-3.5 text-[#c4b5fd]" /> {t("footer.sellHouse")}
                 </Link>
               </li>
               <li>
-                <Link href="/register" className="hover:text-white transition-colors">{t("footer.listProperty")}</Link>
+                <Link href="/register" className="hover:text-[#fffdfb] transition-colors">{t("footer.listProperty")}</Link>
               </li>
               {showPlans && (
                 <li>
-                  <Link href="/dashboard/memberships" className="hover:text-white transition-colors">{t("footer.pricingPlans")}</Link>
+                  <Link href="/dashboard/memberships" className="hover:text-[#fffdfb] transition-colors">{t("footer.pricingPlans")}</Link>
                 </li>
               )}
             </ul>
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-white mb-4">{t("footer.company")}</h4>
+            <h4 className="text-sm font-semibold text-[#fffdfb] mb-4">{t("footer.company")}</h4>
             <ul className="space-y-2.5 text-sm">
-              <li><Link href="/about" className="hover:text-white transition-colors">{t("footer.aboutUs")}</Link></li>
-              <li><Link href="/how-it-works" className="hover:text-white transition-colors">{t("footer.howItWorks")}</Link></li>
-              <li><Link href="/contact" className="hover:text-white transition-colors">{t("footer.contact")}</Link></li>
+              <li><Link href="/about" className="hover:text-[#fffdfb] transition-colors">{t("footer.aboutUs")}</Link></li>
+              <li><Link href="/how-it-works" className="hover:text-[#fffdfb] transition-colors">{t("footer.howItWorks")}</Link></li>
+              <li><Link href="/contact" className="hover:text-[#fffdfb] transition-colors">{t("footer.contact")}</Link></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-white mb-4">{t("footer.support")}</h4>
+            <h4 className="text-sm font-semibold text-[#fffdfb] mb-4">{t("footer.support")}</h4>
             <ul className="space-y-2.5 text-sm">
-              <li><Link href="/help" className="hover:text-white transition-colors">{t("footer.helpCenter")}</Link></li>
-              <li><Link href="/terms" className="hover:text-white transition-colors">{t("footer.terms")}</Link></li>
-              <li><Link href="/privacy" className="hover:text-white transition-colors">{t("footer.privacy")}</Link></li>
+              <li><Link href="/help" className="hover:text-[#fffdfb] transition-colors">{t("footer.helpCenter")}</Link></li>
+              <li><Link href="/terms" className="hover:text-[#fffdfb] transition-colors">{t("footer.terms")}</Link></li>
+              <li><Link href="/privacy" className="hover:text-[#fffdfb] transition-colors">{t("footer.privacy")}</Link></li>
             </ul>
           </div>
         </div>
 
-        <div className="border-t border-slate-800 mt-10 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-500">
+        <div className="border-t border-white/10 mt-10 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-[#78716c]">
           <p>&copy; {new Date().getFullYear()} {t("footer.copyright")}</p>
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5">

@@ -105,19 +105,19 @@ export default function HouseSearchPage() {
 
   return (
     <PublicLayout>
-      <div className="bg-white border-b border-slate-200">
+      <div className="bg-[#fffdfb] border-b border-[#e8e1d8]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">{t("houses.title")}</h1>
-              <p className="text-sm text-slate-500 mt-1">{total} {t("houses.available")}</p>
+              <h1 className="text-2xl font-bold text-[#1c1917]">{t("houses.title")}</h1>
+              <p className="text-sm text-[#6b625b] mt-1">{total} {t("houses.available")}</p>
             </div>
             <div className="flex items-center gap-2">
               <select
                 aria-label="Sort listings"
                 value={filters.sort}
                 onChange={(e) => { setFilters({ ...filters, sort: e.target.value }); setPage(1); }}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white"
+                className="rounded-lg border border-[#d6ccbf] px-3 py-2 text-sm bg-[#fffdfb]"
               >
                 <option value="newest">Newest</option>
                 <option value="price_asc">Price: low to high</option>
@@ -134,30 +134,30 @@ export default function HouseSearchPage() {
 
           <form onSubmit={handleSearch} className="flex gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#a8a29e]" />
               <input
                 type="text"
                 aria-label="Search houses"
                 placeholder={t("houses.searchPlaceholder")}
                 value={filters.q}
                 onChange={(e) => setFilters({ ...filters, q: e.target.value })}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#d6ccbf] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               />
             </div>
             <Button type="submit" size="lg">{t("houses.search")}</Button>
           </form>
 
           {showFilters && (
-            <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <div className="mt-4 p-4 bg-[#f7f4ef] rounded-xl border border-[#e8e1d8]">
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                <select aria-label="Filter by district" value={filters.district} onChange={(e) => setFilters({ ...filters, district: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white">
+                <select aria-label="Filter by district" value={filters.district} onChange={(e) => setFilters({ ...filters, district: e.target.value })} className="rounded-lg border border-[#d6ccbf] px-3 py-2 text-sm bg-[#fffdfb]">
                   <option value="">{t("houses.allDistricts")}</option>
                   {RWANDA_DISTRICTS.filter((d, i, a) => a.indexOf(d) === i).map((d) => (
                     <option key={d} value={d}>{d}</option>
                   ))}
                 </select>
-                <input type="text" aria-label="Filter by sector" placeholder={t("plots.sector")} value={filters.sector} onChange={(e) => setFilters({ ...filters, sector: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-                <select aria-label="Filter by property type" value={filters.propertyType} onChange={(e) => setFilters({ ...filters, propertyType: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white">
+                <input type="text" aria-label="Filter by sector" placeholder={t("plots.sector")} value={filters.sector} onChange={(e) => setFilters({ ...filters, sector: e.target.value })} className="rounded-lg border border-[#d6ccbf] px-3 py-2 text-sm" />
+                <select aria-label="Filter by property type" value={filters.propertyType} onChange={(e) => setFilters({ ...filters, propertyType: e.target.value })} className="rounded-lg border border-[#d6ccbf] px-3 py-2 text-sm bg-[#fffdfb]">
                   <option value="">{t("houses.allTypes")}</option>
                   <option value="shambrette">Shambrette</option>
                   <option value="room_salon">Room + Salon</option>
@@ -165,20 +165,20 @@ export default function HouseSearchPage() {
                   <option value="3_room_salon">3 Rooms + Salon</option>
                   <option value="other">Other</option>
                 </select>
-                <input type="number" placeholder={t("houses.minPrice")} value={filters.minPrice} onChange={(e) => setFilters({ ...filters, minPrice: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-                <input type="number" placeholder={t("houses.maxPrice")} value={filters.maxPrice} onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-                <select aria-label="Minimum bedrooms" value={filters.bedroomsMin} onChange={(e) => setFilters({ ...filters, bedroomsMin: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white">
+                <input type="number" placeholder={t("houses.minPrice")} value={filters.minPrice} onChange={(e) => setFilters({ ...filters, minPrice: e.target.value })} className="rounded-lg border border-[#d6ccbf] px-3 py-2 text-sm" />
+                <input type="number" placeholder={t("houses.maxPrice")} value={filters.maxPrice} onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })} className="rounded-lg border border-[#d6ccbf] px-3 py-2 text-sm" />
+                <select aria-label="Minimum bedrooms" value={filters.bedroomsMin} onChange={(e) => setFilters({ ...filters, bedroomsMin: e.target.value })} className="rounded-lg border border-[#d6ccbf] px-3 py-2 text-sm bg-[#fffdfb]">
                   <option value="">Bedrooms: any</option>
                   {[1, 2, 3, 4, 5].map((b) => <option key={b} value={b}>{b}+ beds</option>)}
                 </select>
-                <select value={filters.availability} onChange={(e) => setFilters({ ...filters, availability: e.target.value })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white">
+                <select value={filters.availability} onChange={(e) => setFilters({ ...filters, availability: e.target.value })} className="rounded-lg border border-[#d6ccbf] px-3 py-2 text-sm bg-[#fffdfb]">
                   <option value="">{t("houses.anyAvailability")}</option>
                   <option value="AVAILABLE">{t("houses.availableNow")}</option>
                   <option value="UPCOMING">{t("houses.comingSoon")}</option>
                 </select>
               </div>
               {hasActiveFilters && (
-                <button onClick={clearFilters} className="mt-3 text-sm text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+                <button onClick={clearFilters} className="mt-3 text-sm text-[#047857] hover:text-emerald-700 flex items-center gap-1">
                   <X className="h-3 w-3" /> {t("houses.clearFilters")}
                 </button>
               )}
@@ -191,7 +191,7 @@ export default function HouseSearchPage() {
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="rounded-xl border border-slate-200 overflow-hidden">
+              <div key={i} className="rounded-xl border border-[#e8e1d8] overflow-hidden">
                 <Skeleton className="aspect-[4/3]" />
                 <div className="p-4 space-y-3">
                   <Skeleton className="h-5 w-3/4" />
@@ -223,16 +223,16 @@ export default function HouseSearchPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6 sm:p-8">
-          <h2 className="text-lg font-bold text-slate-900">Renting a house in Rwanda</h2>
-          <p className="mt-2 text-sm text-slate-600 leading-relaxed">
+        <div className="rounded-2xl bg-[#f7f4ef] border border-[#e8e1d8] p-6 sm:p-8">
+          <h2 className="text-lg font-bold text-[#1c1917]">Renting a house in Rwanda</h2>
+          <p className="mt-2 text-sm text-[#6b625b] leading-relaxed">
             Looking for a house for rent in Kigali? Browse rooms, studios, apartments, townhouses,
             duplexes and villas for rent in Gasabo, Kicukiro and Nyarugenge — including Remera,
             Kimironko, Kacyiru, Gacuriro, Kagugu, Kanombe, Gatenga, Nyabugogo and Gitega.
             Every listing shows the real price in RWF, bedrooms, size and availability, and numbers
             from verified owners can be revealed instantly with Mobile Money.
           </p>
-          <p className="mt-2 text-sm text-slate-600 leading-relaxed">
+          <p className="mt-2 text-sm text-[#6b625b] leading-relaxed">
             Popular searches: apartment for rent in Remera, house for rent in Kimironko,
             room for rent in Kicukiro, studio in Nyabugogo, townhouse near Kacyiru.
             Save any search to get flagged when new matches land.

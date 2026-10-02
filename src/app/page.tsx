@@ -8,6 +8,7 @@ import { PublicLayout } from "@/components/layout/public-layout";
 import { PropertyCard } from "@/components/ui/property-card";
 import { CompareTray } from "@/components/ui/compare-tray";
 import { AiSearchBox } from "@/components/ui/ai-search-box";
+import { HeroBackdrop } from "@/components/ui/hero-backdrop";
 import { useI18n } from "@/i18n";
 import { formatPrice } from "@/lib/utils";
 
@@ -147,29 +148,12 @@ useEffect(() => {
 
   return (
     <PublicLayout>
-      {/* Discovery hero: deep warm field, one glass panel, restrained accent. */}
-      <section className="relative overflow-hidden bg-[#16130f]">
-        <div aria-hidden className="absolute inset-0 pointer-events-none">
-          {/* Warm dark: espresso at the edges, a muted olive-emerald bloom where
-              the light falls. Avoids the cold blue-slate and neon gradient that
-              make a property site read as a generated dashboard. */}
-          <div className="absolute inset-0 bg-[radial-gradient(125%_105%_at_50%_-10%,#2a2416_0%,#1b1712_42%,#12100c_100%)]" />
-          <div className="absolute -top-48 -right-24 h-[560px] w-[560px] rounded-full bg-[#047857]/25 blur-[130px]" />
-          <div className="absolute -bottom-40 left-1/3 h-[420px] w-[520px] rounded-full bg-[#b45309]/12 blur-[120px]" />
-          <div
-            className="absolute inset-0 opacity-[0.05]"
-            style={{
-              backgroundImage:
-                "linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px)",
-              backgroundSize: "64px 64px",
-              maskImage: "radial-gradient(105% 65% at 50% 0%, #000 15%, transparent 72%)",
-              WebkitMaskImage: "radial-gradient(105% 65% at 50% 0%, #000 15%, transparent 72%)",
-            }}
-          />
-        </div>
+      {/* Discovery hero: real Kigali photography, one glass search panel. */}
+      <section className="relative isolate overflow-hidden bg-[#16130f]">
+        <HeroBackdrop />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-10 sm:pt-16 sm:pb-14">
-          <p className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.06] px-3 py-1 text-xs font-medium text-[#fcd34d]">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-16 sm:pt-16 sm:pb-20">
+          <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-[#fcd34d] backdrop-blur-md">
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#fbbf24] opacity-70" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#fbbf24]" />
@@ -181,7 +165,7 @@ useEffect(() => {
             Find your next place{" "}
             <span className="gradient-text-warm">in Rwanda.</span>
           </h1>
-          <p className="mt-4 max-w-2xl text-base leading-relaxed text-[#e7e5e4]/80 sm:text-lg">
+          <p className="mt-4 max-w-2xl text-base leading-relaxed text-[#f5f5f4]/85 sm:text-lg">
             Houses for rent, homes for sale and plots across all districts — with real prices in
             RWF and direct contact with verified owners.
           </p>
@@ -265,8 +249,11 @@ useEffect(() => {
             Explore all <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {POPULAR_TILES.filter((tile) => popCounts[tile.label] === undefined || popCounts[tile.label] > 0).map((tile) => {
+        {/* Not filtered on count. A tile with zero listings is still a place
+            people search for, and hiding them made the section vanish entirely
+            while the counts were loading. The number is shown honestly instead. */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          {POPULAR_TILES.map((tile) => {
             const params = new URLSearchParams();
             if (tile.district) params.set("district", tile.district);
             if (tile.sector) params.set("sector", tile.sector);

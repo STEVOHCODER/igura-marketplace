@@ -55,20 +55,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-[#faf8f4]">
       {/* Mobile sidebar - glass style */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="fixed inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
-          <div className="fixed inset-y-0 left-0 w-64 bg-white/90 border-r border-slate-200 p-4 backdrop-blur-sm">
+          <div className="fixed inset-y-0 left-0 w-64 bg-[#fffdfb]/90 border-r border-[#e8e1d8] p-4 backdrop-blur-sm">
             <div className="flex items-center justify-between mb-6">
               <Link href="/" className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-emerald-600 flex items-center justify-center">
+                <div className="h-8 w-8 rounded-lg bg-[#047857] flex items-center justify-center">
                   <span className="text-white font-bold text-sm">I</span>
                 </div>
-                <span className="text-lg font-bold text-slate-900">Igura</span>
+                <span className="text-lg font-bold text-[#1c1917]">Igura</span>
               </Link>
-              <button onClick={() => setSidebarOpen(false)} className="text-slate-400"><X className="h-5 w-5" /></button>
+              <button onClick={() => setSidebarOpen(false)} className="text-[#a8a29e]"><X className="h-5 w-5" /></button>
             </div>
             <nav className="space-y-1">
               {navigation.map((item) => (
@@ -78,7 +78,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   onClick={() => setSidebarOpen(false)}
                   className={cn(
                     "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium",
-                    pathname === item.href ? "bg-emerald-50 text-emerald-700" : "text-slate-600 hover:bg-slate-50"
+                    pathname === item.href ? "bg-[#ecfdf5] text-[#065f46]" : "text-[#6b625b] hover:bg-[#faf8f4]"
                   )}
                 >
                   <item.icon className="h-5 w-5" />
@@ -86,7 +86,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </Link>
               ))}
             </nav>
-            <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 w-full mt-4">
+            <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#b91c1c] hover:bg-red-50 w-full mt-4">
               <LogOut className="h-5 w-5" />
               {t("dash.logout")}
             </button>
@@ -96,13 +96,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       <div className="flex">
         {/* Desktop sidebar - glass style */}
-        <div className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-white/90 border-r border-slate-200 backdrop-blur-sm">
-          <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-200">
-            <div className="h-8 w-8 rounded-lg bg-emerald-600 flex items-center justify-center">
+        <div className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-[#fffdfb]/90 border-r border-[#e8e1d8] backdrop-blur-sm">
+          <div className="flex items-center gap-2 px-6 py-4 border-b border-[#e8e1d8]">
+            <div className="h-8 w-8 rounded-lg bg-[#047857] flex items-center justify-center">
               <span className="text-white font-bold text-sm">I</span>
             </div>
-            <span className="text-lg font-bold text-slate-900">Igura</span>
-            <span className="ml-1 text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Dashboard</span>
+            <span className="text-lg font-bold text-[#1c1917]">Igura</span>
+            <span className="ml-1 text-xs bg-[#d1fae5] text-[#065f46] px-2 py-0.5 rounded-full">Dashboard</span>
           </div>
           <nav className="flex-1 px-3 py-4 space-y-1">
             {navigation.map((item) => (
@@ -112,7 +112,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 onClick={() => setSidebarOpen(false)}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                  pathname === item.href ? "bg-emerald-50 text-emerald-700" : "text-slate-600 hover:bg-slate-50"
+                  pathname === item.href ? "bg-[#ecfdf5] text-[#065f46]" : "text-[#6b625b] hover:bg-[#faf8f4]"
                 )}
               >
                 <item.icon className="h-5 w-5" />
@@ -120,14 +120,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </Link>
             ))}
           </nav>
-          <div className="px-3 py-4 border-t border-slate-200">
+          <div className="px-3 py-4 border-t border-[#e8e1d8]">
             {user && (
               <div className="px-3 py-2 text-sm">
-                <div className="font-medium text-slate-900">{user.firstName} {user.lastName}</div>
-                <div className="text-slate-500 text-xs">{user.email}</div>
+                <div className="font-medium text-[#1c1917]">{user.firstName} {user.lastName}</div>
+                <div className="text-[#6b625b] text-xs">{user.email}</div>
               </div>
             )}
-            <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 w-full">
+            <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#b91c1c] hover:bg-red-50 w-full">
               <LogOut className="h-5 w-5" />
               {t("dash.logout")}
             </button>
@@ -136,13 +136,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Main content */}
         <div className="lg:ml-64 flex-1">
-          <div className="lg:hidden flex items-center gap-4 px-4 py-3 bg-white/90 border-b border-slate-200 backdrop-blur-sm">
-            <button onClick={() => setSidebarOpen(true)} className="text-slate-600"><Menu className="h-5 w-5" /></button>
+          <div className="lg:hidden flex items-center gap-4 px-4 py-3 bg-[#fffdfb]/90 border-b border-[#e8e1d8] backdrop-blur-sm">
+            <button onClick={() => setSidebarOpen(true)} className="text-[#6b625b]"><Menu className="h-5 w-5" /></button>
             <Link href="/" className="flex items-center gap-2">
-              <div className="h-7 w-7 rounded-lg bg-emerald-600 flex items-center justify-center">
+              <div className="h-7 w-7 rounded-lg bg-[#047857] flex items-center justify-center">
                 <span className="text-white font-bold text-xs">I</span>
               </div>
-              <span className="font-bold text-slate-900">Dashboard</span>
+              <span className="font-bold text-[#1c1917]">Dashboard</span>
             </Link>
           </div>
           <div className="p-6 lg:p-8">{children}</div>

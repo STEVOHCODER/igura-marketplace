@@ -40,8 +40,8 @@ export default function DashboardPage() {
       <div className="mb-8 glass-card p-6 rounded-xl" style={{ backdropFilter: "blur(20px)" }}>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">{t("dash.welcome")} {user?.firstName || "..."}!</h1>
-            <p className="text-slate-500 mt-1 text-sm">{t("dash.subtitle")}</p>
+            <h1 className="text-2xl font-bold text-[#1c1917]">{t("dash.welcome")} {user?.firstName || "..."}!</h1>
+            <p className="text-[#6b625b] mt-1 text-sm">{t("dash.subtitle")}</p>
           </div>
           <div className="flex items-center gap-3">
             {user?.role === "COMMISSIONAIRE" && (
@@ -63,11 +63,11 @@ export default function DashboardPage() {
       {showPlans && user?.role === "COMMISSIONAIRE" && commissionaireMemberships.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {commissionaireMemberships.map((m: any) => (
-            <Card key={m.id} className="border border-emerald-200 bg-emerald-50">
+            <Card key={m.id} className="border border-[#a7f3d0] bg-[#ecfdf5]">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-500">{m.plan?.marketplace?.displayName}</p>
+                    <p className="text-sm text-[#6b625b]">{m.plan?.marketplace?.displayName}</p>
                     <p className="font-medium">{m.plan?.displayName}</p>
                   </div>
                   <Badge variant="success">{t("dash.active")}</Badge>
@@ -82,12 +82,12 @@ export default function DashboardPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-                <Home className="h-5 w-5 text-emerald-600" />
+              <div className="h-10 w-10 rounded-lg bg-[#d1fae5] flex items-center justify-center">
+                <Home className="h-5 w-5 text-[#047857]" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-slate-900">{stats.active}</p>
-                <p className="text-xs text-slate-500">{t("dash.activeListings")}</p>
+                <p className="text-2xl font-bold text-[#1c1917]">{stats.active}</p>
+                <p className="text-xs text-[#6b625b]">{t("dash.activeListings")}</p>
               </div>
             </div>
           </CardContent>
@@ -95,12 +95,12 @@ export default function DashboardPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-red-100 flex items-center justify-center">
-                <MapPin className="h-5 w-5 text-red-600" />
+              <div className="h-10 w-10 rounded-lg bg-[#fee2e2] flex items-center justify-center">
+                <MapPin className="h-5 w-5 text-[#b91c1c]" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-slate-900">{stats.unavailable}</p>
-                <p className="text-xs text-slate-500">{t("dash.unavailable")}</p>
+                <p className="text-2xl font-bold text-[#1c1917]">{stats.unavailable}</p>
+                <p className="text-xs text-[#6b625b]">{t("dash.unavailable")}</p>
               </div>
             </div>
           </CardContent>
@@ -109,12 +109,12 @@ export default function DashboardPage() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <CreditCard className="h-5 w-5 text-blue-600" />
+                <div className="h-10 w-10 rounded-lg bg-[#dbeafe] flex items-center justify-center">
+                  <CreditCard className="h-5 w-5 text-[#1d4ed8]" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-slate-900">{memberships.filter((m: any) => m.status === "ACTIVE").length}</p>
-                  <p className="text-xs text-slate-500">{t("dash.activeMemberships")}</p>
+                  <p className="text-2xl font-bold text-[#1c1917]">{memberships.filter((m: any) => m.status === "ACTIVE").length}</p>
+                  <p className="text-xs text-[#6b625b]">{t("dash.activeMemberships")}</p>
                 </div>
               </div>
             </CardContent>
@@ -125,36 +125,36 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         {user?.role === "COMMISSIONAIRE" && (
           <>
-            <Link href="/dashboard/listings" className="block p-6 bg-white rounded-xl border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all">
-              <Home className="h-8 w-8 text-emerald-600 mb-3" />
-              <h3 className="font-semibold text-slate-900">{t("dash.manageListings")}</h3>
-              <p className="text-sm text-slate-500 mt-1">{t("dash.manageListingsDesc")}</p>
+            <Link href="/dashboard/listings" className="block p-6 bg-[#fffdfb] rounded-xl border border-[#e8e1d8] hover:border-emerald-300 hover:shadow-md transition-all">
+              <Home className="h-8 w-8 text-[#047857] mb-3" />
+              <h3 className="font-semibold text-[#1c1917]">{t("dash.manageListings")}</h3>
+              <p className="text-sm text-[#6b625b] mt-1">{t("dash.manageListingsDesc")}</p>
             </Link>
-            <Link href="/dashboard/listings/new" className="block p-6 bg-white rounded-xl border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all">
-              <Plus className="h-8 w-8 text-emerald-600 mb-3" />
-              <h3 className="font-semibold text-slate-900">{t("dash.newListingCard")}</h3>
-              <p className="text-sm text-slate-500 mt-1">{t("dash.newListingDesc")}</p>
+            <Link href="/dashboard/listings/new" className="block p-6 bg-[#fffdfb] rounded-xl border border-[#e8e1d8] hover:border-emerald-300 hover:shadow-md transition-all">
+              <Plus className="h-8 w-8 text-[#047857] mb-3" />
+              <h3 className="font-semibold text-[#1c1917]">{t("dash.newListingCard")}</h3>
+              <p className="text-sm text-[#6b625b] mt-1">{t("dash.newListingDesc")}</p>
             </Link>
           </>
         )}
         {user?.role === "CLIENT" && (
           <>
-            <Link href="/rent/houses" className="block p-6 bg-white rounded-xl border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all">
-              <Home className="h-8 w-8 text-emerald-600 mb-3" />
-              <h3 className="font-semibold text-slate-900">{t("dash.searchHousesCard")}</h3>
-              <p className="text-sm text-slate-500 mt-1">{t("dash.searchHousesDesc")}</p>
+            <Link href="/rent/houses" className="block p-6 bg-[#fffdfb] rounded-xl border border-[#e8e1d8] hover:border-emerald-300 hover:shadow-md transition-all">
+              <Home className="h-8 w-8 text-[#047857] mb-3" />
+              <h3 className="font-semibold text-[#1c1917]">{t("dash.searchHousesCard")}</h3>
+              <p className="text-sm text-[#6b625b] mt-1">{t("dash.searchHousesDesc")}</p>
             </Link>
-            <Link href="/plots" className="block p-6 bg-white rounded-xl border border-slate-200 hover:border-amber-300 hover:shadow-md transition-all">
+            <Link href="/plots" className="block p-6 bg-[#fffdfb] rounded-xl border border-[#e8e1d8] hover:border-amber-300 hover:shadow-md transition-all">
               <MapPin className="h-8 w-8 text-amber-600 mb-3" />
-              <h3 className="font-semibold text-slate-900">{t("dash.searchPlotsCard")}</h3>
-              <p className="text-sm text-slate-500 mt-1">{t("dash.searchPlotsDesc")}</p>
+              <h3 className="font-semibold text-[#1c1917]">{t("dash.searchPlotsCard")}</h3>
+              <p className="text-sm text-[#6b625b] mt-1">{t("dash.searchPlotsDesc")}</p>
             </Link>
           </>
         )}
-        <Link href="/dashboard/memberships" className="block p-6 bg-white rounded-xl border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all">
-          <CreditCard className="h-8 w-8 text-emerald-600 mb-3" />
-          <h3 className="font-semibold text-slate-900">{t("dash.membershipsCard")}</h3>
-          <p className="text-sm text-slate-500 mt-1">{t("dash.membershipsDesc")}</p>
+        <Link href="/dashboard/memberships" className="block p-6 bg-[#fffdfb] rounded-xl border border-[#e8e1d8] hover:border-emerald-300 hover:shadow-md transition-all">
+          <CreditCard className="h-8 w-8 text-[#047857] mb-3" />
+          <h3 className="font-semibold text-[#1c1917]">{t("dash.membershipsCard")}</h3>
+          <p className="text-sm text-[#6b625b] mt-1">{t("dash.membershipsDesc")}</p>
         </Link>
       </div>
     </div>
