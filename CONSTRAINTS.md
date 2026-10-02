@@ -505,3 +505,58 @@ confirms the tests assert real behavior.
 - The reset ran through a temporary `POST /api/admin/launch-reset` route
   (ADMIN + `x-launch-reset: CONFIRM` + hard-coded keep-email). Deleted from
   source after use; returns 404 in production.
+
+## Admin audit, performance and design pass
+
+- Admin coverage audit (20 Prisma models): only Report and AdminAction are fully
+  managed. Still no admin surface for PropertyType, PropertyImage/Video
+  moderation, PaymentEvent, ContactReveal listing, or feature flags. Plans are
+  edit-only (no create/delete), Memberships have no expiry management, and there
+  is no refund path or on-demand payment reconciliation. Genuine gaps, not bugs.
+- Fixed: admin "Delete listing" always 403 (button called the owner-scoped
+  route). Admin-permitted + audited. Verified live: 200, status DELETED.
+- Fixed: /admin/locations rendered dashes (read the public country-only
+  endpoint). Added admin-scoped `GET /api/admin/locations`.
+- Deleted `POST /api/admin/restore-agent-listings` (re-injected 13 fake
+  listings with inflated viewCounts, for a user that no longer exists) and
+  `backfill-search` (completed one-off repair). Both were unauthenticated from
+  any admin session.
+- Fixed: suspending a user did not bump `tokenVersion`, so their JWT stayed
+  valid for 7 days. Suspension/reactivation now revokes live sessions.
+- Fixed: `grant-access` wrote no AdminAction (invisible in /admin/audit) and
+  created memberships with `expiresAt: null` (permanent). Now audited and
+  defaulting to 30 days, with an optional explicit end date.
+- Fixed: reveal revenue was grouped by `planId`, crediting 2,000 RWF reveals to
+  an unrelated plan's marketplace. `stats.reveals` now reports it separately.
+  (Prisma's MongoDB connector cannot filter JSON paths, so the split is done in
+  JS over settled rows, matching the reconcile cron.)
+- Fixed: admin listings/payments were unbounded `findMany`; now paginated,
+  searchable, with live marketplace options. Audit target-type filter is derived
+  from recorded data (it previously offered MEMBERSHIP, which nothing wrote, and
+  omitted MARKETPLACE/PLAN).
+- Fixed: `next.config` had no R2 host in `remotePatterns`, so `next/image` would
+  reject every R2-hosted upload. Added, plus AVIF/WebP output.
+- Fixed: `CoverImage` component - a dead image URL painted alt text across the
+  card badges.
+- Fixed: property detail pages rendered "X | Igura | Igura" via the root title
+  template.
+- Removed the stale "Drafts are free" hero copy (drafts no longer exist) and
+  hid the footer Pricing Plans link behind `SHOW_PLANS`, which was advertising
+  plans the dashboard nav hid.
+- Design: layered hero (radial wash + masked grid + colour pools + gradient
+  headline + live badge), elevated search card, hover-lift marketplace and CTA
+  cards, location tiles with a growing highlight.
+
+### Performance, measured live via Playwright
+
+| Metric | Before | After |
+| --- | --- | --- |
+| Homepage API calls | 17 | 4 |
+| First Contentful Paint | 2188ms | 580ms |
+| DOM interactive | ~2156ms | 339ms |
+| Total transfer | 99KB | 30KB |
+| Google Fonts requests | 3 | 0 |
+| CLS | 0.0013 | 0.0013 |
+
+Cold-start first visit after a deploy is slower (FCP ~2.9s) while Vercel warms
+the lambdas; the warm figures above are steady state. CLS stays at 0.0013.
