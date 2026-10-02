@@ -137,20 +137,30 @@ export async function uploadPropertyVideo(
   file: File,
   propertyId: string
 ): Promise<CloudinaryVideoUploadResult> {
-  assertConfigured();
   const buffer = Buffer.from(await file.arrayBuffer());
 
-  const result = await uploadBuffer(buffer, {
-    resource_type: "video",
-    folder: `igura/properties/${propertyId}/video`,
-    overwrite: true,
-  });
+  try {
+    assertConfigured();
+    const result = await uploadBuffer(buffer, {
+      resource_type: "video",
+      folder: `igura/properties/${propertyId}/video`,
+      overwrite: true,
+    });
 
-  return {
-    url: result.secure_url as string,
-    publicId: result.public_id as string,
-    durationSeconds: typeof result.duration === "number" ? Math.round(result.duration) : null,
-  };
+    return {
+      url: result.secure_url as string,
+      publicId: result.public_id as string,
+      durationSeconds: typeof result.duration === "number" ? Math.round(result.duration) : null,
+    };
+  } catch (cloudinaryError) {
+    console.error("Cloudinary video upload failed; trying R2 fallback:", cloudinaryError);
+    const uploaded = await uploadToR2(
+      buffer,
+      `properties/${propertyId}/video/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`,
+      file.type
+    );
+    return { ...uploaded, durationSeconds: null };
+  }
 }
 
 export async function deletePropertyVideo(publicId: string): Promise<void> {

@@ -119,21 +119,28 @@ export async function POST(
     }
     const { url, publicId, durationSeconds } = uploaded;
 
-    // Authoritative Cloudinary duration check.
-    //
-    // Fail closed when the provider reports no duration: the client-declared
-    // `duration` field is attacker-controlled and was previously trusted
-    // unconditionally here, so a Starter-plan user could upload a long video
-    // by sending `duration=5` and hoping Cloudinary stayed quiet.
+    // Cloudinary supplies authoritative duration metadata. R2 does not
+    // inspect media, so R2 uploads require the browser's duration metadata
+    // and the same strict limit; Cloudflare Stream or an ffprobe worker can
+    // replace this check later for provider-independent verification.
     if (durationSeconds == null || !Number.isFinite(durationSeconds)) {
-      await deletePropertyVideo(publicId);
-      return NextResponse.json(
-        { error: "Could not verify the video length. Please re-upload the video." },
-        { status: 400 }
-      );
+      if (!publicId.startsWith("r2:") || clientDuration == null || !Number.isFinite(clientDuration)) {
+        await deletePropertyVideo(publicId);
+        return NextResponse.json(
+          { error: "Could not verify the video length. Configure Cloudflare Stream or re-upload with video metadata." },
+          { status: 400 }
+        );
+      }
+      if (clientDuration > videoAccess.maxDuration + 1) {
+        await deletePropertyVideo(publicId);
+        return NextResponse.json(
+          { error: `Video must be ${videoAccess.maxDuration} seconds or shorter` },
+          { status: 400 }
+        );
+      }
     }
 
-    if (durationSeconds > videoAccess.maxDuration + 1) {
+    if (durationSeconds != null && durationSeconds > videoAccess.maxDuration + 1) {
       await deletePropertyVideo(publicId);
       return NextResponse.json(
         { error: `Video must be ${videoAccess.maxDuration} seconds or shorter` },
@@ -148,7 +155,7 @@ export async function POST(
         propertyId: id,
         url,
         storagePath: publicId,
-        durationSeconds: durationSeconds ?? null,
+        durationSeconds: durationSeconds ?? clientDuration ?? null,
         sortOrder: existingCount,
       },
       select: { id: true, url: true, durationSeconds: true, sortOrder: true },
@@ -161,7 +168,7 @@ export async function POST(
         data: {
           videoUrl: url,
           videoStoragePath: publicId,
-          videoDurationSeconds: durationSeconds,
+          videoDurationSeconds: durationSeconds ?? clientDuration ?? null,
         },
       });
     }
