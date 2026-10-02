@@ -36,10 +36,11 @@ export async function POST(
       return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
 
+    // Only the per-listing image cap applies here. The active-listing quota is
+    // enforced at publish time (see the PUT guard in [id]/route.ts); reusing it
+    // here meant a user sitting at exactly their limit could never add a photo
+    // to the listings they had already published.
     const allowance = await getListingAllowance(session.userId);
-    if (!allowance.allowed && allowance.activeListings >= allowance.maxActiveListings) {
-      return NextResponse.json({ error: allowance.reason || "Listing limit reached." }, { status: 403 });
-    }
 
     if (property.images.length >= allowance.maxImagesPerListing) {
       return NextResponse.json(
