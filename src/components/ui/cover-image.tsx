@@ -17,11 +17,14 @@ export function CoverImage({
   alt,
   sizes,
   className,
+  priority,
 }: {
   src: string;
   alt: string;
   sizes: string;
   className?: string;
+  /** Set on the LCP element (the property detail hero) so it is preloaded. */
+  priority?: boolean;
 }) {
   const [failed, setFailed] = useState(false);
 
@@ -46,6 +49,7 @@ export function CoverImage({
       alt={alt}
       fill
       sizes={sizes}
+      {...(priority ? { priority } : {})}
       onError={() => setFailed(true)}
       className={className}
     />

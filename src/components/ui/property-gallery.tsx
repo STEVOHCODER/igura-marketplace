@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
+import { CoverImage } from "./cover-image";
 import { ChevronLeft, ChevronRight, X, Images as ImagesIcon, PlayCircle } from "lucide-react";
 
 /**
@@ -76,12 +77,11 @@ export function PropertyGallery({
           onClick={() => setLightbox(0)}
           className="group relative block aspect-[16/9] w-full overflow-hidden"
         >
-          <Image
+<CoverImage
             src={first.url}
             alt={first.altText || title}
-            fill
-            priority
             sizes="(min-width: 1024px) 66vw, 100vw"
+            priority
             className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
           />
           <span aria-hidden className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/30 to-transparent" />
