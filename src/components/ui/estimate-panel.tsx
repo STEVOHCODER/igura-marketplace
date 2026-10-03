@@ -38,12 +38,12 @@ export function EstimatePanel({
   if (!data) return null;
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-6">
+    <div className="bg-[#fffdfb] rounded-2xl border border-[#e8e1d8] p-6">
       <div className="flex items-center gap-2 mb-1">
-        <Scale className="h-4 w-4 text-violet-600" />
-        <h3 className="font-semibold text-slate-900">Igura value estimate</h3>
+        <Scale className="h-4 w-4 text-[#047857]" />
+        <h3 className="font-semibold text-[#1c1917]">Igura value estimate</h3>
       </div>
-      <p className="text-2xl font-bold text-violet-700 mt-2">{formatPrice(data.estimate)}</p>
+      <p className="text-2xl font-bold text-[#047857] mt-2">{formatPrice(data.estimate)}</p>
       <p className="text-xs text-slate-500 mt-1">
         Range {formatPrice(data.low)} – {formatPrice(data.high)} · {data.count} comparable listings
       </p>

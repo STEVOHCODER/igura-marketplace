@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 export interface ParsedFilters {
   marketplace: "House Rental" | "House Selling VVIP" | "Plot Selling VIP";
@@ -134,25 +134,32 @@ export function AiSearchBox({ districts }: { districts: string[] }) {
   };
 
   return (
-    <div className="mt-3 max-w-4xl">
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-violet-400" />
+    <div className="mt-4 max-w-4xl">
+      {/* Secondary path, not a competing CTA. The emerald Search button above is
+          the primary action, so this row is labelled as the alternative and the
+          control is a text link rather than a second filled button. Violet was
+          the only violet in the public palette and read as an accident. */}
+      <div className="flex items-center gap-2">
+        <span className="hidden shrink-0 text-xs font-medium text-white/60 sm:inline">Or try</span>
+        {/* min-w-0 lets the input actually shrink on narrow screens instead of
+            forcing the row wider than the viewport. */}
+        <div className="relative min-w-0 flex-1">
+          <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6ee7b7]" />
           <input
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") interpret(); }}
             placeholder='Describe what you want — e.g. "3 bedroom house in Kicukiro under 700,000 RWF"'
-            className="w-full pl-9 pr-3 py-3 rounded-xl bg-white/10 border border-white/15 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-400"
+            aria-label="Describe the property you are looking for in your own words"
+            className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white/10 border border-white/20 text-sm text-white placeholder:text-white/45 focus:outline-none focus:ring-2 focus:ring-white/70"
           />
         </div>
         <button
           onClick={interpret}
           disabled={busy || text.trim().length < 4}
-          className="inline-flex items-center gap-2 bg-violet-600 text-white px-5 py-3 rounded-xl text-sm font-semibold hover:bg-violet-500 transition-colors disabled:opacity-50"
+          className="shrink-0 px-2 py-2 text-sm font-semibold text-[#6ee7b7] underline underline-offset-4 transition-colors hover:text-white disabled:opacity-40 disabled:no-underline"
         >
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          {busy ? "Reading…" : "Describe"}
+          {busy ? "Reading…" : "Describe instead"}
         </button>
       </div>
       {parsed && (

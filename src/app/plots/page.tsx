@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/i18n";
+  import Link from "next/link";
 
 const RWANDA_DISTRICTS = [
   "Gasabo","Kicukiro","Nyarugenge","Huye","Rubavu","Musanze","Nyagatare",
@@ -112,7 +113,10 @@ export default function PlotSearchPage() {
               <h1 className="text-2xl font-bold text-[#1c1917]">{t("plots.title")} <Badge variant="warning" className="ml-2">{t("plots.vip")}</Badge></h1>
               <p className="text-sm text-[#6b625b] mt-1">{total} {t("plots.available")}</p>
             </div>
-            <div className="flex items-center gap-2">
+            {/* Sorting, saving and filtering are all no-ops over an empty
+                result set, so they are withheld until there is something to
+                act on. The heading and search box always stay. */}
+            <div className={`flex items-center gap-2 ${total === 0 && !hasActiveFilters ? "hidden" : ""}`}>
               <select
                 aria-label="Sort listings"
                 value={filters.sort}
@@ -124,6 +128,7 @@ export default function PlotSearchPage() {
                 <option value="price_desc">Price: high to low</option>
                 <option value="popular">Most viewed</option>
               </select>
+              {/* marketplace name is a stored identifier, not display copy */}
               <SaveSearchButton marketplace="Plot Selling VIP" filters={filters} />
               <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)}>
                 <SlidersHorizontal className="h-4 w-4 mr-1.5" />
@@ -200,12 +205,35 @@ export default function PlotSearchPage() {
             ))}
           </div>
         ) : properties.length === 0 ? (
-          <EmptyState
-            icon={<MapPin className="h-12 w-12" />}
-            title={t("plots.noResults")}
-            description={t("plots.noResultsDesc")}
-            action={hasActiveFilters ? <Button variant="outline" onClick={clearFilters}>{t("plots.clearFiltersBtn")}</Button> : undefined}
-          />
+          /* Two different situations behind the same empty list. With filters
+             on, the fix is to widen them. With nothing filtered, the marketplace
+             is simply empty, and the useful move is to list a plot or look at
+             another district. */
+          hasActiveFilters ? (
+            <EmptyState
+              icon={<Search className="h-6 w-6" />}
+              title={t("plots.noResultsFiltered")}
+              description={t("plots.noResultsFilteredDesc")}
+              action={<Button variant="outline" onClick={clearFilters}>{t("plots.clearFiltersBtn")}</Button>}
+            />
+          ) : (
+            <EmptyState
+              icon={<MapPin className="h-6 w-6" />}
+              title={t("plots.emptyTitle")}
+              description={t("plots.emptyDesc")}
+              action={
+                <Link href="/dashboard/listings/new">
+                  <Button>{t("plots.emptyCta")}</Button>
+                </Link>
+              }
+              secondaryAction={
+                <Link href="/locations">
+                  <Button variant="outline">{t("plots.emptySecondary")}</Button>
+                </Link>
+              }
+              footnote={t("plots.emptyFootnote")}
+            />
+          )
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

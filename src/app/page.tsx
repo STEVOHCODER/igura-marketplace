@@ -224,7 +224,8 @@ useEffect(() => {
               className="mt-3 w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-emerald-600 text-white px-8 py-3.5 rounded-xl text-base font-semibold hover:bg-emerald-500 transition-colors"
             >
               <Search className="h-5 w-5" />
-              Search{liveCount !== null ? ` (${liveCount})` : ""}
+              {/* A live count only helps once there is something to count. */}
+              {liveCount ? ` Search (${liveCount})` : " Search"}
             </button>
           </div>
 
@@ -232,7 +233,7 @@ useEffect(() => {
 
           <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-[#e7e5e4]/70">
             <span className="inline-flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-[#34d399]" /> Verified owners</span>
-            <span className="inline-flex items-center gap-1.5"><Home className="h-4 w-4 text-[#34d399]" /> {totalActive !== null ? `${totalActive} live listing${totalActive === 1 ? "" : "s"}` : "Live listings"}</span>
+            <span className="inline-flex items-center gap-1.5"><Home className="h-4 w-4 text-[#34d399]" /> {totalActive ? `${totalActive} live listing${totalActive === 1 ? "" : "s"}` : "Listing your property is free"}</span>
             <span className="inline-flex items-center gap-1.5"><TrendingUp className="h-4 w-4 text-[#34d399]" /> MTN &amp; Airtel MoMo</span>
           </div>
         </div>
@@ -249,24 +250,31 @@ useEffect(() => {
             Explore all <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
-        {/* Not filtered on count. A tile with zero listings is still a place
-            people search for, and hiding them made the section vanish entirely
-            while the counts were loading. The number is shown honestly instead. */}
+        {/* A tile with zero listings is still a place people search for, so the
+            tile stays. What changed is the line under the name: a bare "0
+            listings" reads as a broken counter, so a zero now reads as an
+            invitation. A non-zero count still renders the honest number. */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {POPULAR_TILES.map((tile) => {
             const params = new URLSearchParams();
             if (tile.district) params.set("district", tile.district);
             if (tile.sector) params.set("sector", tile.sector);
+            const count = popCounts[tile.label];
             return (
               <Link
                 key={tile.label}
                 href={`/rent/houses?${params.toString()}`}
-                className="group relative overflow-hidden rounded-2xl border border-[#e8e1d8] bg-[#fffdfb] p-4 transition-all hover:-translate-y-0.5 hover:border-[#d6ccbf] hover:shadow-[0_8px_20px_-6px_rgba(28,25,23,0.12)]"
+                className="group relative overflow-hidden rounded-2xl border border-[#e8e1d8] bg-[#fffdfb] p-4 transition-all hover:-translate-y-0.5 hover:border-[#047857]/40 hover:shadow-[0_8px_20px_-6px_rgba(28,25,23,0.12)]"
               >
-                <span aria-hidden className="absolute -right-6 -top-6 h-16 w-16 rounded-full bg-[#fef3c7] transition-transform duration-300 group-hover:scale-[2.5]" />
                 <MapPin className="relative mb-2 h-5 w-5 text-[#b45309]" />
                 <p className="relative text-sm font-semibold text-[#1c1917]">{tile.label}</p>
-                <p className="relative text-xs text-[#6b625b]">{popCounts[tile.label] !== undefined ? `${popCounts[tile.label]} listing${popCounts[tile.label] === 1 ? "" : "s"}` : "…"}</p>
+                <p className={`relative text-xs ${count === 0 ? "font-semibold text-[#047857]" : "text-[#6b625b]"}`}>
+                  {count === undefined
+                    ? "…"
+                    : count === 0
+                      ? "Be the first to list"
+                      : `${count} listing${count === 1 ? "" : "s"}`}
+                </p>
               </Link>
             );
           })}
@@ -310,16 +318,15 @@ useEffect(() => {
         <p className="mb-5 text-sm text-[#6b625b] sm:text-base">Rent, buy, or invest in land — pick your marketplace.</p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { title: "House Rental", desc: "Rooms, apartments and houses for rent.", href: "/rent/houses", icon: Home },
-            { title: "Plot Selling VIP", desc: "Residential, commercial and farming plots.", href: "/plots", icon: MapPin },
-            { title: "House Selling VVIP", desc: "Premium houses for sale across Rwanda.", href: "/sell/houses", icon: Building2 },
+            { title: "Rent a House", desc: "Rooms, apartments and houses for rent.", href: "/rent/houses", icon: Home },
+            { title: "Buy Land", desc: "Residential, commercial and farming plots.", href: "/plots", icon: MapPin },
+            { title: "Buy a House", desc: "Houses for sale across Rwanda.", href: "/sell/houses", icon: Building2 },
           ].map((m) => (
             <Link
               key={m.title}
               href={m.href}
-              className="group relative overflow-hidden rounded-[18px] border border-[#e8e1d8] bg-[#fffdfb] p-6 transition-all hover:-translate-y-1 hover:border-[#d6ccbf] hover:shadow-[0_12px_28px_-8px_rgba(28,25,23,0.14)]"
+              className="group relative overflow-hidden rounded-[18px] border border-[#e8e1d8] bg-[#fffdfb] p-6 transition-all hover:-translate-y-1 hover:border-[#047857]/40 hover:shadow-[0_12px_28px_-8px_rgba(28,25,23,0.14)]"
             >
-              <span aria-hidden className="absolute -right-8 -top-8 h-28 w-28 translate-x-1/3 -translate-y-1/3 rounded-full bg-[#fef3c7] transition-transform duration-500 group-hover:scale-[2.2]" />
               <div className="relative inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[#047857]/10 transition-colors group-hover:bg-[#047857]">
                 <m.icon className="h-6 w-6 text-[#047857] transition-colors group-hover:text-white" />
               </div>

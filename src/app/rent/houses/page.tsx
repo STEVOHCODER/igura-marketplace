@@ -9,7 +9,8 @@ import { Pagination } from "@/components/ui/pagination";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { useI18n } from "@/i18n";
+  import { useI18n } from "@/i18n";
+  import Link from "next/link";
 
 const RWANDA_DISTRICTS = [
   "Gasabo","Kicukiro","Nyarugenge","Huye","Rubavu","Musanze","Nyagatare",
@@ -112,7 +113,10 @@ export default function HouseSearchPage() {
               <h1 className="text-2xl font-bold text-[#1c1917]">{t("houses.title")}</h1>
               <p className="text-sm text-[#6b625b] mt-1">{total} {t("houses.available")}</p>
             </div>
-            <div className="flex items-center gap-2">
+            {/* Sorting, saving and filtering are all no-ops over an empty
+                result set, so they are withheld until there is something to
+                act on. The heading and search box always stay. */}
+            <div className={`flex items-center gap-2 ${total === 0 && !hasActiveFilters ? "hidden" : ""}`}>
               <select
                 aria-label="Sort listings"
                 value={filters.sort}
@@ -202,12 +206,35 @@ export default function HouseSearchPage() {
             ))}
           </div>
         ) : properties.length === 0 ? (
-          <EmptyState
-            icon={<Home className="h-12 w-12" />}
-            title={t("houses.noResults")}
-            description={t("houses.noResultsDesc")}
-            action={hasActiveFilters ? <Button variant="outline" onClick={clearFilters}>{t("houses.clearFiltersBtn")}</Button> : undefined}
-          />
+          /* Two different situations behind the same empty list. With filters on,
+             the fix is to widen them. With nothing filtered, the marketplace is
+             simply empty, and the useful move is to list a property or look at
+             another district - not to stare at "no results". */
+          hasActiveFilters ? (
+            <EmptyState
+              icon={<Search className="h-6 w-6" />}
+              title={t("houses.noResultsFiltered")}
+              description={t("houses.noResultsFilteredDesc")}
+              action={<Button variant="outline" onClick={clearFilters}>{t("houses.clearFiltersBtn")}</Button>}
+            />
+          ) : (
+            <EmptyState
+              icon={<Home className="h-6 w-6" />}
+              title={t("houses.emptyTitle")}
+              description={t("houses.emptyDesc")}
+              action={
+                <Link href="/dashboard/listings/new">
+                  <Button>{t("houses.emptyCta")}</Button>
+                </Link>
+              }
+              secondaryAction={
+                <Link href="/locations">
+                  <Button variant="outline">{t("houses.emptySecondary")}</Button>
+                </Link>
+              }
+              footnote={t("houses.emptyFootnote")}
+            />
+          )
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

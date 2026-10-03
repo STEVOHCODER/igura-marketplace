@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 
 /**
  * Sliding hero background.
@@ -36,11 +36,13 @@ const DURATION = 7000;
 
 export function HeroBackdrop() {
   const [index, setIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
+  const [hoverPaused, setHoverPaused] = useState(false);
+  const [userPaused, setUserPaused] = useState(false);
   const reduceMotion =
     typeof window !== "undefined" &&
     window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const paused = hoverPaused || userPaused;
 
   const go = useCallback((next: number) => {
     setIndex(((next % SLIDES.length) + SLIDES.length) % SLIDES.length);
@@ -56,11 +58,14 @@ export function HeroBackdrop() {
 
   return (
     <div
-      aria-hidden
       className="absolute inset-0 overflow-hidden"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
+      onMouseEnter={() => setHoverPaused(true)}
+      onMouseLeave={() => setHoverPaused(false)}
     >
+      {/* The photography is decorative - the hero already states the offer in
+          text - so the slides are hidden from assistive tech. Only the pause
+          control below sits outside this hidden subtree. */}
+      <div aria-hidden className="absolute inset-0">
       {SLIDES.map((slide, i) => (
         <div
           key={slide.src}
@@ -83,20 +88,35 @@ export function HeroBackdrop() {
         </div>
       ))}
 
-      {/* Legibility scrims. Without these the glass search panel loses contrast
-          against a bright sky, and the headline disappears on the skyline. */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(18,16,12,0.94)_0%,rgba(18,16,12,0.78)_45%,rgba(18,16,12,0.55)_100%)]" />
-      <div className="absolute inset-x-0 top-0 h-40 bg-[linear-gradient(to_bottom,rgba(18,16,12,0.85),transparent)]" />
-      <div className="absolute inset-x-0 bottom-0 h-56 bg-[linear-gradient(to_top,rgba(18,16,12,0.95),transparent)]" />
+      {/* Legibility scrims. The copy sits in the left third, so the wash is
+          heaviest there and falls away to the right to keep the landmark
+          readable. These used to reach 0.94/0.85/0.95, which buried the
+          photography under a near-black sheet. */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(18,16,12,0.80)_0%,rgba(18,16,12,0.50)_42%,rgba(18,16,12,0.12)_100%)]" />
+      <div className="absolute inset-x-0 top-0 h-32 bg-[linear-gradient(to_bottom,rgba(18,16,12,0.55),transparent)]" />
+      <div className="absolute inset-x-0 bottom-0 h-48 bg-[linear-gradient(to_top,rgba(18,16,12,0.78),transparent)]" />
       {/* Warm wash ties the photography to the palette. */}
-      <div className="absolute inset-0 bg-[radial-gradient(120%_90%_at_20%_20%,rgba(180,83,9,0.18),transparent_60%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(120%_90%_at_20%_20%,rgba(180,83,9,0.12),transparent_60%)]" />
+      </div>
 
       {/* Caption + controls: only the active slide is announced. */}
       <div className="absolute bottom-4 right-5 z-10 flex items-center gap-2 sm:bottom-6 sm:right-8">
-        <span className="mr-1 hidden text-xs text-white/70 sm:inline">{SLIDES[index].place}</span>
+        <span aria-hidden className="mr-1 hidden text-xs text-white/70 sm:inline">{SLIDES[index].place}</span>
+        {/* WCAG 2.2.2: auto-advancing content needs a pause control that is
+            reachable without a pointer. Hover-pause alone does not qualify. */}
+        <button
+          type="button"
+          onClick={() => setUserPaused((p) => !p)}
+          aria-pressed={userPaused}
+          aria-label={userPaused ? "Play background slideshow" : "Pause background slideshow"}
+          className="flex h-8 w-8 items-center justify-center rounded-full border border-white/25 bg-white/15 text-white backdrop-blur-md transition-colors hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+        >
+          {userPaused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
+        </button>
         <button
           type="button"
           tabIndex={-1}
+          aria-hidden
           aria-label="Previous image"
           onClick={() => go(index - 1)}
           className="flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white/80 backdrop-blur-md transition-colors hover:bg-white/20"
@@ -106,6 +126,7 @@ export function HeroBackdrop() {
         <button
           type="button"
           tabIndex={-1}
+          aria-hidden
           aria-label="Next image"
           onClick={() => go(index + 1)}
           className="flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white/80 backdrop-blur-md transition-colors hover:bg-white/20"
@@ -115,7 +136,7 @@ export function HeroBackdrop() {
       </div>
 
       {/* Progress dots double as slide position. */}
-      <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 gap-1.5 sm:bottom-6">
+      <div aria-hidden className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 gap-1.5 sm:bottom-6">
         {SLIDES.map((s, i) => (
           <button
             key={s.src}

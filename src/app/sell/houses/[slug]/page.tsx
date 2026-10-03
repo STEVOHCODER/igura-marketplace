@@ -221,7 +221,7 @@ export default async function HouseSaleDetailPage({ params }: Props) {
                 <h2 className="text-lg font-semibold text-[#1c1917] mb-4">{t("detail.nearbyInfra")}</h2>
                 <div className="flex flex-wrap gap-2">
                   {property.keywords.map((kw) => (
-                    <span key={kw.id} className="px-3 py-1.5 rounded-full bg-[#f5f3ff] text-violet-700 text-sm font-medium border border-violet-100">
+                    <span key={kw.id} className="px-3 py-1.5 rounded-full bg-[#ecfdf5] text-[#065f46] text-sm font-medium border border-emerald-100">
                       {kw.keyword}
                     </span>
                   ))}

@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/i18n";
+  import Link from "next/link";
 
 const RWANDA_DISTRICTS = [
   "Gasabo","Kicukiro","Nyarugenge","Huye","Rubavu","Musanze","Nyagatare",
@@ -116,7 +117,10 @@ export default function HouseSalePage() {
               </h1>
               <p className="text-sm text-[#6b625b] mt-1">{total} {t("houseSale.available")}</p>
             </div>
-            <div className="flex items-center gap-2">
+            {/* Sorting, saving and filtering are all no-ops over an empty
+                result set, so they are withheld until there is something to
+                act on. The heading and search box always stay. */}
+            <div className={`flex items-center gap-2 ${total === 0 && !hasActiveFilters ? "hidden" : ""}`}>
               <select
                 aria-label="Sort listings"
                 value={filters.sort}
@@ -128,6 +132,7 @@ export default function HouseSalePage() {
                 <option value="price_desc">Price: high to low</option>
                 <option value="popular">Most viewed</option>
               </select>
+              {/* marketplace name is a stored identifier, not display copy */}
               <SaveSearchButton marketplace="House Selling VVIP" filters={filters} />
               <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)}>
                 <SlidersHorizontal className="h-4 w-4 mr-1.5" />
@@ -144,7 +149,7 @@ export default function HouseSalePage() {
                 placeholder={t("houseSale.searchPlaceholder")}
                 value={filters.q}
                 onChange={(e) => setFilters({ ...filters, q: e.target.value })}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#d6ccbf] text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#d6ccbf] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               />
             </div>
             <Button type="submit" size="lg">{t("houseSale.search")}</Button>
@@ -183,7 +188,7 @@ export default function HouseSalePage() {
                 </select>
               </div>
               {hasActiveFilters && (
-                <button onClick={clearFilters} className="mt-3 text-sm text-violet-600 hover:text-violet-700 flex items-center gap-1">
+                <button onClick={clearFilters} className="mt-3 text-sm text-[#047857] hover:text-emerald-700 flex items-center gap-1">
                   <X className="h-3 w-3" /> {t("houseSale.clearFilters")}
                 </button>
               )}
@@ -207,12 +212,35 @@ export default function HouseSalePage() {
             ))}
           </div>
         ) : properties.length === 0 ? (
-          <EmptyState
-            icon={<MapPin className="h-12 w-12" />}
-            title={t("houseSale.noResults")}
-            description={t("houseSale.noResultsDesc")}
-            action={hasActiveFilters ? <Button variant="outline" onClick={clearFilters}>{t("houseSale.clearFiltersBtn")}</Button> : undefined}
-          />
+          /* Two different situations behind the same empty list. With filters
+             on, the fix is to widen them. With nothing filtered, the marketplace
+             is simply empty, and the useful move is to list a house or look at
+             another district. */
+          hasActiveFilters ? (
+            <EmptyState
+              icon={<Search className="h-6 w-6" />}
+              title={t("houseSale.noResultsFiltered")}
+              description={t("houseSale.noResultsFilteredDesc")}
+              action={<Button variant="outline" onClick={clearFilters}>{t("houseSale.clearFiltersBtn")}</Button>}
+            />
+          ) : (
+            <EmptyState
+              icon={<MapPin className="h-6 w-6" />}
+              title={t("houseSale.emptyTitle")}
+              description={t("houseSale.emptyDesc")}
+              action={
+                <Link href="/dashboard/listings/new">
+                  <Button>{t("houseSale.emptyCta")}</Button>
+                </Link>
+              }
+              secondaryAction={
+                <Link href="/locations">
+                  <Button variant="outline">{t("houseSale.emptySecondary")}</Button>
+                </Link>
+              }
+              footnote={t("houseSale.emptyFootnote")}
+            />
+          )
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
