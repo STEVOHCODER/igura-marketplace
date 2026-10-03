@@ -1,6 +1,7 @@
 import { v2 as cloudinary, UploadApiOptions } from "cloudinary";
 import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { Readable } from "stream";
+import { toOptimisedImage } from "./image-transform";
 
 /**
  * All three values are required. There is no fallback — an upload attempted
@@ -85,19 +86,35 @@ export async function uploadPropertyImage(
   propertyId: string,
   sortOrder: number
 ): Promise<CloudinaryUploadResult> {
-  const buffer = Buffer.from(await file.arrayBuffer());
+  const original = Buffer.from(await file.arrayBuffer());
+
+  // The only bytes that reach storage. `original` stays in memory and is
+  // discarded when this function returns - the bucket gets one object per
+  // image, not an original alongside a compressed copy.
+  const optimised = await toOptimisedImage(original);
+  const buffer = optimised.data;
+  const contentType = optimised.contentType;
+
+  const stamp = Date.now();
+  const filename = `${sortOrder}-${stamp}.webp`;
+
   try {
     assertConfigured();
     const result = await uploadBuffer(buffer, {
       resource_type: "image",
       folder: `igura/properties/${propertyId}/images`,
-      public_id: `${sortOrder}-${Date.now()}`,
+      public_id: `${sortOrder}-${stamp}`,
       overwrite: false,
+      // Cloudinary would otherwise be handed pre-compressed WebP and told to
+      // deliver the source format, which can hand back the larger original.
+      format: "webp",
     });
     return { url: result.secure_url as string, publicId: result.public_id as string };
   } catch (cloudinaryError) {
     console.error("Cloudinary image upload failed; trying R2 fallback:", cloudinaryError);
-    return uploadToR2(buffer, `properties/${propertyId}/images/${sortOrder}-${Date.now()}`, file.type);
+    // The extension matters: without one R2 serves the object with no inferred
+    // type and some clients refuse to render it.
+    return uploadToR2(buffer, `properties/${propertyId}/images/${filename}`, contentType);
   }
 }
 

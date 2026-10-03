@@ -38,6 +38,7 @@
     "next": "^15.3.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "sharp": "^0.35.4",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.1.7",
     "undici": "^8.10.0",
