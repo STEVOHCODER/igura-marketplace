@@ -357,11 +357,18 @@ export default function AnalyticsPage() {
                     <tr key={l.id} className="border-b border-slate-100 hover:bg-slate-50">
                       <td className="py-3 px-2">
                         <div className="flex items-center gap-3">
-                          {l.image ? (
+                          {l.status === "DELETED" ? (
+                            // Media is freed on delete, so a removed listing
+                            // deliberately shows no thumbnail rather than a
+                            // broken image. The history is the point here.
+                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#f2ede6]">
+                              <Home className="h-5 w-5 text-[#a8a29e]" />
+                            </div>
+                          ) : l.image ? (
                             <Image src={l.image} alt="" width={40} height={40} className="h-10 w-10 rounded-lg object-cover" />
                           ) : (
-                            <div className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center">
-                              <Home className="h-5 w-5 text-slate-400" />
+                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#f2ede6]">
+                              <Home className="h-5 w-5 text-[#a8a29e]" />
                             </div>
                           )}
                           <span className="font-medium text-slate-900 truncate max-w-[200px]">{l.title}</span>

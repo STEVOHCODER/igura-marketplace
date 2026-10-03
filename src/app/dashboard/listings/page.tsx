@@ -49,7 +49,9 @@ fetch("/api/properties?limit=50&myListings=true&statusFilter=ALL")
   useEffect(() => { fetchListings(); }, []);
 
   const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Delete "${title}"? This will also remove all images permanently.`)) return;
+    if (!confirm(`Delete "${title}"?
+
+Its photos and video will be permanently removed to free storage. The listing record, its views and any contact leads are kept, so you keep the interest it earned.`)) return;
     try {
       const res = await fetch(`/api/properties/${id}`, { method: "DELETE" });
       if (res.ok) {

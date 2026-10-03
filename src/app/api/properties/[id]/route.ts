@@ -6,6 +6,7 @@ import { buildSearchText } from "@/lib/utils";
 import { getListingAllowance } from "@/lib/access";
 import { redactContact, redactCoordinates, hasRevealedContact } from "@/lib/access";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
+import { deletePropertyImages, deletePropertyVideo } from "@/lib/cloudinary";
 
 export async function GET(
   request: NextRequest,
@@ -254,7 +255,7 @@ export async function DELETE(
 
     const existing = await prisma.property.findUnique({
       where: { id },
-      include: { images: true },
+      include: { images: true, videos: true },
     });
 
     if (!existing) {
@@ -281,16 +282,47 @@ export async function DELETE(
       });
     }
 
-    // Soft delete: the row and its Cloudinary images stay recoverable. A hard
-    // delete once destroyed 13 listings with no way back; status DELETED hides
-    // the listing from browse and the owner dashboard (which shows ACTIVE
-    // only) while leaving it restorable by an admin or via PUT.
+    // Media is destroyed for real: the photo and video objects are removed from
+    // Cloudinary/R2 and their rows are dropped, so a deleted listing stops
+    // consuming storage. The property row itself is only soft-deleted, so the
+    // owner's view and paid-reveal history survives - that history is the
+    // record of interest they earned, and it is tiny compared to the media.
+    //
+    // Consequence worth being explicit about: restoring a deleted listing brings
+    // back the text, price and lead history, but not the photos or video.
+    const imagePaths = (existing.images || [])
+      .map((img) => img.storagePath || img.url)
+      .filter((p): p is string => !!p);
+
+    let mediaFreed = 0;
+    try {
+      await deletePropertyImages(imagePaths);
+      mediaFreed += imagePaths.length;
+    } catch (error) {
+      // A storage failure must not block the delete; the rows are still
+      // cleared below and the orphaned object is logged for cleanup.
+      console.error("Failed to free listing images from storage:", error);
+    }
+
+    const videoPath = existing.videoStoragePath || existing.videoUrl;
+    if (videoPath) {
+      try {
+        await deletePropertyVideo(videoPath);
+        mediaFreed += 1;
+      } catch (error) {
+        console.error("Failed to free listing video from storage:", error);
+      }
+    }
+
+    // Clear the media rows so nothing points at a file that no longer exists.
+    await prisma.propertyImage.deleteMany({ where: { propertyId: id } });
+    await prisma.propertyVideo.deleteMany({ where: { propertyId: id } });
     await prisma.property.update({
       where: { id },
-      data: { status: "DELETED" },
+      data: { status: "DELETED", videoUrl: null, videoStoragePath: null, videoDurationSeconds: null },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, mediaFreed });
   } catch (error) {
     console.error("Delete property error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
