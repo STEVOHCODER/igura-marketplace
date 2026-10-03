@@ -9,7 +9,6 @@ import { Pagination } from "@/components/ui/pagination";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/i18n";
   import Link from "next/link";
 
@@ -112,9 +111,9 @@ export default function HouseSalePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-2xl font-bold text-[#1c1917]">
-                {t("houseSale.title")} <Badge variant="warning" className="ml-2">VVIP</Badge>
-              </h1>
+              {/* No VVIP badge: listing is free during launch, so advertising a
+                  paid tier on the public page contradicts the checkout state. */}
+              <h1 className="text-2xl font-bold text-[#1c1917]">{t("houseSale.title")}</h1>
               <p className="text-sm text-[#6b625b] mt-1">{total} {t("houseSale.available")}</p>
             </div>
             {/* Sorting, saving and filtering are all no-ops over an empty
