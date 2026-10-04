@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
 import { useI18n } from "@/i18n";
+import { defaultHomeForRole, safeInternalPath } from "@/lib/redirect";
 
 function LoginForm() {
   const { t } = useI18n();
@@ -39,8 +40,12 @@ function LoginForm() {
       }
 
       toast(t("login.success"), "success");
-      const redirect = searchParams.get("redirect") || "/dashboard";
-      router.push(redirect);
+
+      // Route by role: admins signing in at plain /login used to land on the
+      // lister dashboard and never reach /admin. An explicit ?redirect= wins,
+      // validated so a crafted target can't bounce the user off-site.
+      const requested = safeInternalPath(searchParams.get("redirect"));
+      router.push(requested ?? defaultHomeForRole(data?.user?.role));
     } catch {
       toast(t("login.wrong"), "error");
     } finally {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
+import { defaultHomeForRole } from "@/lib/redirect";
 
 // No fallback secret here either — if JWT_SECRET is unset, every token fails
 // to verify and the middleware fails closed (redirect to login) rather than
@@ -40,10 +41,13 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Auth routes: redirect to dashboard if already logged in
+  // Auth routes: bounce signed-in users to their home, not always
+  // /dashboard - an admin visiting /login used to get dropped in the lister
+  // dashboard too. Role here comes from the token; /api/auth/me self-heals a
+  // stale claim, so this only affects the initial bounce.
   if (authRoutes.some((route) => pathname.startsWith(route))) {
     if (payload) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+      return NextResponse.redirect(new URL(defaultHomeForRole(payload.role), request.url));
     }
   }
 

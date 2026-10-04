@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSessionVerified } from "@/lib/auth";
+import { getSessionVerified, createToken, setSessionCookie } from "@/lib/auth";
 
 export async function GET() {
   try {
@@ -34,6 +34,29 @@ export async function GET() {
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Self-heal a stale role claim. The JWT embeds the role as it was when the
+    // token was minted, but middleware reads that claim to gate /admin. So an
+    // account promoted to ADMIN after it signed in kept a token that still said
+    // "USER" and was bounced to /dashboard every single time - no amount of
+    // reloading fixed it, only signing out. Re-mint with the live role so the
+    // token catches up on the first page load after the promotion.
+    if (session.role !== user.role) {
+      try {
+        await setSessionCookie(
+          await createToken({
+            userId: user.id,
+            email: user.email,
+            role: user.role,
+            tokenVersion: user.tokenVersion,
+          })
+        );
+      } catch (error) {
+        // A failed refresh must never break "who am I" - the caller still gets
+        // correct data, and the old token keeps working.
+        console.error("Session role self-heal failed:", error);
+      }
     }
 
     const { passwordHash: _, ...userWithoutPassword } = user;
