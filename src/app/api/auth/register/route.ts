@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { assignProfileSlug } from "@/lib/profile-slug";
 import { hashPassword, createToken, setSessionCookie } from "@/lib/auth";
 import { registerSchema } from "@/lib/validators";
 import { enforceRateLimit, LIMITS } from "@/lib/rate-limit";
@@ -47,6 +48,15 @@ export async function POST(request: NextRequest) {
         role: data.role,
       },
     });
+
+    // Give them their shareable profile URL straight away. Best-effort: a slug
+    // failure must never cost someone their sign-up, and the backfill script
+    // plus the lazy path in /agent/[slug] will pick up any gaps.
+    try {
+      await assignProfileSlug(user.id, user.firstName, user.lastName);
+    } catch (slugError) {
+      console.error("Could not assign profile slug at registration:", slugError);
+    }
 
     const token = await createToken({
       userId: user.id,

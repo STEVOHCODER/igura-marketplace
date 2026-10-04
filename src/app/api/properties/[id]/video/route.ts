@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionVerified } from "@/lib/auth";
+import { isOwnerOrAdmin } from "@/lib/ownership";
 import { uploadPropertyVideo, deletePropertyVideo } from "@/lib/cloudinary";
 import { enforceRateLimit, LIMITS } from "@/lib/rate-limit";
 import { checkVideoAccess } from "@/lib/access";
@@ -43,7 +44,7 @@ export async function POST(
       return NextResponse.json({ error: "Property not found" }, { status: 404 });
     }
 
-    if (property.ownerId !== session.userId) {
+    if (!isOwnerOrAdmin(session, property.ownerId)) {
       return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
 
@@ -211,7 +212,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Property not found" }, { status: 404 });
     }
 
-    if (property.ownerId !== session.userId) {
+    if (!isOwnerOrAdmin(session, property.ownerId)) {
       return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
 

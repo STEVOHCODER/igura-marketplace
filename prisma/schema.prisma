@@ -58,6 +58,10 @@ model VerificationToken {
 model Profile {
   id        String   @map("_id") @id @default(auto()) @db.ObjectId
   userId    String   @unique @db.ObjectId
+  /// Permanent public URL slug, e.g. /agent/jean-bosco. Assigned once and never
+  /// regenerated - see src/lib/profile-slug.ts. Sparse so pre-existing rows
+  /// still parse before the backfill runs.
+  slug      String?  @unique
   avatarUrl String?
   bio       String?
   address   String?

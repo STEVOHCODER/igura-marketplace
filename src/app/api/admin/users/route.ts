@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { assignProfileSlug } from "@/lib/profile-slug";
 import { getSessionVerified, hashPassword } from "@/lib/auth";
 import { enforceRateLimit, LIMITS } from "@/lib/rate-limit";
 
@@ -23,6 +24,7 @@ export async function GET(request: NextRequest) {
         role: true,
         isActive: true,
         createdAt: true,
+        profile: { select: { slug: true } },
         _count: { select: { memberships: true, ownedProperties: true } },
         memberships: {
           where: { status: "ACTIVE" },
@@ -33,11 +35,32 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
     });
 
+    // Self-healing backfill. Accounts created before the shareable-profile
+    // feature have no slug, and the admin's job is to hand each commissionaire
+    // their link - so fill any gaps here rather than depending on a one-off
+    // script someone has to remember to run. assignProfileSlug is idempotent
+    // and never rewrites an existing slug, so this is safe on every request.
+    //
+    // Assigned slugs are collected because the rows above were already read;
+    // without this the first request after a backfill would report null.
+    const filled = new Map<string, string>();
+    for (const u of users) {
+      if (u.profile?.slug) continue;
+      try {
+        filled.set(u.id, await assignProfileSlug(u.id, u.firstName, u.lastName));
+      } catch (e) {
+        console.error(`Could not backfill profile slug for ${u.email}:`, e);
+      }
+    }
+
     return NextResponse.json({
       users: users.map((u) => ({
         ...u,
         activePlans: u.memberships.map((m) => m.plan.displayName || m.plan.name),
         memberships: undefined,
+        // Ready-to-share link, so the admin can hand it over immediately.
+        slug: u.profile?.slug ?? filled.get(u.id) ?? null,
+        profileUrl: `/agent/${u.profile?.slug ?? filled.get(u.id)}`,
       })),
     });
   } catch {
@@ -95,6 +118,16 @@ export async function POST(request: NextRequest) {
       select: { id: true, email: true, firstName: true, lastName: true, role: true, isActive: true, createdAt: true },
     });
 
+    // Every account gets a durable public profile URL, because that link is
+    // what an agent shares on WhatsApp and Facebook. Returned so the admin can
+    // hand it over with the credentials.
+    let slug: string | null = null;
+    try {
+      slug = await assignProfileSlug(created.id, created.firstName, created.lastName);
+    } catch (slugError) {
+      console.error("Could not assign profile slug for new user:", slugError);
+    }
+
     await prisma.adminAction.create({
       data: {
         adminId: session.userId,
@@ -105,7 +138,10 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ user: created }, { status: 201 });
+    return NextResponse.json(
+      { user: created, slug, profileUrl: slug ? `/agent/${slug}` : null },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Admin create user error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

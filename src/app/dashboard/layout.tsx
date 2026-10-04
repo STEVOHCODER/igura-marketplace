@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Home, MapPin, CreditCard, Settings, LogOut, Menu, X, Plus, BarChart3, Bell, Users } from "lucide-react";
+import { LayoutDashboard, Home, MapPin, CreditCard, Settings, LogOut, Menu, X, Plus, BarChart3, Bell, Users, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n";
 
@@ -37,6 +37,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: "Leads", href: "/dashboard/leads", icon: Users },
     ...(showPlans ? [{ name: t("dash.memberships"), href: "/dashboard/memberships", icon: CreditCard }] : []),
     { name: "Notifications", href: "/dashboard/notifications", icon: Bell },
+    // Every lister needs a place to find their shareable link and change the
+    // password the site owner issued them.
+    { name: t("nav.profile"), href: "/dashboard/profile", icon: User },
   ];
 
   const clientNav = [

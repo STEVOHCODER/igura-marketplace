@@ -20,6 +20,9 @@ export default function AdminUsersPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [adding, setAdding] = useState(false);
   const [newUser, setNewUser] = useState({ email: "", firstName: "", lastName: "", phone: "", password: "", role: "CLIENT" });
+  /** Shown after a successful create: the link to hand over with the credentials. */
+  const [createdLink, setCreatedLink] = useState<string | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
   const { toast } = useToast();
   const { t } = useI18n();
 
@@ -148,7 +151,13 @@ export default function AdminUsersPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        toast("User created", "success");
+        // Show the shareable link straight away - this is what the admin hands
+        // over with the credentials.
+        const link = data.profileUrl
+          ? `${window.location.origin}${data.profileUrl}`
+          : null;
+        setCreatedLink(link);
+        toast(link ? "User created — copy their profile link below" : "User created", "success");
         setShowAdd(false);
         setNewUser({ email: "", firstName: "", lastName: "", phone: "", password: "", role: "CLIENT" });
         await reloadUsers();
@@ -189,6 +198,55 @@ export default function AdminUsersPage() {
         </div>
         <Button onClick={() => setShowAdd(v => !v)} variant={showAdd ? "outline" : "primary"}>+ Add user</Button>
       </div>
+
+      {/* The handoff panel: created account's credentials plus the one link they
+          share with clients. */}
+      {createdLink && (
+        <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50/60 p-4">
+          <p className="text-sm font-semibold text-slate-900">Send these to your commissionaire</p>
+          <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-slate-700">
+            <li>Share the sign-in link below so they can reach their dashboard.</li>
+            <li>Give them the email and password you just set.</li>
+            <li>Ask them to post their profile link on WhatsApp and Facebook.</li>
+          </ol>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <label className="sr-only" htmlFor="new-user-profile-link">Profile link</label>
+            <input
+              id="new-user-profile-link"
+              readOnly
+              value={createdLink}
+              onFocus={(e) => e.currentTarget.select()}
+              className="min-w-0 flex-1 rounded-lg border border-emerald-200 bg-white px-3 py-2 font-mono text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+            <div className="flex gap-2">
+              <Button
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(createdLink);
+                    setCopiedLink(true);
+                    setTimeout(() => setCopiedLink(false), 2000);
+                  } catch {
+                    window.prompt("Copy this link:", createdLink);
+                  }
+                }}
+              >
+                {copiedLink ? "Copied" : "Copy link"}
+              </Button>
+              <a
+                href={createdLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-emerald-50"
+              >
+                Preview
+              </a>
+              <Button variant="outline" onClick={() => { setCreatedLink(null); setCopiedLink(false); }}>
+                Done
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showAdd && (
         <Card className="mb-6">

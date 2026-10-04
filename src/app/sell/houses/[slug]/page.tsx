@@ -61,7 +61,7 @@ export default async function HouseSaleDetailPage({ params }: Props) {
           firstName: true,
           lastName: true,
           phone: true,
-          profile: { select: { avatarUrl: true, bio: true } },
+          profile: { select: { avatarUrl: true, bio: true, slug: true } },
         },
       },
     },
@@ -278,6 +278,7 @@ export default async function HouseSaleDetailPage({ params }: Props) {
               ownerInitials={`${property.owner.firstName[0]}${property.owner.lastName[0]}`}
               ownerName={`${property.owner.firstName} ${property.owner.lastName}`}
               ownerId={property.owner.id}
+      ownerSlug={(property.owner as any).profile?.slug ?? null}
               ownerRole={t("detail.seller")}
               accentColor="violet"
               paymentsEnabled={isPaymentsEnabled()}

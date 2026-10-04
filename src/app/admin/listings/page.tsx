@@ -1,6 +1,7 @@
 "use client";
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Search, Trash2, CheckCircle, XCircle, Eye, Clock, AlertTriangle, Ban, Star, Filter } from "lucide-react";
+import { Search, Trash2, CheckCircle, XCircle, Eye, Clock, AlertTriangle, Ban, Star, Filter, Plus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -101,11 +102,18 @@ export default function AdminListingsPage() {
 
   return (
     <div className="max-w-7xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{t("adminListings.title")}</h1>
           <p className="text-slate-500 text-sm mt-1">{listings.length} {t("adminListings.total")} · {statusCounts.ACTIVE} {t("adminListings.active")} · {statusCounts.DRAFT} {t("adminListings.drafts")}</p>
         </div>
+        {/* Entry point for entering a commissionaire's listings by hand. */}
+        <Link
+          href="/admin/listings/new"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-500"
+        >
+          <Plus className="h-4 w-4" /> Add listing for a client
+        </Link>
       </div>
 
       {/* Status Filter Tabs */}

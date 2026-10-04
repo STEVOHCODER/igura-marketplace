@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionVerified } from "@/lib/auth";
+import { isAdmin, canOwnListings } from "@/lib/ownership";
+import { assignProfileSlug } from "@/lib/profile-slug";
 import { propertySchema, sanitizePropertyInput, searchSchema } from "@/lib/validators";
 import { canCreateListing } from "@/lib/access";
 import { generateUniqueSlug, buildSearchText } from "@/lib/utils";
@@ -365,11 +367,57 @@ export async function POST(request: NextRequest) {
     const rawBody = await request.json();
     const sanitized = sanitizePropertyInput(rawBody);
 
-    // The form does not require a contact name; fall back to the owner's
-    // account name rather than failing the whole upload on one empty box.
-    if (!sanitized.contactName) {
+    // Who the listing belongs to. Admins may enter a commissionaire's listings
+    // on their behalf; for everyone else the session user is always the owner,
+    // whatever the request body claims.
+    const requestedOwnerId = typeof sanitized.ownerId === "string" ? sanitized.ownerId.trim() : "";
+    let ownerId = session.userId;
+    let ownerName = "";
+    let createdOnBehalf = false;
+
+    if (requestedOwnerId && requestedOwnerId !== session.userId) {
+      if (!isAdmin(session)) {
+        return NextResponse.json(
+          { error: "Not authorized to create listings for another user" },
+          { status: 403 }
+        );
+      }
+
+      const target = await prisma.user.findUnique({
+        where: { id: requestedOwnerId },
+        select: { id: true, isActive: true, role: true, firstName: true, lastName: true, email: true },
+      });
+
+      if (!target) {
+        return NextResponse.json({ error: "That user does not exist" }, { status: 404 });
+      }
+      if (!target.isActive) {
+        return NextResponse.json(
+          { error: `${target.firstName} ${target.lastName}'s account is suspended. Reactivate it first.` },
+          { status: 400 }
+        );
+      }
+      if (!canOwnListings(target.role)) {
+        return NextResponse.json(
+          { error: "That account cannot own property listings" },
+          { status: 400 }
+        );
+      }
+
+      ownerId = target.id;
+      ownerName = `${target.firstName} ${target.lastName}`.trim();
+      createdOnBehalf = true;
+
+      // The commissionaire needs a shareable profile before any of this is
+      // worth doing, so make sure one exists.
+      await assignProfileSlug(target.id, target.firstName, target.lastName);
+    }
+
+    if (!ownerName && !sanitized.contactName) {
+      // The form does not require a contact name; fall back to the owner's
+      // account name rather than failing the whole upload on one empty box.
       const owner = await prisma.user.findUnique({
-        where: { id: session.userId },
+        where: { id: ownerId },
         select: { firstName: true, lastName: true },
       });
       const fallback = `${owner?.firstName || ""} ${owner?.lastName || ""}`.trim();
@@ -381,14 +429,15 @@ export async function POST(request: NextRequest) {
     // Drafts are free: the quota slot is taken at publish time, not here.
     // This only asks whether the user may list at all (member or free
     // window), so an over-quota commissionaire can still prepare drafts.
-    const creation = await canCreateListing(session.userId);
+    // Checked against the owner, not the admin, so the target's own limits apply.
+    const creation = await canCreateListing(ownerId);
 
     if (!creation.allowed) {
       return NextResponse.json({ error: creation.reason || "Not allowed to create listings" }, { status: 403 });
     }
 
     // Media caps still come from the full allowance (plan or free tier).
-    const allowance = await getListingAllowance(session.userId);
+    const allowance = await getListingAllowance(ownerId);
 
     const marketplace = await prisma.marketplace.findFirst({ where: { name: data.marketplace } });
 
@@ -424,7 +473,7 @@ export async function POST(request: NextRequest) {
 
     const tempProperty = await prisma.property.create({
       data: {
-        ownerId: session.userId,
+        ownerId,
         marketplaceId: marketplace.id,
         slug: `pending-${Date.now()}`,
         title: data.title,
@@ -473,9 +522,25 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Listings entered for a commissionaire are an administrative action, so
+    // they are recorded the same way every other admin override is.
+    if (createdOnBehalf) {
+      await prisma.adminAction.create({
+        data: {
+          adminId: session.userId,
+          actionType: "PROPERTY_CREATED_FOR_OWNER",
+          targetType: "PROPERTY",
+          targetId: property.id,
+          details: { propertyTitle: property.title, ownerId, ownerName, onBehalf: true },
+        },
+      });
+    }
+
     return NextResponse.json(
       {
         property,
+        createdOnBehalf: createdOnBehalf || undefined,
+        ownerId,
         allowance: {
           isFreePeriod: allowance.isFreePeriod,
           maxImagesPerListing: allowance.maxImagesPerListing,

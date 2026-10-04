@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionVerified } from "@/lib/auth";
+import { isOwnerOrAdmin } from "@/lib/ownership";
 import { propertyUpdateSchema, sanitizePropertyInput } from "@/lib/validators";
 import { buildSearchText } from "@/lib/utils";
 import { getListingAllowance } from "@/lib/access";
@@ -98,7 +99,9 @@ export async function PUT(
       return NextResponse.json({ error: "Property not found" }, { status: 404 });
     }
 
-    if (existing.ownerId !== session.userId) {
+    // Admins edit listings they entered on a commissionaire's behalf, so the
+    // same helper covers both roles.
+    if (!isOwnerOrAdmin(session, existing.ownerId)) {
       return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
 
@@ -262,15 +265,16 @@ export async function DELETE(
       return NextResponse.json({ error: "Property not found" }, { status: 404 });
     }
 
-    if (existing.ownerId !== session.userId) {
-      // Admins moderate other people's listings from /admin/listings, so the
-      // delete button they see has to work. Previously this returned 403 for
-      // every admin, silently, because an admin is never the owner.
-      const isAdmin = session.role === "ADMIN" || session.role === "SUPER_ADMIN";
-      if (!isAdmin) {
-        return NextResponse.json({ error: "Not authorized" }, { status: 403 });
-      }
+    // Admins moderate other people's listings from /admin/listings, so the
+    // delete button they see has to work. The audit row is still written, but
+    // only when an admin is the one doing it - a plain owner deleting their own
+    // listing is not an administrative action.
+    const deletingOnBehalf = existing.ownerId !== session.userId;
+    if (!isOwnerOrAdmin(session, existing.ownerId)) {
+      return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+    }
 
+    if (deletingOnBehalf) {
       await prisma.adminAction.create({
         data: {
           adminId: session.userId,

@@ -14,6 +14,8 @@ interface ContactRevealCardProps {
   ownerName: string;
   ownerRole: string;
   ownerId?: string;
+  /** Public profile slug, so the link is /agent/<slug> rather than the legacy id form. */
+  ownerSlug?: string | null;
   accentColor?: "emerald" | "violet" | "amber";
   paymentsEnabled?: boolean;
 }
@@ -27,6 +29,7 @@ export function ContactRevealCard({
   ownerName,
   ownerRole,
   ownerId,
+  ownerSlug,
   accentColor = "emerald",
   paymentsEnabled = false,
 }: ContactRevealCardProps) {
@@ -125,7 +128,12 @@ export function ContactRevealCard({
           <div className="font-semibold text-slate-900">{ownerName}</div>
           <div className="text-sm text-slate-500">{ownerRole}</div>
           {ownerId && (
-            <Link href={`/owners/${ownerId}`} className="text-xs font-medium text-emerald-600 hover:underline">
+            /* Canonical profile URL. Slug is passed down from the page; the
+               objectId form still redirects, so this never dead-ends. */
+            <Link
+              href={ownerSlug ? `/agent/${ownerSlug}` : `/owners/${ownerId}`}
+              className="text-xs font-medium text-emerald-600 hover:underline"
+            >
               View profile &amp; all listings
             </Link>
           )}
