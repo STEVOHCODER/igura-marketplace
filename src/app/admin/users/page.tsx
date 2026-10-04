@@ -117,13 +117,17 @@ export default function AdminUsersPage() {
     }
   };
 
-  const deleteUser = async (userId: string, email: string) => {
-    if (!confirm(`Delete ${email}? Their listings, payments and memberships go with the account. This cannot be undone.`)) return;
+  const deleteUser = async (userId: string, email: string, listings: number) => {
+    const scope =
+      listings > 0
+        ? ` ${listings} listing${listings === 1 ? "" : "s"} and their photos/videos go with it.`
+        : " They have no listings.";
+    if (!confirm(`Delete ${email}?${scope} This cannot be undone.`)) return;
     try {
       const res = await fetch(`/api/admin/users/${userId}`, { method: "DELETE" });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        toast("User deleted", "success");
+        toast(`User deleted${data.listingsRemoved ? ` — ${data.listingsRemoved} listings removed` : ""}`, "success");
         setUsers(prev => prev.filter(u => u.id !== userId));
       } else {
         toast(data.error || "Could not delete user", "error");
@@ -404,8 +408,9 @@ export default function AdminUsersPage() {
                         <Button
                           variant="destructive"
                           size="sm"
-                          onClick={() => deleteUser(u.id, u.email)}
+                          onClick={() => deleteUser(u.id, u.email, u._count?.ownedProperties ?? 0)}
                           title="Delete user"
+                          aria-label={`Delete ${u.email}`}
                         >
                           ✕
                         </Button>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionVerified } from "@/lib/auth";
+import { deletePropertyImage, deletePropertyVideo } from "@/lib/cloudinary";
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -119,7 +120,50 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return NextResponse.json({ error: "Only Super Admin can delete admins" }, { status: 403 });
     }
 
+    // Collect the media refs first. Prisma cascades wipe the rows, so anything
+    // not read here is unrecoverable. Kind matters: the R2 path is identical
+    // either way, but Cloudinary needs resource_type to match or destroy() is a
+    // no-op.
+    const [images, videoRefs, legacyVideos] = await Promise.all([
+      prisma.propertyImage.findMany({
+        where: { property: { ownerId: id } },
+        select: { storagePath: true },
+      }),
+      prisma.property.findMany({
+        where: { ownerId: id, videoStoragePath: { not: null } },
+        select: { videoStoragePath: true },
+      }),
+      prisma.propertyVideo.findMany({
+        where: { property: { ownerId: id } },
+        select: { storagePath: true },
+      }),
+    ]);
+
+    const mediaRefs: { ref: string; kind: "image" | "video" }[] = [
+      ...images.map((i) => ({ ref: i.storagePath, kind: "image" as const })),
+      ...videoRefs.map((v) => ({ ref: v.videoStoragePath!, kind: "video" as const })),
+      ...legacyVideos.map((v) => ({ ref: v.storagePath, kind: "video" as const })),
+    ].filter((m): m is { ref: string; kind: "image" | "video" } => typeof m.ref === "string");
+
+    const listingsRemoved = await prisma.property.count({ where: { ownerId: id } });
+
+    // DB first, storage second. If freeing storage fails we are left with
+    // orphaned objects (the old behaviour); doing it the other way round would
+    // leave live listings showing dead images.
     await prisma.user.delete({ where: { id } });
+
+    // Best effort: both helpers log-and-continue rather than throw, so this
+    // counts refs we dispatched, not objects the bucket confirms gone.
+    let mediaFreed = 0;
+    for (const { ref, kind } of mediaRefs) {
+      try {
+        if (kind === "video") await deletePropertyVideo(ref);
+        else await deletePropertyImage(ref);
+        mediaFreed++;
+      } catch (error) {
+        console.error(`Could not free user media ${ref}:`, error);
+      }
+    }
 
     await prisma.adminAction.create({
       data: {
@@ -127,11 +171,16 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
         actionType: "USER_DELETED",
         targetType: "USER",
         targetId: id,
-        details: { targetEmail: user.email, role: user.role },
+        details: {
+          targetEmail: user.email,
+          role: user.role,
+          listingsRemoved,
+          mediaFreed,
+        },
       },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, listingsRemoved, mediaFreed });
   } catch (error) {
     console.error("Delete user error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
