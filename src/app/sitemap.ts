@@ -1,6 +1,16 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * Generated per request, never at build time.
+ *
+ * A build-time sitemap is a snapshot: every commissionaire who registers after
+ * a deploy is missing from it, which quietly withholds exactly the pages this
+ * feature exists to get indexed. It also made the build depend on a reachable
+ * database.
+ */
+export const dynamic = "force-dynamic";
+
 const BASE_URL = "https://igura-rw.vercel.app";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -22,27 +32,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   // Agent profiles are the intended organic entry point for the "commissionaire
-  // + WhatsApp" sharing loop, so they belong in the sitemap. Suspended accounts
-  // are excluded because /agent/[slug] 404s for them.
+  // + WhatsApp" sharing loop, so they belong in the sitemap.
+  //
+  // Deliberately unfiltered and filtered in JS: a `not: null` / relation
+  // predicate here silently matched nothing, and an empty agent list is the
+  // exact failure this is supposed to prevent, so it must not be swallowed.
   let agentPages: MetadataRoute.Sitemap = [];
   try {
-    const agents = await prisma.profile.findMany({
-      where: { slug: { not: null }, user: { isActive: true } },
-      select: { slug: true, updatedAt: true },
+    const profiles = await prisma.profile.findMany({
+      select: { slug: true, updatedAt: true, user: { select: { isActive: true } } },
+      orderBy: { slug: "asc" },
       take: 2000,
     });
-    agentPages = agents
-      .filter((a): a is typeof a & { slug: string } => !!a.slug)
-      .map((a) => ({
-        url: `${BASE_URL}/agent/${a.slug}`,
-        lastModified: a.updatedAt,
-        changeFrequency: "weekly",
+    agentPages = profiles
+      .filter((p) => !!p.slug && p.user.isActive)
+      .map((p) => ({
+        url: `${BASE_URL}/agent/${p.slug}`,
+        lastModified: p.updatedAt,
+        changeFrequency: "weekly" as const,
         priority: 0.6,
       }));
-  } catch {
-    // A database hiccup must not take the whole sitemap down; the static
-    // entries still matter more than the agent pages.
-    agentPages = [];
+  } catch (error) {
+    // Logged rather than swallowed: a silent empty list here means agent
+    // profiles quietly drop out of search results with no signal.
+    console.error("Sitemap: could not build agent profile entries:", error);
   }
 
   return [...staticPages, ...agentPages];
