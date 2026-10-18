@@ -171,7 +171,7 @@ useEffect(() => {
           </p>
 
           {/* The one glass surface on the page. Everything below it is solid. */}
-          <div className="glass-panel mt-9 max-w-4xl p-3 sm:p-4">
+          <div className="glass-panel-strong mt-9 max-w-4xl p-3 sm:p-4">
             <div className="flex gap-1 px-1 sm:gap-2 mb-3">
               {(["rent", "buy", "land"] as Tab[]).map((k) => (
                 <button

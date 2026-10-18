@@ -217,6 +217,17 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: var(--elev-4);
 }
 
+/* Opaque-leaning variant for glass that hosts dense interactive controls
+   (e.g. the hero search card): dark tab text stays legible over the photo. */
+.glass-panel-strong {
+  background: var(--glass-light-strong);
+  backdrop-filter: blur(var(--blur-glass)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--blur-glass)) saturate(140%);
+  border: 1px solid var(--glass-border-light);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--elev-4);
+}
+
 /* For glass on a dark field, e.g. controls floating over a map or hero image. */
 .glass-panel-dark {
   background: var(--glass-dark);
