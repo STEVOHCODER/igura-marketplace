@@ -96,3 +96,15 @@ export const DISTRICT_CENTROIDS: Record<string, { lat: number; lng: number }> = 
   Rusizi: { lat: -2.4833, lng: 28.9167 },
   Rutsiro: { lat: -1.9333, lng: 29.3167 },
 };
+
+/**
+ * All 30 Rwandan districts, alphabetical.
+ *
+ * The database's location hierarchy is only seeded with the districts that
+ * happen to have listings, so a district list built from it is partial. This
+ * is the complete, canonical set — keep it as the single source of truth for
+ * any district dropdown or search suggestion.
+ */
+export const RWANDA_DISTRICTS: string[] = Object.keys(DISTRICT_CENTROIDS).sort((a, b) =>
+  a.localeCompare(b)
+);

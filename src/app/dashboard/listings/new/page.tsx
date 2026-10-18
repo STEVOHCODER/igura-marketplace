@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
 import { useI18n } from "@/i18n";
+import { RWANDA_DISTRICTS } from "@/lib/geo";
 
 const STEPS = ["Type", "Images", "Details", "Location", "Coordinates", "Keywords", "Preview"];
 
@@ -228,7 +229,7 @@ const MAX_VIDEO_SIZE = 60 * 1024 * 1024;
     }
   };
 
-  const districts = ["Gasabo","Kicukiro","Nyarugenge","Huye","Rubavu","Musanze","Nyagatare","Rwamagana","Muhanga","Kayonza","Gicumbi","Nyanza","Bugesera"];
+  const districts = RWANDA_DISTRICTS;
 
   return (
     <div className="max-w-3xl mx-auto">

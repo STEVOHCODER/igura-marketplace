@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { MapPin } from "lucide-react";
 import { PublicLayout } from "@/components/layout/public-layout";
+import { RWANDA_DISTRICTS } from "@/lib/geo";
 
 /** Explore Rwanda: every district with a live listing count. Built on the
  *  existing location hierarchy — no new data needed. */
@@ -15,7 +16,9 @@ export default function LocationsPage() {
     fetch("/api/locations?country=Rwanda")
       .then(r => r.json())
       .then(async (d) => {
-        const names: string[] = (d?.locations || []).map((l: any) => l.name);
+        const names: string[] = Array.from(
+          new Set([...(d?.locations || []).map((l: any) => l.name), ...RWANDA_DISTRICTS]),
+        ).sort((a, b) => a.localeCompare(b));
         setDistricts(names);
         setLoading(false);
         names.forEach((name) => {

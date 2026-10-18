@@ -10,6 +10,7 @@ import { CompareTray } from "@/components/ui/compare-tray";
 import { AiSearchBox } from "@/components/ui/ai-search-box";
 import { HeroBackdrop } from "@/components/ui/hero-backdrop";
 import { useI18n } from "@/i18n";
+import { RWANDA_DISTRICTS } from "@/lib/geo";
 import { formatPrice } from "@/lib/utils";
 
 type Tab = "rent" | "buy" | "land";
@@ -19,8 +20,6 @@ const TAB_TARGET: Record<Tab, { path: string; marketplace: string }> = {
   buy: { path: "/sell/houses", marketplace: "House Selling VVIP" },
   land: { path: "/plots", marketplace: "Plot Selling VIP" },
 };
-
-const POPULAR_DISTRICTS = ["Gasabo", "Kicukiro", "Nyarugenge", "Bugesera", "Musanze", "Rubavu"];
 
 // Kigali's urban divisions live in the *sector* field on listings
 // (districts read "Kigali City"), while upcountry areas match the district
@@ -66,7 +65,9 @@ export default function HomePage() {
       .then((r) => r.json())
       .then((d) => {
         if (!d || d.error) return;
-        setDistricts(d.districts || []);
+        // The DB hierarchy only knows districts that already have listings, so
+        // union in the canonical full set to keep the search list complete.
+        setDistricts(Array.from(new Set([...(d.districts || []), ...RWANDA_DISTRICTS])));
         setTypes(d.propertyTypes || []);
         setFeatured(d.featured || []);
         setRecent(d.recent || []);

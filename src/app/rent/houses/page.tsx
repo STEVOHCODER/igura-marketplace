@@ -9,15 +9,9 @@ import { Pagination } from "@/components/ui/pagination";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { RWANDA_DISTRICTS } from "@/lib/geo";
   import { useI18n } from "@/i18n";
   import Link from "next/link";
-
-const RWANDA_DISTRICTS = [
-  "Gasabo","Kicukiro","Nyarugenge","Huye","Rubavu","Musanze","Nyagatare",
-  "Rwamagana","Muhanga","Kayonza","Gicumbi","Nyanza","Bugesera","Nyamasheke",
-  "Rulindo","Burera","Gakenke","Musanze","Ngoma","Kirehe","Gatsibo",
-  "Nyamagabe","Nyaruguru","Ruhango","Kamonyi","Muhanga","Nyarabagoyi"
-];
 
 export default function HouseSearchPage() {
   const { t } = useI18n();
