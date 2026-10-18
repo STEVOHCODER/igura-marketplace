@@ -105,7 +105,11 @@ export async function uploadPropertyImage(
     });
     return { url: result.secure_url as string, publicId: result.public_id as string };
   } catch (cloudinaryError) {
-    console.error("Cloudinary image upload failed; trying R2 fallback:", cloudinaryError);
+    console.error("Cloudinary image upload failed:", cloudinaryError);
+    // Only fall back to R2 when it is actually configured. The fallback used to
+    // run unconditionally, so on a Cloudinary failure it threw "Cloudflare R2
+    // is not configured" instead of the real reason, masking the diagnosis.
+    if (!getR2Client()) throw cloudinaryError;
     // The extension matters: without one R2 serves the object with no inferred
     // type and some clients refuse to render it.
     return uploadToR2(buffer, `properties/${propertyId}/images/${filename}`, contentType);
@@ -164,7 +168,10 @@ export async function uploadPropertyVideo(
       durationSeconds: typeof result.duration === "number" ? Math.round(result.duration) : null,
     };
   } catch (cloudinaryError) {
-    console.error("Cloudinary video upload failed; trying R2 fallback:", cloudinaryError);
+    console.error("Cloudinary video upload failed:", cloudinaryError);
+    // Only fall back to R2 when it is actually configured; otherwise rethrow the
+    // real Cloudinary error rather than a misleading "R2 is not configured".
+    if (!getR2Client()) throw cloudinaryError;
     const uploaded = await uploadToR2(
       buffer,
       `properties/${propertyId}/video/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`,
