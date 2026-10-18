@@ -1,7 +1,7 @@
 import { v2 as cloudinary, UploadApiOptions } from "cloudinary";
 import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { Readable } from "stream";
-import { toOptimisedImage } from "./image-transform";
+import type { TransformedImage } from "./image-transform";
 
 /**
  * All three values are required. There is no fallback — an upload attempted
@@ -82,16 +82,10 @@ export interface CloudinaryUploadResult {
 }
 
 export async function uploadPropertyImage(
-  file: File,
+  optimised: TransformedImage,
   propertyId: string,
   sortOrder: number
 ): Promise<CloudinaryUploadResult> {
-  const original = Buffer.from(await file.arrayBuffer());
-
-  // The only bytes that reach storage. `original` stays in memory and is
-  // discarded when this function returns - the bucket gets one object per
-  // image, not an original alongside a compressed copy.
-  const optimised = await toOptimisedImage(original);
   const buffer = optimised.data;
   const contentType = optimised.contentType;
 

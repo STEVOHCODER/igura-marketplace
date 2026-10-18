@@ -80,7 +80,7 @@ export async function POST(
     }
 
     const sortOrder = property.images.length;
-    const { url, publicId } = await uploadPropertyImage(file, id, sortOrder);
+    const { url, publicId } = await uploadPropertyImage(optimised, id, sortOrder);
 
     const image = await prisma.propertyImage.create({
       data: {

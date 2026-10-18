@@ -99,6 +99,8 @@ const MAX_VIDEO_SIZE = 60 * 1024 * 1024;
     if (!form.locationDistrict) { toast("District is required", "error"); return; }
 
     setSaving(true);
+    let imageUploadFailed = false;
+    let videoUploadFailed = false;
     try {
       const body: any = {
         title: form.title, description: form.description,
@@ -140,15 +142,55 @@ const MAX_VIDEO_SIZE = 60 * 1024 * 1024;
         const fd = new FormData();
         fd.append("file", newImages[i]);
         fd.append("sortOrder", (existingImages.length + i).toString());
-        await fetch(`/api/properties/${id}/images`, { method: "POST", body: fd });
+        try {
+          const imgRes = await fetch(`/api/properties/${id}/images`, { method: "POST", body: fd });
+          if (!imgRes.ok) {
+            imageUploadFailed = true;
+            let detail = "";
+            try {
+              const d = await imgRes.json();
+              detail = d?.error || d?.message || "";
+            } catch { /* ignore */ }
+            toast(
+              detail
+                ? `Image ${i + 1} failed to upload: ${detail}`
+                : `Image ${i + 1} failed to upload`,
+              "error",
+            );
+          }
+        } catch {
+          imageUploadFailed = true;
+          toast(`Image ${i + 1} failed to upload (network error)`, "error");
+        }
       }
 
       if (newVideo) {
         const fd = new FormData();
         fd.append("file", newVideo);
         if (newVideoDuration != null) fd.append("duration", String(newVideoDuration));
-        const vRes = await fetch(`/api/properties/${id}/video`, { method: "POST", body: fd });
-        if (!vRes.ok) toast(t("edit.videoUploadFailed"), "error");
+        try {
+          const vRes = await fetch(`/api/properties/${id}/video`, { method: "POST", body: fd });
+          if (!vRes.ok) {
+            videoUploadFailed = true;
+            let detail = "";
+            try {
+              const d = await vRes.json();
+              detail = d?.error || d?.message || "";
+            } catch { /* ignore */ }
+            toast(
+              detail ? `${t("edit.videoUploadFailed")}: ${detail}` : t("edit.videoUploadFailed"),
+              "error",
+            );
+          }
+        } catch {
+          videoUploadFailed = true;
+          toast(`${t("edit.videoUploadFailed")} (network error)`, "error");
+        }
+      }
+
+      if (imageUploadFailed || videoUploadFailed) {
+        toast(t("edit.partialSuccess") || "Details saved, but some media failed to upload", "error");
+        return;
       }
 
       toast("Listing updated!", "success");
@@ -168,7 +210,13 @@ const MAX_VIDEO_SIZE = 60 * 1024 * 1024;
     const files = Array.from(e.target.files || []);
     const total = existingImages.length + newImages.length + files.length;
     if (total > 3) { toast("Maximum 3 images", "error"); return; }
-    const valid = files.filter(f => f.size <= 5 * 1024 * 1024 && ["image/jpeg","image/png","image/webp"].includes(f.type));
+    const valid: File[] = [];
+    for (const f of files) {
+      if (f.size > 5 * 1024 * 1024) { toast(`"${f.name}" is too large (max 5MB)`, "error"); continue; }
+      if (!["image/jpeg","image/png","image/webp"].includes(f.type)) { toast(`"${f.name}" is not a supported image type`, "error"); continue; }
+      valid.push(f);
+    }
+    if (valid.length === 0) return;
     setNewImages(prev => [...prev, ...valid].slice(0, 3));
     setNewPreviews(prev => [...prev, ...valid.map(f => URL.createObjectURL(f))]);
   };
